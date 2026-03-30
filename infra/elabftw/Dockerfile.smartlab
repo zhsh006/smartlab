@@ -1,0 +1,39 @@
+FROM elabftw/elabimg:latest
+
+WORKDIR /elabftw
+
+COPY upstream/elabftw/src/Controllers/ProjectsController.php /elabftw/src/Controllers/ProjectsController.php
+COPY upstream/elabftw/src/Controllers/SamplesController.php /elabftw/src/Controllers/SamplesController.php
+COPY upstream/elabftw/src/Controllers/ReviewsController.php /elabftw/src/Controllers/ReviewsController.php
+COPY upstream/elabftw/src/Controllers/ExperimentsController.php /elabftw/src/Controllers/ExperimentsController.php
+COPY upstream/elabftw/src/Controllers/InventoryController.php /elabftw/src/Controllers/InventoryController.php
+COPY upstream/elabftw/src/Controllers/DatabaseController.php /elabftw/src/Controllers/DatabaseController.php
+COPY upstream/elabftw/src/Controllers/DashboardController.php /elabftw/src/Controllers/DashboardController.php
+
+COPY upstream/elabftw/src/Models/SmartlabProjects.php /elabftw/src/Models/SmartlabProjects.php
+COPY upstream/elabftw/src/Models/SmartlabSamples.php /elabftw/src/Models/SmartlabSamples.php
+COPY upstream/elabftw/src/Models/SmartlabReviews.php /elabftw/src/Models/SmartlabReviews.php
+COPY upstream/elabftw/src/Models/SmartlabExperiments.php /elabftw/src/Models/SmartlabExperiments.php
+COPY upstream/elabftw/src/Models/SmartlabInventory.php /elabftw/src/Models/SmartlabInventory.php
+COPY upstream/elabftw/src/Models/SmartlabItems.php /elabftw/src/Models/SmartlabItems.php
+COPY upstream/elabftw/src/Models/SmartlabDashboard.php /elabftw/src/Models/SmartlabDashboard.php
+COPY upstream/elabftw/src/Models/SmartlabScheduler.php /elabftw/src/Models/SmartlabScheduler.php
+
+COPY upstream/elabftw/src/templates/head.html /elabftw/src/templates/head.html
+COPY upstream/elabftw/src/templates/footer.html /elabftw/src/templates/footer.html
+COPY upstream/elabftw/src/templates/dashboard.html /elabftw/src/templates/dashboard.html
+COPY upstream/elabftw/src/templates/projects.html /elabftw/src/templates/projects.html
+COPY upstream/elabftw/src/templates/samples.html /elabftw/src/templates/samples.html
+COPY upstream/elabftw/src/templates/reviews.html /elabftw/src/templates/reviews.html
+COPY upstream/elabftw/src/templates/view.html /elabftw/src/templates/view.html
+COPY upstream/elabftw/src/templates/show-item.html /elabftw/src/templates/show-item.html
+COPY upstream/elabftw/src/templates/show-item-table.html /elabftw/src/templates/show-item-table.html
+COPY upstream/elabftw/src/templates/inventory.html /elabftw/src/templates/inventory.html
+COPY upstream/elabftw/src/templates/scheduler.html /elabftw/src/templates/scheduler.html
+
+COPY upstream/elabftw/web/projects.php /elabftw/web/projects.php
+COPY upstream/elabftw/web/samples.php /elabftw/web/samples.php
+COPY upstream/elabftw/web/reviews.php /elabftw/web/reviews.php
+COPY upstream/elabftw/web/scheduler.php /elabftw/web/scheduler.php
+
+RUN /usr/bin/php84 -d memory_limit=256M -d open_basedir='' /usr/local/bin/composer dump-autoload --optimize --classmap-authoritative --no-dev

@@ -1,0 +1,392 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  PI
+  MENTOR
+  STUDENT
+  TECHNICIAN
+}
+
+enum ProjectStatus {
+  ACTIVE
+  PAUSED
+  CLOSED
+}
+
+enum ExperimentStatus {
+  DRAFT
+  SUBMITTED
+  NEEDS_REVISION
+  APPROVED
+  ARCHIVED
+}
+
+enum ReviewStatus {
+  SUBMITTED
+  NEEDS_REVISION
+  APPROVED
+}
+
+enum EntityType {
+  SAMPLE
+  MATERIAL
+  MATERIAL_LOT
+  INSTRUMENT
+  FILE
+  KNOWLEDGE_DOCUMENT
+}
+
+enum SampleStatus {
+  ACTIVE
+  CONSUMED
+  ARCHIVED
+  DESTROYED
+}
+
+enum InventoryTxnType {
+  INBOUND
+  OUTBOUND
+  ADJUSTMENT
+  TRANSFER
+  DISCARD
+}
+
+enum InstrumentStatus {
+  AVAILABLE
+  IN_USE
+  MAINTENANCE
+  RETIRED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum WorkflowStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+enum ApprovalDecision {
+  APPROVED
+  REJECTED
+  RETURNED
+}
+
+enum AnalysisStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+enum ExternalSystem {
+  ELABFTW
+  INVENTREE
+}
+
+model User {
+  id         String          @id @default(cuid())
+  username   String          @unique
+  name       String
+  email      String?         @unique
+  role       UserRole
+  isActive   Boolean         @default(true)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  memberships ProjectMember[]
+  approvals  Approval[]
+  auditEvents AuditEvent[]
+  reviews    ExperimentReview[]
+}
+
+model Project {
+  id          String          @id @default(cuid())
+  code        String          @unique
+  name        String
+  description String?
+  status      ProjectStatus   @default(ACTIVE)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  members     ProjectMember[]
+  experiments Experiment[]
+  samples     Sample[]
+  materials   Material[]
+  instruments Instrument[]
+  workflows   WorkflowRun[]
+  documents   KnowledgeDocument[]
+}
+
+model ProjectMember {
+  id          String   @id @default(cuid())
+  projectId   String
+  userId      String
+  projectRole String
+  joinedAt    DateTime @default(now())
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+}
+
+model Experiment {
+  id           String               @id @default(cuid())
+  projectId    String
+  title        String
+  summary      String?
+  sourceSystem ExternalSystem?
+  sourceRef    String?
+  authorName   String?
+  performedAt  DateTime?
+  status       ExperimentStatus     @default(DRAFT)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  project      Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  links        ExperimentLink[]
+  reviews      ExperimentReview[]
+  revisions    ExperimentRevision[]
+  analysisRuns AnalysisRun[]
+}
+
+model ExperimentLink {
+  id           String     @id @default(cuid())
+  experimentId String
+  entityType   EntityType
+  entityId     String
+  label        String?
+  createdAt    DateTime   @default(now())
+  experiment   Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  @@index([entityType, entityId])
+}
+
+model ExperimentReview {
+  id           String       @id @default(cuid())
+  experimentId String
+  reviewerId   String
+  status       ReviewStatus
+  comment      String?
+  createdAt    DateTime     @default(now())
+  experiment   Experiment   @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  reviewer     User         @relation(fields: [reviewerId], references: [id], onDelete: Restrict)
+}
+
+model ExperimentRevision {
+  id           String     @id @default(cuid())
+  experimentId String
+  action       String
+  payload      String?
+  createdAt    DateTime   @default(now())
+  experiment   Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+}
+
+model Sample {
+  id           String         @id @default(cuid())
+  projectId    String
+  code         String         @unique
+  name         String
+  sampleType   String
+  status       SampleStatus   @default(ACTIVE)
+  sourceSystem ExternalSystem?
+  sourceRef    String?
+  metadataJson String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  events       SampleEvent[]
+}
+
+model SampleEvent {
+  id         String   @id @default(cuid())
+  sampleId   String
+  eventType  String
+  quantity   Float?
+  unit       String?
+  note       String?
+  occurredAt DateTime
+  createdAt  DateTime @default(now())
+  sample     Sample   @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+}
+
+model Material {
+  id           String         @id @default(cuid())
+  projectId    String?
+  code         String         @unique
+  name         String
+  category     String
+  unit         String?
+  sourceSystem ExternalSystem?
+  sourceRef    String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  project      Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  lots         MaterialLot[]
+}
+
+model MaterialLot {
+  id           String                 @id @default(cuid())
+  materialId   String
+  lotNo        String
+  expiresAt    DateTime?
+  quantity     Float?
+  location     String?
+  sourceSystem ExternalSystem?
+  sourceRef    String?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  material     Material               @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  transactions InventoryTransaction[]
+
+  @@unique([materialId, lotNo])
+}
+
+model InventoryTransaction {
+  id         String           @id @default(cuid())
+  lotId      String
+  type       InventoryTxnType
+  quantity   Float
+  note       String?
+  occurredAt DateTime
+  createdAt  DateTime         @default(now())
+  lot        MaterialLot      @relation(fields: [lotId], references: [id], onDelete: Cascade)
+}
+
+model Instrument {
+  id           String           @id @default(cuid())
+  projectId    String?
+  code         String           @unique
+  name         String
+  category     String?
+  status       InstrumentStatus @default(AVAILABLE)
+  location     String?
+  sourceSystem ExternalSystem?
+  sourceRef    String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  project      Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  bookings     InstrumentBooking[]
+}
+
+model InstrumentBooking {
+  id           String        @id @default(cuid())
+  instrumentId String
+  title        String
+  userId       String?
+  startAt      DateTime
+  endAt        DateTime
+  status       BookingStatus @default(PENDING)
+  createdAt    DateTime      @default(now())
+  instrument   Instrument    @relation(fields: [instrumentId], references: [id], onDelete: Cascade)
+}
+
+model WorkflowRun {
+  id           String         @id @default(cuid())
+  projectId    String
+  workflowType String
+  entityType   EntityType?
+  entityId     String?
+  status       WorkflowStatus @default(PENDING)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks        WorkflowTask[]
+}
+
+model WorkflowTask {
+  id            String         @id @default(cuid())
+  workflowRunId String
+  stepKey       String
+  assigneeId    String?
+  status        WorkflowStatus @default(PENDING)
+  dueAt         DateTime?
+  comment       String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  workflowRun   WorkflowRun    @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+}
+
+model Approval {
+  id            String           @id @default(cuid())
+  workflowRunId String?
+  approverId    String
+  entityType    EntityType
+  entityId      String
+  decision      ApprovalDecision
+  comment       String?
+  createdAt     DateTime         @default(now())
+  approver      User             @relation(fields: [approverId], references: [id], onDelete: Restrict)
+}
+
+model KnowledgeDocument {
+  id           String         @id @default(cuid())
+  projectId    String?
+  title        String
+  docType      String
+  content      String
+  sourceSystem ExternalSystem?
+  sourceRef    String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  project      Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+}
+
+model AnalysisRun {
+  id           String         @id @default(cuid())
+  experimentId String?
+  assayType    String
+  status       AnalysisStatus @default(PENDING)
+  inputFileRef String?
+  outputJson   String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  experiment   Experiment?    @relation(fields: [experimentId], references: [id], onDelete: SetNull)
+}
+
+model ExternalRecord {
+  id         String         @id @default(cuid())
+  system     ExternalSystem
+  localType  String
+  localId    String
+  externalId String
+  externalUrl String?
+  syncStatus String?
+  syncedAt   DateTime?
+  createdAt  DateTime       @default(now())
+
+  @@unique([system, localType, localId])
+  @@index([system, externalId])
+}
+
+model AuditEvent {
+  id         String   @id @default(cuid())
+  actorId    String?
+  eventType  String
+  entityType String
+  entityId   String
+  payload    String?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId, createdAt])
+}
