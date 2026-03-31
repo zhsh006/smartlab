@@ -1,77 +1,57 @@
 # SmartLab v3
 
-SmartLab v3 现在基于 V2 基座继续采用 Route B：
+这个仓库现在是一个以 `eLabFTW` 为代码基座的 SmartLab 项目。
+代码、部署、数据库扩展和工具脚本已经按长期维护结构重新排列，不再保留迁移期的门户壳层。
 
-- 以 `eLabFTW` 作为 ELN / 审计 / 权限 / 签名底座
-- 在其代码和数据模型上继续扩展 `Project / Sample / Inventory / Instrument / Review / Knowledge / AI`
-- 最终交付一套统一系统，而不是外接 eLabFTW 的门户
+## 目录结构
 
-当前仓库里已有的 Next.js 工作台和连接器代码，会被视为迁移期原型，而不是最终产品边界。
+- [`apps/elabftw`](/home/r730lab/smartlab-v3/apps/elabftw)
+  eLabFTW 源码基座和 SmartLab 对其的页面、控制器、模型定制。
+- [`deploy/local`](/home/r730lab/smartlab-v3/deploy/local)
+  本地 Docker 部署文件，包括 compose、Dockerfile 和本地部署 env。
+- [`database/elabftw`](/home/r730lab/smartlab-v3/database/elabftw)
+  直接扩展 eLabFTW MySQL 的 SQL 文件。
+- [`tools/elabftw`](/home/r730lab/smartlab-v3/tools/elabftw)
+  针对 eLabFTW 数据库执行扩展 schema 和 seed 的辅助脚本。
+- [`docs/architecture`](/home/r730lab/smartlab-v3/docs/architecture)
+  eLabFTW 基座保留范围、重构方向和 schema 草案文档。
 
-## 当前已落地
+## 核心原则
 
-- Next.js 工作台壳层
-- 项目 / 实验 / 审核 / 样本 / 库存 / 仪器 / 知识库入口页
-- Prisma 统一科研对象模型
-- SQLite 本地开发库
-- eLabFTW / InvenTree 连接器骨架
-- eLabFTW 实验同步接口占位
-- demo seed 数据
-- 当前目录内可运行的一套全新 eLabFTW 实例
-
-## 当前策略
-
-从现在开始，开发分两条线并行：
-
-1. `fork-core`
-保留并研究 eLabFTW 的核心能力：
-- 实验记录
-- 审计日志
-- 历史版本
-- 权限
-- 电子签名
-- 附件
-
-2. `smartlab-modules`
-在底座上新增：
-- 项目中枢
-- 样本实体
-- 库存与批次
-- 仪器与预约
-- 导师审核
-- 知识沉淀
-- 分析与 AI
+- 业务实现优先落在 eLabFTW 本体代码上，而不是外挂门户。
+- 本地运行和交付都围绕 Docker 化 eLabFTW 实例组织。
+- 项目、样本、审核等能力通过扩展 eLabFTW 页面、控制器和数据库实现。
 
 ## 文档
 
-- 路线说明见 [`docs/route-b.md`](/home/r730lab/smartlab-v3/docs/route-b.md)
-- 模块边界见 [`docs/module-boundaries.md`](/home/r730lab/smartlab-v3/docs/module-boundaries.md)
-- 本地 eLabFTW 说明见 [`infra/elabftw/README.md`](/home/r730lab/smartlab-v3/infra/elabftw/README.md)
+- eLabFTW 核心保留/改造地图见 [`docs/architecture/elabftw-core-map.md`](/home/r730lab/smartlab-v3/docs/architecture/elabftw-core-map.md)
+- SmartLab 扩展表草案见 [`docs/architecture/phase1-schema-draft.sql`](/home/r730lab/smartlab-v3/docs/architecture/phase1-schema-draft.sql)
+- 本地 eLabFTW 部署说明见 [`deploy/local/README.md`](/home/r730lab/smartlab-v3/deploy/local/README.md)
 
 ## 本地运行
 
-1. SmartLab 原型壳层
-
 ```bash
 npm install
-npm run prisma:generate
-npm run prisma:push
-npm run db:seed
-npm run dev
+npm run elab:up
 ```
-
-打开 `http://localhost:3000`
-
-2. 当前目录内的新 eLabFTW 实例
 
 地址：`https://127.0.0.1:3158`
 
-这个实例当前主要用于两件事：
-- 研究和确认 eLabFTW 真实能力边界
-- 在迁移期验证数据模型与实验流
+如果需要把 SmartLab 扩展表打进 eLabFTW MySQL：
+
+```bash
+npm run elab:phase1:apply
+npm run elab:phase1:seed
+```
+
+停止容器：
+
+```bash
+npm run elab:down
+```
 
 ## 开发说明
 
-- 现有连接器仍保留，但后续只作为迁移工具，不作为最终架构核心
-- 当前开发库使用 SQLite，便于本机快速跑通
-- 进入正式改造阶段后，会逐步转向以 eLabFTW 代码底座为中心的仓库布局
+- 所有页面与功能改造都应优先落在 [`apps/elabftw`](/home/r730lab/smartlab-v3/apps/elabftw)
+- 容器镜像通过 [`deploy/local/Dockerfile`](/home/r730lab/smartlab-v3/deploy/local/Dockerfile) 从本仓库源码构建
+- SmartLab 的数据库扩展统一放在 [`database/elabftw`](/home/r730lab/smartlab-v3/database/elabftw)
