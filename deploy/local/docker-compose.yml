@@ -1,9 +1,9 @@
-name: smartlab-v3-elabftw
+name: smartlab-v4-elabftw
 
 services:
   mysql:
     image: mysql:8.4
-    container_name: smartlab-v3-elabftw-mysql
+    container_name: smartlab-v4-elabftw-mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
@@ -27,7 +27,7 @@ services:
     build:
       context: ../..
       dockerfile: deploy/local/Dockerfile
-    container_name: smartlab-v3-elabftw
+    container_name: smartlab-v4-elabftw
     restart: unless-stopped
     depends_on:
       mysql:
@@ -46,5 +46,23 @@ services:
       DISABLE_HTTPS: "false"
       AUTO_DB_UPDATE: "true"
       PHP_TIMEZONE: "${ELABFTW_TIMEZONE}"
+      SMARTLAB_IMAGEJ_URL: "${SMARTLAB_IMAGEJ_INTERNAL_URL}"
     volumes:
       - ../../.local/elabftw/uploads:/elabftw/uploads
+
+  imagej-worker:
+    profiles:
+      - imagej
+    build:
+      context: ../..
+      dockerfile: deploy/imagej-worker/Dockerfile
+    container_name: smartlab-v4-imagej-worker
+    restart: unless-stopped
+    environment:
+      SMARTLAB_IMAGEJ_PORT: "${SMARTLAB_IMAGEJ_PORT}"
+    ports:
+      - "${SMARTLAB_IMAGEJ_HOST_PORT}:${SMARTLAB_IMAGEJ_PORT}"
+    volumes:
+      - ../../.local/imagej/plugins:/opt/Fiji/plugins/SmartLab
+      - ../../.local/imagej/macros:/opt/Fiji/macros/SmartLab
+      - ../../.local/imagej/data:/work/data

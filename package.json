@@ -1,9 +1,10 @@
 {
-  "name": "smartlab-v3",
+  "name": "smartlab-v4",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "elab:up": "docker compose -f deploy/local/docker-compose.yml --env-file deploy/local/.env up -d --build",
+    "elab:imagej:up": "docker compose -f deploy/local/docker-compose.yml --env-file deploy/local/.env --profile imagej up -d --build imagej-worker",
     "elab:down": "docker compose -f deploy/local/docker-compose.yml --env-file deploy/local/.env down",
     "elab:logs": "docker compose -f deploy/local/docker-compose.yml --env-file deploy/local/.env logs -f",
     "elab:phase1:apply": "tsx tools/elabftw/apply-phase1.ts",
