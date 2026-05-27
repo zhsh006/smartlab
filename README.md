@@ -1,5 +1,7 @@
 # SmartLab v4
 
+项目仓库创建时间记录见 [`PROJECT_CREATED_2025-06-02.md`](./PROJECT_CREATED_2025-06-02.md)。
+
 这个仓库现在是一个以 `eLabFTW` 为代码基座的 SmartLab 项目。
 代码、部署、数据库扩展和工具脚本已经按长期维护结构重新排列，不再保留迁移期的门户壳层。
 
