@@ -265,14 +265,17 @@
 
       {% elseif smartlabPatentView == 'records' %}
         <div class='smartlab-crumb'><a href='smartlab-overview.php'><i class='fas fa-angle-left mr-1'></i>返回实验记录</a></div>
+        <form method='post' action='smartlab-records.php'>
+        {{ App.Session.get('csrf')|csrf }}
+        <input type='hidden' name='smartlab_action' value='create_experiment'>
         <section class='sl-card mb-3'>
           <h3>基本信息</h3>
           <div class='sl-grid cols-3'>
-            <label><span class='text-danger'>*</span> 实验名称<input class='form-control mt-1' value='qPCR检测 IFN-β 基因在病毒感染细胞中的表达'></label>
-            <label>实验类型<select class='form-control mt-1'><option>qPCR实验</option><option>IF实验</option></select></label>
-            <label>实验日期<input class='form-control mt-1' value='2025-05-22'></label>
-            <label>实验人员<div class='sl-field mt-1'><span class='sl-badge'>张老师 ×</span> <span class='sl-badge'>李明 ×</span> <span class='sl-badge'>王雪 ×</span></div></label>
-            <label>课题编号<input class='form-control mt-1' value='IF-20250520-07'></label>
+            <label><span class='text-danger'>*</span> 实验名称<input class='form-control mt-1' name='experiment_title' placeholder='输入实验名称' required></label>
+            <label>实验类型<select class='form-control mt-1' name='experiment_type'><option>qPCR实验</option><option>IF实验</option><option>ELISA实验</option><option>WB实验</option><option>流式实验</option><option>其他</option></select></label>
+            <label>实验日期<input class='form-control mt-1' name='experiment_date' type='date' value='{{ smartlabPatentToday }}'></label>
+            <label>实验人员<div class='sl-field mt-1'><span class='sl-badge'>{{ smartlabPatentUserName }}</span></div></label>
+            <label>课题编号<input class='form-control mt-1' name='project_code' placeholder='可选：项目/课题编号'></label>
           </div>
         </section>
         <section class='sl-card mb-3'>
@@ -280,12 +283,12 @@
           <table class='sl-table'>
             <thead><tr><th>样本编号</th><th>样本名称</th><th>样本类型</th><th>来源</th><th>处理方式</th><th>备注</th><th>操作</th></tr></thead>
             <tbody>
-              {% for row in [['S-20250522-001','Mock 对照','细胞样本','HEK293T','未感染','-'],['S-20250522-002','病毒感染 6h','细胞样本','HEK293T','病毒感染(MOI=1)','6 小时'],['S-20250522-003','病毒感染 24h','细胞样本','HEK293T','病毒感染(MOI=1)','24 小时']] %}
-                <tr><td>{{ row[0] }}</td><td>{{ row[1] }}</td><td><select class='form-control form-control-sm'><option>{{ row[2] }}</option></select></td><td><input class='form-control form-control-sm' value='{{ row[3] }}'></td><td><input class='form-control form-control-sm' value='{{ row[4] }}'></td><td>{{ row[5] }}</td><td><i class='far fa-trash-can'></i></td></tr>
+              {% for i in 1..3 %}
+                <tr><td><input class='form-control form-control-sm' name='sample_code[]' placeholder='S-{{ i }}'></td><td><input class='form-control form-control-sm' name='sample_name[]' placeholder='样本名称'></td><td><select class='form-control form-control-sm' name='sample_type[]'><option>细胞样本</option><option>组织样本</option><option>血清/血浆</option><option>核酸样本</option><option>其他</option></select></td><td><input class='form-control form-control-sm' name='sample_source[]' placeholder='来源'></td><td><input class='form-control form-control-sm' name='sample_treatment[]' placeholder='处理方式'></td><td><input class='form-control form-control-sm' name='sample_note[]' placeholder='备注'></td><td><i class='far fa-trash-can text-muted'></i></td></tr>
               {% endfor %}
             </tbody>
           </table>
-          <button class='btn btn-outline-primary btn-sm mt-2'><i class='fas fa-plus mr-1'></i>添加样本</button>
+          <div class='sl-muted mt-2'>先保存 3 行样本到实验正文；后续阶段会把样本写入 SmartLab 样本表并支持动态增删行。</div>
         </section>
         <div class='sl-grid layout-3-2 mb-3'>
         <section class='sl-card'>
@@ -297,43 +300,34 @@
               {% endfor %}
             </div>
             <div>
-              <label>步骤描述<textarea class='form-control' rows='5'>使用TRIzol试剂提取总RNA，按照说明书操作；提取后检测RNA浓度与纯度（NanoDrop），要求 A260/280 = 1.8–2.1。</textarea></label>
-              <button class='btn btn-outline-primary btn-sm'><i class='fas fa-plus mr-1'></i>添加步骤</button>
+              <label>步骤描述<textarea class='form-control' name='step_body[]' rows='5' placeholder='填写当前步骤的操作过程、参数和观察结果'></textarea></label>
+              <textarea class='form-control mt-2' name='step_body[]' rows='3' placeholder='可选：补充第二个步骤'></textarea>
             </div>
           </div>
         </section>
         <section class='sl-card'>
           <h3>仪器参数</h3>
-          <div class='sl-grid cols-2'>
-            <input class='form-control' value='20 μL'><input class='form-control' value='95°C, 30 s'>
-            <input class='form-control' value='40'><input class='form-control' value='95°C, 5 s'>
-            <input class='form-control' value='60°C, 30 s'><input class='form-control' value='65–95°C, 0.5°C/step'>
-            <input class='form-control' value='Applied Biosystems QuantStudio 5'><input class='form-control' value='IFN-β / β-actin'>
-          </div>
+          <textarea class='form-control' name='instrument_params' rows='8' placeholder='记录仪器型号、运行程序、温度、循环数、检测通道、曝光参数等'></textarea>
         </section>
         </div>
         <div class='sl-grid layout-3-2'>
           <section class='sl-card'>
             <h3>试剂耗材</h3>
             <table class='sl-table'><thead><tr><th>名称</th><th>品牌/货号</th><th>规格</th><th>批号</th><th>用量</th><th>单位</th><th>操作</th></tr></thead><tbody>
-              {% for row in [['TRIzol Reagent','Invitrogen / 15596018','100 mL','2345678','1','mL'],['PrimeScript RT Reagent Kit','Takara / RR047A','50 rxn','B12345','1','kit'],['TB Green Premix Ex Taq II','Takara / RR820A','1.25 mL','C56789','10','μL'],['RNase-free Water','Thermo / AM9937','100 mL','W01234','up to 20 μL','-']] %}
-                <tr><td>{{ row[0] }}</td><td>{{ row[1] }}</td><td>{{ row[2] }}</td><td>{{ row[3] }}</td><td>{{ row[4] }}</td><td>{{ row[5] }}</td><td><i class='far fa-trash-can'></i></td></tr>
+              {% for i in 1..4 %}
+                <tr><td><input class='form-control form-control-sm' name='reagent_name[]' placeholder='试剂/耗材名称'></td><td><input class='form-control form-control-sm' name='reagent_brand[]' placeholder='品牌/货号'></td><td><input class='form-control form-control-sm' name='reagent_spec[]' placeholder='规格'></td><td><input class='form-control form-control-sm' name='reagent_lot[]' placeholder='批号'></td><td><input class='form-control form-control-sm' name='reagent_amount[]' placeholder='用量'></td><td><input class='form-control form-control-sm' name='reagent_unit[]' placeholder='单位'></td><td><i class='far fa-trash-can text-muted'></i></td></tr>
               {% endfor %}
             </tbody></table>
-            <button class='btn btn-outline-primary btn-sm mt-2'><i class='fas fa-plus mr-1'></i>添加试剂</button>
+            <div class='sl-muted mt-2'>保存后会进入实验正文；库存扣减将在后续阶段接入。</div>
           </section>
           <section class='sl-card'>
             <h3>原始附件</h3>
-            <table class='sl-table'><tbody>
-              <tr><td><i class='far fa-file-lines text-primary mr-2'></i>qPCR原始数据文件（QuantStudio 5）.eds</td><td>7.8 MB</td><td><i class='fas fa-download text-primary'></i></td></tr>
-              <tr><td><i class='far fa-image text-primary mr-2'></i>熔解曲线（Melt Curve）.png</td><td>512 KB</td><td><i class='fas fa-download text-primary'></i></td></tr>
-              <tr><td><i class='far fa-image text-primary mr-2'></i>扩增曲线（Amplification Plot）.png</td><td>468 KB</td><td><i class='fas fa-download text-primary'></i></td></tr>
-            </tbody></table>
-            <button class='btn btn-outline-primary btn-sm mt-2'><i class='fas fa-plus mr-1'></i>上传附件</button>
+            <div class='sl-callout blue'>创建实验后会跳转到实验详情页，请在详情页使用 eLabFTW 原生附件区上传原始数据。下一阶段会把这里改成直接上传并关联到新实验。</div>
           </section>
         </div>
-        <section class='sl-card mt-3'><h3>备注</h3><input class='form-control' value='实验条件优化中，后续将增加不同 MOI 梯度实验。'></section>
-        <div class='sl-bottom-bar'><button class='btn btn-outline-primary'>保存草稿</button><a class='btn btn-outline-primary' href='smartlab-upload.php'>提交AI解析</a><button class='btn btn-primary'>提交审核</button></div>
+        <section class='sl-card mt-3'><h3>备注</h3><textarea class='form-control' name='experiment_note' rows='3' placeholder='记录实验条件、异常、下一步计划等'></textarea></section>
+        <div class='sl-bottom-bar'><button class='btn btn-outline-primary' type='submit'>保存草稿</button><button class='btn btn-primary' type='submit'>创建实验记录</button></div>
+        </form>
 
       {% elseif smartlabPatentView == 'upload' %}
         <div class='smartlab-crumb'><i class='fas fa-house'></i> 采集模块 <i class='fas fa-angle-right'></i> 记录模块</div>
