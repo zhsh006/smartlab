@@ -41,12 +41,21 @@ final class SmartlabPatentController extends AbstractHtmlController
     protected function getData(): array
     {
         $SmartlabDashboard = new SmartlabDashboard($this->app->Users);
+        $now = new \DateTimeImmutable('now');
+        $weekday = array('日', '一', '二', '三', '四', '五', '六')[(int) $now->format('w')];
+        $userData = $this->app->Users->userData;
+        $displayName = trim(sprintf('%s %s', $userData['firstname'] ?? '', $userData['lastname'] ?? ''));
 
         return array_merge(parent::getData(), array(
             'smartlabPatentView' => $this->view,
             'smartlabPatentOverview' => $SmartlabDashboard->readOverview(),
             'smartlabPatentExperimentsArr' => $SmartlabDashboard->readMyExperiments(6),
             'smartlabPatentSamplesArr' => $SmartlabDashboard->readMySamples(6),
+            'smartlabPatentRecentExperimentsArr' => $SmartlabDashboard->readRecentExperiments(6),
+            'smartlabPatentAlertsArr' => $SmartlabDashboard->readOverviewAlerts(3),
+            'smartlabPatentUserName' => $displayName !== '' ? $displayName : ($userData['email'] ?? 'SmartLab User'),
+            'smartlabPatentToday' => $now->format('Y-m-d'),
+            'smartlabPatentWeekday' => '星期' . $weekday,
         ));
     }
 }

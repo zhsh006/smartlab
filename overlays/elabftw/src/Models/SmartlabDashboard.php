@@ -32,6 +32,34 @@ final class SmartlabDashboard
                 (SELECT COUNT(*) FROM smartlab_samples WHERE team_id = :team) AS sample_count,
                 (
                     SELECT COUNT(*)
+                    FROM experiments
+                    WHERE team = :team
+                      AND DATE(date) = CURRENT_DATE()
+                ) AS today_experiment_count,
+                (
+                    SELECT COUNT(*)
+                    FROM experiments
+                    WHERE team = :team
+                      AND DATE(date) = CURRENT_DATE() - INTERVAL 1 DAY
+                ) AS yesterday_experiment_count,
+                (
+                    SELECT COUNT(*)
+                    FROM experiments AS e
+                    WHERE e.team = :team
+                      AND NOT EXISTS (
+                          SELECT 1
+                          FROM uploads AS u
+                          WHERE u.item_id = e.id
+                            AND u.type = "experiments"
+                      )
+                ) AS experiment_without_upload_count,
+                (
+                    SELECT COUNT(*)
+                    FROM experiments_templates
+                    WHERE team = :team
+                ) AS template_count,
+                (
+                    SELECT COUNT(*)
                     FROM smartlab_review_flows AS rf
                     LEFT JOIN smartlab_projects AS p ON p.id = rf.project_id
                     WHERE (p.team_id = :team OR (p.team_id IS NULL AND rf.requester_userid IN (
@@ -52,6 +80,93 @@ final class SmartlabDashboard
         $this->Db->execute($req);
 
         return $req->fetch();
+    }
+
+    public function readRecentExperiments(int $limit = 6): array
+    {
+        $sql = 'SELECT
+                e.id,
+                e.title,
+                e.date,
+                e.modified_at,
+                COALESCE(p.code, "") AS project_code,
+                COALESCE(p.name, "") AS project_name,
+                COUNT(DISTINCT u.id) AS upload_count,
+                COALESCE(latest_review.status, "") AS review_status
+            FROM experiments AS e
+            LEFT JOIN smartlab_project_entities AS pe
+                ON pe.entity_type = "experiment"
+               AND pe.entity_id = e.id
+            LEFT JOIN smartlab_projects AS p
+                ON p.id = pe.project_id
+               AND p.team_id = e.team
+            LEFT JOIN uploads AS u
+                ON u.item_id = e.id
+               AND u.type = "experiments"
+            LEFT JOIN (
+                SELECT rf1.entity_id, rf1.status
+                FROM smartlab_review_flows AS rf1
+                INNER JOIN (
+                    SELECT entity_id, MAX(id) AS id
+                    FROM smartlab_review_flows
+                    WHERE entity_type = "experiment"
+                    GROUP BY entity_id
+                ) AS latest ON latest.id = rf1.id
+            ) AS latest_review ON latest_review.entity_id = e.id
+            WHERE e.team = :team
+            GROUP BY e.id, p.id, latest_review.status
+            ORDER BY e.modified_at DESC, e.id DESC
+            LIMIT :limit';
+        $req = $this->Db->prepare($sql);
+        $req->bindValue(':team', $this->Users->team, PDO::PARAM_INT);
+        $req->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $this->Db->execute($req);
+
+        return $req->fetchAll();
+    }
+
+    public function readOverviewAlerts(int $limit = 3): array
+    {
+        $alerts = array();
+
+        $pendingReviews = $this->readPendingReviews($limit);
+        foreach ($pendingReviews as $review) {
+            $alerts[] = array(
+                'level' => 'orange',
+                'title' => '实验/样本待审核',
+                'body' => sprintf(
+                    '%s #%d 处于 %s 状态。',
+                    $review['entity_type'] ?: 'entity',
+                    (int) $review['entity_id'],
+                    $review['status'] ?: 'submitted',
+                ),
+            );
+            if (count($alerts) >= $limit) {
+                return $alerts;
+            }
+        }
+
+        $recentSamples = $this->readRecentSampleEvents($limit);
+        foreach ($recentSamples as $event) {
+            $alerts[] = array(
+                'level' => 'blue',
+                'title' => $event['sample_code'] ?: '近期样本事件',
+                'body' => trim(($event['event_type'] ?: 'sample event') . ' · ' . ($event['note'] ?: '无备注')),
+            );
+            if (count($alerts) >= $limit) {
+                return $alerts;
+            }
+        }
+
+        if (!$alerts) {
+            $alerts[] = array(
+                'level' => 'green',
+                'title' => '当前没有待处理提醒',
+                'body' => '项目、审核与样本队列暂无新的风险事件。',
+            );
+        }
+
+        return $alerts;
     }
 
     public function readProjectSnapshots(int $limit = 5): array

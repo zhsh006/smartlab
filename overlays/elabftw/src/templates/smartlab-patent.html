@@ -206,19 +206,20 @@
         <div class='smartlab-tools'>
           <span class='smartlab-bell'><i class='far fa-bell'></i><span>3</span></span>
           <i class='far fa-circle-question'></i>
-          <span><span class='smartlab-avatar'></span>张老师 <i class='fas fa-angle-down ml-1'></i></span>
+          <span><span class='smartlab-avatar'></span>{{ smartlabPatentUserName }} <i class='fas fa-angle-down ml-1'></i></span>
         </div>
       </div>
       <div class='smartlab-page'>
-      <div class='smartlab-date'><i class='far fa-calendar'></i> 2025-05-22&nbsp;&nbsp;星期四</div>
+      <div class='smartlab-date'><i class='far fa-calendar'></i> {{ smartlabPatentToday }}&nbsp;&nbsp;{{ smartlabPatentWeekday }}</div>
 
       {% if smartlabPatentView == 'overview' %}
         <div class='sl-grid cols-5 mb-3'>
-          <div class='sl-card sl-metric'><div class='sl-metric-icon'><i class='fas fa-flask-vial'></i></div><div><div>今日实验记录</div><div class='sl-metric-value'>12</div><div class='sl-muted'>较昨日 <span class='text-danger'>↑ 3</span></div></div></div>
-          <div class='sl-card sl-metric'><div class='sl-metric-icon' style='color:#16a34a;background:#eaf8ef'><i class='fas fa-database'></i></div><div><div>待解析数据</div><div class='sl-metric-value'>5</div><div class='sl-muted'>较昨日 <span class='text-success'>↓ 1</span></div></div></div>
-          <div class='sl-card sl-metric'><div class='sl-metric-icon' style='color:#f59e0b;background:#fff7ed'><i class='fas fa-triangle-exclamation'></i></div><div><div>疑似异常</div><div class='sl-metric-value'>2</div><div class='sl-muted'>较昨日 - 0</div></div></div>
-          <div class='sl-card sl-metric'><div class='sl-metric-icon' style='color:#7c3aed;background:#f3efff'><i class='fas fa-user-check'></i></div><div><div>待审核</div><div class='sl-metric-value'>{{ smartlabPatentOverview.pending_review_count ?: 4 }}</div><div class='sl-muted'>导师确认</div></div></div>
-          <div class='sl-card sl-metric'><div class='sl-metric-icon' style='color:#0d9488;background:#ecfeff'><i class='fas fa-file-lines'></i></div><div><div>模板调用</div><div class='sl-metric-value'>18</div><div class='sl-muted'>较昨日 <span class='text-danger'>↑ 4</span></div></div></div>
+          {% set todayDelta = (smartlabPatentOverview.today_experiment_count ?: 0) - (smartlabPatentOverview.yesterday_experiment_count ?: 0) %}
+          <div class='sl-card sl-metric'><div class='sl-metric-icon'><i class='fas fa-flask-vial'></i></div><div><div>今日实验记录</div><div class='sl-metric-value'>{{ smartlabPatentOverview.today_experiment_count ?: 0 }}</div><div class='sl-muted'>较昨日 <span class='{{ todayDelta >= 0 ? "text-danger" : "text-success" }}'>{{ todayDelta >= 0 ? "↑" : "↓" }} {{ todayDelta|abs }}</span></div></div></div>
+          <div class='sl-card sl-metric'><div class='sl-metric-icon' style='color:#16a34a;background:#eaf8ef'><i class='fas fa-database'></i></div><div><div>缺少原始数据</div><div class='sl-metric-value'>{{ smartlabPatentOverview.experiment_without_upload_count ?: 0 }}</div><div class='sl-muted'>实验附件待补齐</div></div></div>
+          <div class='sl-card sl-metric'><div class='sl-metric-icon' style='color:#f59e0b;background:#fff7ed'><i class='fas fa-triangle-exclamation'></i></div><div><div>低库存预警</div><div class='sl-metric-value'>{{ smartlabPatentOverview.low_stock_count ?: 0 }}</div><div class='sl-muted'>资源库存风险</div></div></div>
+          <div class='sl-card sl-metric'><div class='sl-metric-icon' style='color:#7c3aed;background:#f3efff'><i class='fas fa-user-check'></i></div><div><div>待审核</div><div class='sl-metric-value'>{{ smartlabPatentOverview.pending_review_count ?: 0 }}</div><div class='sl-muted'>审核流待处理</div></div></div>
+          <div class='sl-card sl-metric'><div class='sl-metric-icon' style='color:#0d9488;background:#ecfeff'><i class='fas fa-file-lines'></i></div><div><div>实验模板</div><div class='sl-metric-value'>{{ smartlabPatentOverview.template_count ?: 0 }}</div><div class='sl-muted'>团队可用模板</div></div></div>
         </div>
         <div class='sl-grid layout-2-1'>
           <section class='sl-card'>
@@ -232,23 +233,24 @@
           </section>
           <section class='sl-card'>
             <h3>系统提醒</h3>
-            <div class='sl-card mb-2' style='box-shadow:none;background:#fff7ed'><b class='text-warning'>qPCR批次 A03 待补全步骤</b><div class='sl-muted'>存在 2 处断点，请及时补全步骤。</div></div>
-            <div class='sl-card mb-2' style='box-shadow:none;background:#fff1f2'><b class='text-danger'>ELISA记录出现数值跳变</b><div class='sl-muted'>第 8 孔出现数值异常蜕变。</div></div>
-            <div class='sl-card' style='box-shadow:none;background:#f8fbff'><b class='text-primary'>IF实验待导师审核</b><div class='sl-muted'>免疫荧光实验已完成解析。</div></div>
+            {% for alert in smartlabPatentAlertsArr %}
+              <div class='sl-card mb-2' style='box-shadow:none;background:{{ alert.level == "orange" ? "#fff7ed" : alert.level == "red" ? "#fff1f2" : alert.level == "green" ? "#eaf8ef" : "#f8fbff" }}'>
+                <b class='{{ alert.level == "orange" ? "text-warning" : alert.level == "red" ? "text-danger" : alert.level == "green" ? "text-success" : "text-primary" }}'>{{ alert.title }}</b>
+                <div class='sl-muted'>{{ alert.body }}</div>
+              </div>
+            {% endfor %}
           </section>
           <section class='sl-card'>
             <h3>最近实验记录</h3>
             <table class='sl-table'>
               <thead><tr><th>实验名称</th><th>实验类型</th><th>上传状态</th><th>异常状态</th><th>审核状态</th><th>操作</th></tr></thead>
               <tbody>
-              {% for row in [
-                ['qPCR实验（批次A03）','分子生物学','已上传','疑似异常（2）','待审核'],
-                ['ELISA实验（批次E12）','免疫学','已上传','异常（1）','待审核'],
-                ['WB实验（批次W05）','蛋白质研究','解析完成','正常','已通过'],
-                ['流式实验（批次F07）','细胞生物学','上传中 65%','-','-'],
-                ['IF实验（批次IF09）','细胞生物学','解析完成','疑似异常（1）','待审核']
-              ] %}
-                <tr><td>{{ row[0] }}</td><td>{{ row[1] }}</td><td><span class='sl-badge green'>{{ row[2] }}</span></td><td class='{{ "异常" in row[3] ? "text-warning" }}'>{{ row[3] }}</td><td>{{ row[4] }}</td><td><a href='smartlab-breakpoint.php'>查看</a></td></tr>
+              {% for row in smartlabPatentRecentExperimentsArr %}
+                {% set uploadLabel = row.upload_count > 0 ? '已上传 ' ~ row.upload_count ~ ' 个附件' : '缺少原始数据' %}
+                {% set reviewLabel = row.review_status == 'submitted' ? '待审核' : row.review_status == 'approved' ? '已通过' : row.review_status == 'needs_revision' ? '待修改' : row.review_status == 'rejected' ? '已拒绝' : '未提交' %}
+                <tr><td>{{ row.title }}</td><td>{{ row.project_code ?: '未绑定项目' }}</td><td><span class='sl-badge {{ row.upload_count > 0 ? "green" : "orange" }}'>{{ uploadLabel }}</span></td><td>{{ row.date ?: '-' }}</td><td>{{ reviewLabel }}</td><td><a href='experiments.php?mode=view&id={{ row.id }}'>查看</a></td></tr>
+              {% else %}
+                <tr><td colspan='6'><div class='alert alert-info mb-0'>当前团队还没有实验记录。请从“实验记录”创建第一条记录。</div></td></tr>
               {% endfor %}
               </tbody>
             </table>
