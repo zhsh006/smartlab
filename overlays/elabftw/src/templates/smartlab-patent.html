@@ -1,0 +1,636 @@
+{% extends 'base.html' %}
+
+{% block body %}
+{% set nav = [
+  {key: 'overview', href: 'smartlab-overview.php', icon: 'house', label: '首页'},
+  {key: 'records', href: 'smartlab-records.php', icon: 'clipboard-list', label: '实验记录'},
+  {key: 'upload', href: 'smartlab-upload.php', icon: 'upload', label: '原始数据上传'},
+  {key: 'recognition', href: 'smartlab-recognition.php', icon: 'camera-retro', label: '智能识别'},
+  {key: 'breakpoint', href: 'smartlab-breakpoint.php', icon: 'magnifying-glass-chart', label: '断点识别'},
+  {key: 'jump', href: 'smartlab-jump.php', icon: 'chart-line', label: '跳步识别'},
+  {key: 'reasoning', href: 'smartlab-jump.php', icon: 'layer-group', label: '步骤推理'},
+  {key: 'templates', href: 'smartlab-templates.php', icon: 'layer-group', label: '模板补全'},
+  {key: 'review', href: '#', icon: 'file-circle-check', label: '导师审核'},
+  {key: 'knowledge', href: '#', icon: 'book-open', label: '知识库'},
+  {key: 'assistant', href: '#', icon: 'face-smile', label: 'AI助手'},
+  {key: 'algorithms', href: 'smartlab-algorithms.php', icon: 'gear', label: '算法中心'},
+  {key: 'settings', href: '#', icon: 'gear', label: '系统设置'}
+] %}
+
+<style>
+  body:has(.smartlab-demo) {
+    background: #f6f9ff;
+  }
+  body:has(.smartlab-demo) nav.navbar,
+  body:has(.smartlab-demo) #sidepanel-buttons,
+  body:has(.smartlab-demo) #pageTitle,
+  body:has(.smartlab-demo) footer {
+    display: none !important;
+  }
+  body:has(.smartlab-demo) #container {
+    padding: 0;
+  }
+  body:has(.smartlab-demo) #realContainer {
+    margin: 0;
+    max-width: none;
+    padding: 0;
+    width: 100%;
+  }
+  .smartlab-demo {
+    --sl-blue: #0f6fff;
+    --sl-blue-strong: #0967eb;
+    --sl-soft-blue: #edf5ff;
+    --sl-border: #e1e8f3;
+    --sl-line: #e9eef7;
+    --sl-text: #151f33;
+    --sl-muted: #687386;
+    --sl-green: #16a34a;
+    --sl-orange: #f59e0b;
+    --sl-red: #ef4444;
+    --sl-purple: #7c3aed;
+    color: var(--sl-text);
+    background: #f6f9ff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    margin: 0;
+    min-height: 100vh;
+  }
+  .smartlab-demo-shell { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }
+  .smartlab-demo-sidebar {
+    border-right: 1px solid var(--sl-border);
+    background: rgba(255, 255, 255, .94);
+    padding: 18px 12px;
+  }
+  .smartlab-brand { display: flex; gap: 10px; align-items: center; height: 66px; padding: 0 8px 14px; margin-bottom: 6px; }
+  .smartlab-brand-mark { width: 46px; height: 46px; display: grid; place-items: center; color: #fff; font-size: 20px; background: var(--sl-blue); clip-path: polygon(50% 0, 91% 24%, 91% 76%, 50% 100%, 9% 76%, 9% 24%); box-shadow: 0 8px 20px rgba(15, 111, 255, .18); }
+  .smartlab-brand-mark i { filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .08)); }
+  .smartlab-brand-title { font-size: 25px; font-weight: 800; color: var(--sl-blue-strong); line-height: 1; }
+  .smartlab-brand-subtitle { color: #303b4f; font-size: 13px; margin-top: 7px; white-space: nowrap; }
+  .smartlab-nav-link {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 18px; margin: 6px 0;
+    border-radius: 6px; color: #263245; font-weight: 700; font-size: 17px;
+    border-left: 3px solid transparent;
+  }
+  .smartlab-nav-link i { color: #657287; font-size: 19px; }
+  .smartlab-nav-link:hover { text-decoration: none; background: #f3f8ff; color: var(--sl-blue); }
+  .smartlab-nav-link.active { background: linear-gradient(90deg, #eaf3ff, #f4f8ff); color: var(--sl-blue); border-left-color: var(--sl-blue); }
+  .smartlab-nav-link.active i { color: var(--sl-blue); }
+  .smartlab-collapse { position: sticky; top: calc(100vh - 58px); margin: 28px 8px 0; border: 1px solid var(--sl-border); border-radius: 8px; padding: 11px 18px; color: var(--sl-muted); background:#fff; font-size: 16px; }
+  .smartlab-demo-main { min-width: 0; }
+  .smartlab-appbar { height: 82px; display:flex; justify-content:space-between; align-items:center; padding: 0 28px; background:#fff; border-bottom:1px solid var(--sl-border); }
+  .smartlab-title { font-size: 28px; font-weight: 800; margin: 0; letter-spacing: 0; }
+  .smartlab-title small { display:block; color:var(--sl-muted); font-size:13px; font-weight:600; margin-bottom:5px; }
+  .smartlab-tools { display:flex; align-items:center; gap:24px; font-size:19px; color:#111827; }
+  .smartlab-bell { position:relative; }
+  .smartlab-bell span { position:absolute; top:-12px; right:-10px; min-width:18px; height:18px; border-radius:9px; background:#ff2d3d; color:#fff; font-size:11px; display:grid; place-items:center; }
+  .smartlab-avatar { width:34px; height:34px; border-radius:50%; background:radial-gradient(circle at 50% 34%, #fff 0 9px, transparent 10px), radial-gradient(circle at 50% 95%, #fff 0 18px, transparent 19px), linear-gradient(135deg,#dbe7fb,#c8d8f5); display:inline-block; vertical-align:middle; margin-right:8px; }
+  .smartlab-page { padding: 22px 28px 20px; }
+  .smartlab-date { color: var(--sl-muted); display:flex; justify-content:flex-end; align-items:center; gap:8px; margin-bottom: 14px; font-size:14px; }
+  .smartlab-crumb { color: var(--sl-muted); display:flex; align-items:center; gap:8px; margin-bottom:16px; }
+  .sl-grid { display:grid; gap: 14px; }
+  .sl-grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sl-grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sl-grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .sl-grid.cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .sl-grid.layout-2-1 { grid-template-columns: minmax(0, 2fr) minmax(330px, .92fr); }
+  .sl-grid.layout-3-2 { grid-template-columns: minmax(0, 3fr) minmax(330px, 1.05fr); }
+  .sl-grid.layout-1-1-1 { grid-template-columns: minmax(260px, .85fr) minmax(340px, 1fr) minmax(360px, 1.25fr); }
+  .sl-grid.layout-1-1 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sl-card { border: 1px solid var(--sl-border); border-radius: 8px; background: #fff; padding: 16px; box-shadow: 0 8px 18px rgba(25, 40, 70, 0.03); }
+  .sl-card h3 { font-size: 17px; font-weight: 800; margin: 0 0 14px; }
+  .sl-card-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
+  .sl-card-head h3 { margin:0; }
+  .sl-metric { display:flex; gap:18px; align-items:center; min-height: 104px; }
+  .sl-metric-icon { width:58px; height:58px; border-radius: 18px; display:grid; place-items:center; font-size:25px; background: var(--sl-soft-blue); color: var(--sl-blue); }
+  .sl-metric-value { font-size: 31px; font-weight: 800; line-height: 1; margin: 8px 0; }
+  .sl-muted { color: var(--sl-muted); }
+  .sl-badge { display:inline-flex; align-items:center; gap:5px; border-radius: 6px; padding: 4px 8px; font-size: 12px; font-weight: 700; background: #f1f5f9; color: #334155; }
+  .sl-badge.green { background:#eaf8ef; color: var(--sl-green); }
+  .sl-badge.blue { background: var(--sl-soft-blue); color: var(--sl-blue); }
+  .sl-badge.orange { background:#fff7ed; color: var(--sl-orange); }
+  .sl-badge.red { background:#fff1f2; color: var(--sl-red); }
+  .sl-badge.purple { background:#f3efff; color: var(--sl-purple); }
+  .sl-table { width:100%; border-collapse: collapse; }
+  .sl-table th, .sl-table td { border-bottom:1px solid var(--sl-line); padding: 10px 12px; vertical-align: middle; }
+  .sl-table th { color: #4d596b; background:#f8fafc; font-weight:700; }
+  .sl-table tr.alert-row td { background:#fff1f2; color:#dc2626; }
+  .sl-flow { display:flex; align-items:stretch; gap:10px; overflow-x:auto; padding-bottom:4px; }
+  .sl-flow-step { min-width: 106px; border:1px solid #9ec2ff; background:linear-gradient(#fbfdff 0 72%, #edf5ff 72%); border-radius:8px; padding:16px 10px; text-align:center; }
+  .sl-flow-step.green { border-color:#87d7a2; background:linear-gradient(#fbfffc 0 72%, #eaf8ef 72%); }
+  .sl-flow-step.orange { border-color:#ffc36c; background:linear-gradient(#fffdf8 0 72%, #fff7ed 72%); }
+  .sl-flow-step.purple { border-color:#b9a5ff; background:linear-gradient(#fffdff 0 72%, #f3efff 72%); }
+  .sl-flow-step.teal { border-color:#74d7d4; background:linear-gradient(#fbffff 0 72%, #ecfeff 72%); }
+  .sl-flow-arrow { align-self:center; color:#64748b; font-size:20px; }
+  .sl-upload-card { border:1px dashed #b9c8dd; border-radius:8px; padding:16px; display:grid; grid-template-columns: 190px 1fr; gap:14px; }
+  .sl-drop { min-height: 126px; border:1px dashed #9db6d8; border-radius:8px; display:grid; place-items:center; color:var(--sl-blue); background:#fbfdff; text-align:center; }
+  .sl-file-list { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:12px; }
+  .sl-file { border:1px solid var(--sl-border); border-radius:8px; padding:10px; background:#fff; }
+  .sl-thumb { height:78px; border-radius:6px; background: linear-gradient(135deg,#edf4ff,#f8fafc); border:1px solid #e2e8f0; display:grid; place-items:center; color:#64748b; margin-bottom:8px; overflow:hidden; position:relative; }
+  .sl-thumb.hand { background: linear-gradient(90deg, rgba(255,255,255,.82), rgba(255,255,255,.1)), repeating-linear-gradient(0deg,#fbf4df,#fbf4df 14px,#d8c6a1 15px), repeating-linear-gradient(90deg, transparent, transparent 70px, rgba(110,80,45,.18) 72px); color:#64748b; }
+  .sl-thumb.hand::after { content:"实验：CCK-8\\A细胞：HeLa\\A OD600=0.523"; white-space:pre; color:#5d5143; font-size:12px; line-height:1.55; transform:rotate(-2deg); }
+  .sl-thumb.screen { background: linear-gradient(#eef6ff 0 18%, #dce9f9 18% 82%, #b9c9dc 82%); color:#1d4ed8; }
+  .sl-thumb.screen::after { content:"0.523"; padding:8px 26px; border:1px solid #7b95bc; border-radius:2px; background:#d7e5fb; color:#1f2937; font-size:24px; letter-spacing:2px; }
+  .sl-thumb.cells { background: radial-gradient(circle at 20% 30%, #7f64d7 0 7px, transparent 8px), radial-gradient(circle at 65% 45%, #9e8bef 0 8px, transparent 9px), radial-gradient(circle at 50% 75%, #6b55c7 0 6px, transparent 7px), radial-gradient(circle at 80% 20%, #b8a9ff 0 5px, transparent 6px), #e5ddff; }
+  .sl-thumb.gel { background: repeating-linear-gradient(90deg,#1f2937 0 18px,#111827 18px 36px); }
+  .sl-thumb.tube { background: linear-gradient(180deg,#fbfbfb,#dbe7f1); }
+  .sl-thumb.tube::after { content:""; width:86%; height:44%; border-radius:14px 14px 6px 6px; background: repeating-linear-gradient(90deg,#b91c1c 0 16px,#ef4444 16px 28px,#f8fafc 28px 46px); box-shadow:0 18px 0 rgba(220,38,38,.16); }
+  .sl-gel-photo { min-height:240px; border-radius:8px; background: repeating-linear-gradient(90deg, rgba(0,0,0,.16) 0 18px, transparent 18px 32px), radial-gradient(ellipse at 50% 19%, rgba(0,0,0,.35), transparent 18%), radial-gradient(ellipse at 46% 74%, rgba(0,0,0,.28), transparent 18%), linear-gradient(#f0f0ef,#d7d7d5); border:1px solid #d7dce5; }
+  .sl-gel-photo.after { background: repeating-linear-gradient(90deg, rgba(0,0,0,.18) 0 16px, transparent 16px 34px), radial-gradient(ellipse at 24% 19%, rgba(0,0,0,.42), transparent 18%), radial-gradient(ellipse at 67% 21%, rgba(0,0,0,.30), transparent 14%), radial-gradient(ellipse at 18% 76%, rgba(0,0,0,.32), transparent 16%), linear-gradient(#f0f0ef,#d7d7d5); }
+  .sl-chart { height: 150px; display:flex; align-items:end; gap:8px; padding:10px 8px 22px; border:1px solid #e8eef7; border-radius:8px; background:#fbfdff; position:relative; }
+  .sl-chart span { flex:1; min-width: 12px; border-radius: 5px 5px 0 0; background: var(--sl-blue); opacity: .82; position:relative; }
+  .sl-chart span::after { content: attr(data-label); position:absolute; bottom:-20px; left:50%; transform:translateX(-50%); font-size:11px; color:#64748b; }
+  .sl-region { border:2px dashed #22c55e; border-radius:8px; background:rgba(248,255,249,.92); padding:16px; min-height:116px; }
+  .sl-region.orange { border-color:#f59e0b; background:#fffaf0; }
+  .sl-region.purple { border-color:#8b5cf6; background:#f8f5ff; }
+  .sl-reco-image { min-height: 220px; border-radius:8px; border:1px solid var(--sl-border); padding:14px; background: linear-gradient(rgba(255,255,255,.55), rgba(255,255,255,.55)), repeating-linear-gradient(0deg,#f7edd7,#f7edd7 24px,#dbcaa9 25px), repeating-linear-gradient(90deg, transparent, transparent 38px, rgba(110,80,45,.12) 39px); }
+  .sl-step-card { border:1px solid var(--sl-border); border-radius:8px; padding:16px; text-align:center; background:#fff; }
+  .sl-step-card .num { font-size:22px; color:var(--sl-blue); font-weight:750; }
+  .sl-footer-actions { position: sticky; bottom: 0; background: rgba(255,255,255,.96); border:1px solid var(--sl-border); border-radius:8px; padding:12px; display:flex; justify-content:flex-end; gap:12px; margin-top:14px; box-shadow: 0 -8px 24px rgba(20,35,60,.04); }
+  .sl-side-list { display:grid; gap:10px; }
+  .sl-alert-card { border:1px solid var(--sl-border); border-radius:8px; padding:14px; background:#fff; }
+  .sl-alert-card.red { border-color:#fecaca; background:#fff8f8; }
+  .sl-alert-card.orange { border-color:#fed7aa; background:#fffaf2; }
+  .sl-mini-stat { display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--sl-line); }
+  .sl-action-link { color:var(--sl-blue); font-weight:700; }
+  .sl-field { border:1px solid #dce4ef; border-radius:5px; padding:7px 10px; background:#fff; min-height:36px; }
+  .sl-bottom-bar { position:sticky; bottom:0; display:flex; justify-content:flex-end; gap:14px; padding:14px 18px; margin-top:14px; background:rgba(255,255,255,.96); border:1px solid var(--sl-border); border-radius:8px; }
+  .sl-donut { width:118px; height:118px; border-radius:50%; margin:auto; background:conic-gradient(#2f7cff 0 25%,#22c55e 25% 50%,#fbbf24 50% 75%,#a78bfa 75%); display:grid; place-items:center; }
+  .sl-donut > div { width:72px; height:72px; border-radius:50%; background:#fff; display:grid; place-items:center; text-align:center; }
+  .sl-warning-line { color:#ef4444; background:#fff1f2; }
+  .sl-callout { border:1px solid var(--sl-border); border-radius:8px; padding:14px; background:#fff; }
+  .sl-callout.red { border-color:#fecaca; background:#fff8f8; }
+  .sl-callout.orange { border-color:#fed7aa; background:#fffaf2; }
+  .sl-callout.blue { border-color:#bfdbfe; background:#f7fbff; }
+  .sl-service-icon { width:32px; height:32px; border-radius:8px; display:inline-grid; place-items:center; background:#edf5ff; color:var(--sl-blue); margin-right:10px; }
+  .sl-workflow { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .sl-workflow-node { min-width:140px; border:1px solid #9ec2ff; border-radius:8px; padding:12px; background:#fbfdff; text-align:center; color:#0f62fe; font-weight:700; }
+  .sl-workflow-node.green { border-color:#86d49f; color:#16a34a; }
+  .sl-workflow-node.orange { border-color:#ffc36c; color:#f59e0b; }
+  .sl-workflow-node.purple { border-color:#b9a5ff; color:#7c3aed; }
+  .sl-inline-tabs { display:flex; gap:14px; align-items:center; color:#4b5563; font-size:13px; margin:12px 0; }
+  .sl-inline-tabs span:first-child { color:var(--sl-blue); border-bottom:2px solid var(--sl-blue); padding-bottom:4px; }
+  @media (max-width: 1100px) {
+    .smartlab-demo-shell { grid-template-columns: 1fr; }
+    .smartlab-demo-sidebar { min-height: auto; }
+    .smartlab-appbar { height:auto; padding:18px; align-items:flex-start; gap:14px; }
+    .sl-grid.cols-4, .sl-grid.cols-5, .sl-grid.layout-2-1, .sl-grid.layout-3-2, .sl-grid.layout-1-1, .sl-grid.layout-1-1-1 { grid-template-columns: 1fr; }
+    .sl-file-list, .sl-grid.cols-3, .sl-grid.cols-2 { grid-template-columns: 1fr; }
+    .sl-upload-card { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class='smartlab-demo'>
+  <div class='smartlab-demo-shell'>
+    <aside class='smartlab-demo-sidebar'>
+      <div class='smartlab-brand'>
+        <div class='smartlab-brand-mark'><i class='fas fa-snowflake'></i></div>
+        <div>
+          <div class='smartlab-brand-title'>SmartLab V3</div>
+          <div class='smartlab-brand-subtitle'>医学科研训练智能辅助系统</div>
+        </div>
+      </div>
+      {% for item in nav %}
+        <a class='smartlab-nav-link {{ smartlabPatentView == item.key ? "active" }}' href='{{ item.href }}'>
+          <i class='fas fa-{{ item.icon }} fa-fw'></i><span>{{ item.label }}</span>
+        </a>
+      {% endfor %}
+      <div class='smartlab-collapse'><i class='fas fa-angles-left mr-2'></i> 收起</div>
+    </aside>
+
+    <main class='smartlab-demo-main'>
+      <div class='smartlab-appbar'>
+        <h2 class='smartlab-title'>
+          {% if smartlabPatentView == 'breakpoint' %}<small>断点识别 / 实验事件序列与逻辑断点分析</small>{% endif %}
+          {{ pageTitle }}
+        </h2>
+        <div class='smartlab-tools'>
+          <span class='smartlab-bell'><i class='far fa-bell'></i><span>3</span></span>
+          <i class='far fa-circle-question'></i>
+          <span><span class='smartlab-avatar'></span>张老师 <i class='fas fa-angle-down ml-1'></i></span>
+        </div>
+      </div>
+      <div class='smartlab-page'>
+      <div class='smartlab-date'><i class='far fa-calendar'></i> 2025-05-22&nbsp;&nbsp;星期四</div>
+
+      {% if smartlabPatentView == 'overview' %}
+        <div class='sl-grid cols-5 mb-3'>
+          <div class='sl-card sl-metric'><div class='sl-metric-icon'><i class='fas fa-flask-vial'></i></div><div><div>今日实验记录</div><div class='sl-metric-value'>12</div><div class='sl-muted'>较昨日 <span class='text-danger'>↑ 3</span></div></div></div>
+          <div class='sl-card sl-metric'><div class='sl-metric-icon' style='color:#16a34a;background:#eaf8ef'><i class='fas fa-database'></i></div><div><div>待解析数据</div><div class='sl-metric-value'>5</div><div class='sl-muted'>较昨日 <span class='text-success'>↓ 1</span></div></div></div>
+          <div class='sl-card sl-metric'><div class='sl-metric-icon' style='color:#f59e0b;background:#fff7ed'><i class='fas fa-triangle-exclamation'></i></div><div><div>疑似异常</div><div class='sl-metric-value'>2</div><div class='sl-muted'>较昨日 - 0</div></div></div>
+          <div class='sl-card sl-metric'><div class='sl-metric-icon' style='color:#7c3aed;background:#f3efff'><i class='fas fa-user-check'></i></div><div><div>待审核</div><div class='sl-metric-value'>{{ smartlabPatentOverview.pending_review_count ?: 4 }}</div><div class='sl-muted'>导师确认</div></div></div>
+          <div class='sl-card sl-metric'><div class='sl-metric-icon' style='color:#0d9488;background:#ecfeff'><i class='fas fa-file-lines'></i></div><div><div>模板调用</div><div class='sl-metric-value'>18</div><div class='sl-muted'>较昨日 <span class='text-danger'>↑ 4</span></div></div></div>
+        </div>
+        <div class='sl-grid layout-2-1'>
+          <section class='sl-card'>
+            <h3>核心流程</h3>
+            <div class='sl-flow'>
+              {% for step in ['采集模块','记录模块','断点识别模块','跳步识别模块','步骤推理模块','补全模块'] %}
+                <div class='sl-flow-step {{ loop.index == 3 ? "green" : loop.index == 4 ? "orange" : loop.index == 5 ? "purple" : loop.index == 6 ? "teal" }}'><i class='fas fa-{{ loop.index == 1 ? "flask-vial" : loop.index == 2 ? "file-pen" : loop.index == 3 ? "microscope" : loop.index == 4 ? "braille" : loop.index == 5 ? "brain" : "puzzle-piece" }} fa-2x mb-2 text-primary'></i><div><b>{{ step }}</b></div><div class='sl-muted'>0{{ loop.index }}</div></div>
+                {% if not loop.last %}<div class='sl-flow-arrow'>→</div>{% endif %}
+              {% endfor %}
+            </div>
+          </section>
+          <section class='sl-card'>
+            <h3>系统提醒</h3>
+            <div class='sl-card mb-2' style='box-shadow:none;background:#fff7ed'><b class='text-warning'>qPCR批次 A03 待补全步骤</b><div class='sl-muted'>存在 2 处断点，请及时补全步骤。</div></div>
+            <div class='sl-card mb-2' style='box-shadow:none;background:#fff1f2'><b class='text-danger'>ELISA记录出现数值跳变</b><div class='sl-muted'>第 8 孔出现数值异常蜕变。</div></div>
+            <div class='sl-card' style='box-shadow:none;background:#f8fbff'><b class='text-primary'>IF实验待导师审核</b><div class='sl-muted'>免疫荧光实验已完成解析。</div></div>
+          </section>
+          <section class='sl-card'>
+            <h3>最近实验记录</h3>
+            <table class='sl-table'>
+              <thead><tr><th>实验名称</th><th>实验类型</th><th>上传状态</th><th>异常状态</th><th>审核状态</th><th>操作</th></tr></thead>
+              <tbody>
+              {% for row in [
+                ['qPCR实验（批次A03）','分子生物学','已上传','疑似异常（2）','待审核'],
+                ['ELISA实验（批次E12）','免疫学','已上传','异常（1）','待审核'],
+                ['WB实验（批次W05）','蛋白质研究','解析完成','正常','已通过'],
+                ['流式实验（批次F07）','细胞生物学','上传中 65%','-','-'],
+                ['IF实验（批次IF09）','细胞生物学','解析完成','疑似异常（1）','待审核']
+              ] %}
+                <tr><td>{{ row[0] }}</td><td>{{ row[1] }}</td><td><span class='sl-badge green'>{{ row[2] }}</span></td><td class='{{ "异常" in row[3] ? "text-warning" }}'>{{ row[3] }}</td><td>{{ row[4] }}</td><td><a href='smartlab-breakpoint.php'>查看</a></td></tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </section>
+          <section class='sl-card'>
+            <h3>算法服务状态</h3>
+            {% for service in ['OCR','目标检测','语义分析','模板补全'] %}
+              <div class='d-flex justify-content-between border-bottom py-2'><span><i class='fas fa-circle-dot text-primary mr-2'></i>{{ service }}</span><span class='sl-badge green'>在线</span></div>
+            {% endfor %}
+          </section>
+        </div>
+
+      {% elseif smartlabPatentView == 'records' %}
+        <div class='smartlab-crumb'><a href='smartlab-overview.php'><i class='fas fa-angle-left mr-1'></i>返回实验记录</a></div>
+        <section class='sl-card mb-3'>
+          <h3>基本信息</h3>
+          <div class='sl-grid cols-3'>
+            <label><span class='text-danger'>*</span> 实验名称<input class='form-control mt-1' value='qPCR检测 IFN-β 基因在病毒感染细胞中的表达'></label>
+            <label>实验类型<select class='form-control mt-1'><option>qPCR实验</option><option>IF实验</option></select></label>
+            <label>实验日期<input class='form-control mt-1' value='2025-05-22'></label>
+            <label>实验人员<div class='sl-field mt-1'><span class='sl-badge'>张老师 ×</span> <span class='sl-badge'>李明 ×</span> <span class='sl-badge'>王雪 ×</span></div></label>
+            <label>课题编号<input class='form-control mt-1' value='IF-20250520-07'></label>
+          </div>
+        </section>
+        <section class='sl-card mb-3'>
+          <h3>样本信息</h3>
+          <table class='sl-table'>
+            <thead><tr><th>样本编号</th><th>样本名称</th><th>样本类型</th><th>来源</th><th>处理方式</th><th>备注</th><th>操作</th></tr></thead>
+            <tbody>
+              {% for row in [['S-20250522-001','Mock 对照','细胞样本','HEK293T','未感染','-'],['S-20250522-002','病毒感染 6h','细胞样本','HEK293T','病毒感染(MOI=1)','6 小时'],['S-20250522-003','病毒感染 24h','细胞样本','HEK293T','病毒感染(MOI=1)','24 小时']] %}
+                <tr><td>{{ row[0] }}</td><td>{{ row[1] }}</td><td><select class='form-control form-control-sm'><option>{{ row[2] }}</option></select></td><td><input class='form-control form-control-sm' value='{{ row[3] }}'></td><td><input class='form-control form-control-sm' value='{{ row[4] }}'></td><td>{{ row[5] }}</td><td><i class='far fa-trash-can'></i></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <button class='btn btn-outline-primary btn-sm mt-2'><i class='fas fa-plus mr-1'></i>添加样本</button>
+        </section>
+        <div class='sl-grid layout-3-2 mb-3'>
+        <section class='sl-card'>
+          <h3>实验步骤记录</h3>
+          <div class='sl-grid cols-2'>
+            <div>
+              {% for step in ['总RNA提取','反转录（cDNA合成）','qPCR反应体系配置','qPCR扩增','数据分析'] %}
+                <div class='d-flex border-bottom py-2'><span class='sl-badge blue mr-3'>{{ loop.index }}</span><b>{{ step }}</b></div>
+              {% endfor %}
+            </div>
+            <div>
+              <label>步骤描述<textarea class='form-control' rows='5'>使用TRIzol试剂提取总RNA，按照说明书操作；提取后检测RNA浓度与纯度（NanoDrop），要求 A260/280 = 1.8–2.1。</textarea></label>
+              <button class='btn btn-outline-primary btn-sm'><i class='fas fa-plus mr-1'></i>添加步骤</button>
+            </div>
+          </div>
+        </section>
+        <section class='sl-card'>
+          <h3>仪器参数</h3>
+          <div class='sl-grid cols-2'>
+            <input class='form-control' value='20 μL'><input class='form-control' value='95°C, 30 s'>
+            <input class='form-control' value='40'><input class='form-control' value='95°C, 5 s'>
+            <input class='form-control' value='60°C, 30 s'><input class='form-control' value='65–95°C, 0.5°C/step'>
+            <input class='form-control' value='Applied Biosystems QuantStudio 5'><input class='form-control' value='IFN-β / β-actin'>
+          </div>
+        </section>
+        </div>
+        <div class='sl-grid layout-3-2'>
+          <section class='sl-card'>
+            <h3>试剂耗材</h3>
+            <table class='sl-table'><thead><tr><th>名称</th><th>品牌/货号</th><th>规格</th><th>批号</th><th>用量</th><th>单位</th><th>操作</th></tr></thead><tbody>
+              {% for row in [['TRIzol Reagent','Invitrogen / 15596018','100 mL','2345678','1','mL'],['PrimeScript RT Reagent Kit','Takara / RR047A','50 rxn','B12345','1','kit'],['TB Green Premix Ex Taq II','Takara / RR820A','1.25 mL','C56789','10','μL'],['RNase-free Water','Thermo / AM9937','100 mL','W01234','up to 20 μL','-']] %}
+                <tr><td>{{ row[0] }}</td><td>{{ row[1] }}</td><td>{{ row[2] }}</td><td>{{ row[3] }}</td><td>{{ row[4] }}</td><td>{{ row[5] }}</td><td><i class='far fa-trash-can'></i></td></tr>
+              {% endfor %}
+            </tbody></table>
+            <button class='btn btn-outline-primary btn-sm mt-2'><i class='fas fa-plus mr-1'></i>添加试剂</button>
+          </section>
+          <section class='sl-card'>
+            <h3>原始附件</h3>
+            <table class='sl-table'><tbody>
+              <tr><td><i class='far fa-file-lines text-primary mr-2'></i>qPCR原始数据文件（QuantStudio 5）.eds</td><td>7.8 MB</td><td><i class='fas fa-download text-primary'></i></td></tr>
+              <tr><td><i class='far fa-image text-primary mr-2'></i>熔解曲线（Melt Curve）.png</td><td>512 KB</td><td><i class='fas fa-download text-primary'></i></td></tr>
+              <tr><td><i class='far fa-image text-primary mr-2'></i>扩增曲线（Amplification Plot）.png</td><td>468 KB</td><td><i class='fas fa-download text-primary'></i></td></tr>
+            </tbody></table>
+            <button class='btn btn-outline-primary btn-sm mt-2'><i class='fas fa-plus mr-1'></i>上传附件</button>
+          </section>
+        </div>
+        <section class='sl-card mt-3'><h3>备注</h3><input class='form-control' value='实验条件优化中，后续将增加不同 MOI 梯度实验。'></section>
+        <div class='sl-bottom-bar'><button class='btn btn-outline-primary'>保存草稿</button><a class='btn btn-outline-primary' href='smartlab-upload.php'>提交AI解析</a><button class='btn btn-primary'>提交审核</button></div>
+
+      {% elseif smartlabPatentView == 'upload' %}
+        <div class='smartlab-crumb'><i class='fas fa-house'></i> 采集模块 <i class='fas fa-angle-right'></i> 记录模块</div>
+        <div class='sl-grid layout-3-2'>
+          <div>
+            {% for block in [
+              ['手写记录图片上传','上传实验手写记录、纸质表格、实验笔记跨页图片',['IMG_20250522_0001.jpg','IMG_20250522_0002.jpg','IMG_20250522_0003.jpg'],'hand'],
+              ['仪器屏幕图像上传','上传仪器屏幕截图、运行界面、结果曲线等图像',['qPCR_Run_20250522_1.png','Flow_20250522_1.png','Nano_20250522_1.png'],'screen'],
+              ['生物样本图像上传','上传样本照片、显微镜图像、凝胶/印迹图像等',['sample_tube_001.jpg','microscope_001.tif','gel_20250522_1.jpg'],'cells'],
+              ['原始数据文件上传','上传仪器导出数据、原始数据表格、日志文件等',['qPCR_20250522_R1.ct','Flow_20250522.fcs','Plate_Layout_20250522.xlsx'],'file']
+            ] %}
+              <section class='sl-card sl-upload-card mb-3'>
+                <div class='sl-drop'><div><i class='fas fa-cloud-arrow-up fa-2x mb-2'></i><br>拖拽{{ block[3] == "file" ? "文件" : "图片" }}到此处，或 <a>点击上传</a><br><span class='sl-muted'>支持 JPG、PNG、TIFF、PDF</span></div></div>
+                <div>
+                  <h3><span class='sl-badge blue mr-2'>{{ loop.index }}</span>{{ block[0] }}</h3>
+                  <div class='sl-muted mb-2'>{{ block[1] }}</div>
+                  {% if block[3] == 'file' %}
+                    <table class='sl-table'><tbody>
+                    {% for file in block[2] %}
+                      <tr><td><i class='far fa-file-lines text-primary mr-2'></i>{{ file }}</td><td>{{ loop.index == 1 ? '26.4 MB' : loop.index == 2 ? '48.7 MB' : '18.3 KB' }}</td><td><span class='sl-badge {{ loop.index == 2 ? "orange" : loop.index == 3 ? "purple" : "green" }}'>{{ loop.index == 2 ? "解析中" : loop.index == 3 ? "待解析" : "上传完成" }}</span></td><td><i class='far fa-trash-can'></i></td></tr>
+                    {% endfor %}
+                    </tbody></table>
+                  {% else %}
+                    <div class='sl-file-list'>
+                      {% for file in block[2] %}
+                        <div class='sl-file'><div class='sl-thumb {{ block[3] }}'>{% if block[3] == 'screen' %}<i class='fas fa-chart-line fa-2x'></i>{% elseif block[3] == 'hand' %}<i class='far fa-file-lines fa-2x'></i>{% else %}<i class='fas fa-microscope fa-2x'></i>{% endif %}</div><b>{{ file }}</b><div class='sl-muted'>{{ loop.index == 1 ? '2.41 MB' : loop.index == 2 ? '1.85 MB' : '2.17 MB' }} <span class='sl-badge {{ loop.index == 2 ? "orange" : loop.index == 3 ? "green" : "purple" }} ml-2'>{{ loop.index == 2 ? "解析中" : loop.index == 3 ? "上传完成" : "待解析" }}</span></div>{% if loop.index == 2 %}<div class='progress mt-2' style='height:4px'><div class='progress-bar' style='width:60%'></div></div>{% endif %}</div>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                  <div class='text-right sl-muted mt-2'>已上传 3 个文件，共 {{ loop.index == 4 ? '75.1 MB' : loop.index == 3 ? '7.07 MB' : loop.index == 2 ? '5.08 MB' : '6.43 MB' }}　<a>清空列表</a></div>
+                </div>
+              </section>
+            {% endfor %}
+          </div>
+          <aside class='sl-side-list'>
+            <section class='sl-card'><h3>实验批次信息</h3>
+              {% for row in [['实验名称','qPCR实验（批次A03）'],['实验类型','分子生物学'],['导师','张老师'],['创建时间','2025-05-22 09:15'],['批次编号','A03-20250522-001'],['样本编号范围','SMP-A03-001 ~ 048']] %}
+                <div class='sl-mini-stat'><span class='sl-muted'>{{ row[0] }}</span><b>{{ row[1] }}</b></div>
+              {% endfor %}
+              <button class='btn btn-outline-primary btn-block mt-3'>查看批次详情</button>
+            </section>
+            <section class='sl-card'><h3>上传统计</h3><div class='text-center my-3'><div style='width:118px;height:118px;border-radius:50%;margin:auto;background:conic-gradient(#2f7cff 0 25%,#22c55e 25% 50%,#fbbf24 50% 75%,#a78bfa 75%);display:grid;place-items:center'><div style='width:72px;height:72px;border-radius:50%;background:#fff;display:grid;place-items:center'><b>总文件数<br>12</b></div></div></div><div class='sl-muted'>已用存储 <b>18.63 MB</b> / 10 GB</div><div class='progress mt-2' style='height:5px'><div class='progress-bar bg-success' style='width:0.18%'></div></div></section>
+            <section class='sl-card'><h3>数据关联状态</h3>{% for item in ['已关联时间戳','已关联样本编号','已建立批次索引'] %}<div class='py-2'><i class='fas fa-circle-check text-success mr-2'></i><b>{{ item }}</b><div class='sl-muted ml-4'>自动从文件元数据中提取并校验。</div></div>{% endfor %}</section>
+            <section class='sl-card'><h3><i class='fas fa-circle-info text-primary mr-2'></i>提示</h3><div class='sl-muted'>上传完成后将自动进入解析队列，可在“实验记录”页面查看解析结果。</div></section>
+          </aside>
+        </div>
+
+      {% elseif smartlabPatentView == 'recognition' %}
+        <div class='smartlab-crumb'><i class='fas fa-house'></i> 首页 <i class='fas fa-angle-right'></i> 智能识别 <i class='fas fa-angle-right'></i> 识别结果与数字化记录档案</div>
+        <div class='sl-grid layout-1-1-1'>
+          <section class='sl-card'>
+            <h3>上传图像预览（3）</h3>
+            {% for item in [
+              ['1','hand','IMG_20250522_101523.jpg','2025-05-22 10:15:23　1.2 MB'],
+              ['2','screen','IMG_20250522_101538.jpg','2025-05-22 10:15:38　1.5 MB'],
+              ['3','cells','IMG_20250522_101601.jpg','2025-05-22 10:16:01　2.3 MB']
+            ] %}
+              <div class='sl-file mb-3 {{ loop.first ? "border-primary" }}'>
+                <div class='sl-thumb {{ item[1] }}' style='height:150px'><span class='sl-badge blue' style='position:absolute;left:10px;top:10px'>{{ item[0] }}</span></div>
+                <b>{{ item[2] }}</b>
+                <div class='sl-muted mt-1'>{{ item[3] }}</div>
+              </div>
+            {% endfor %}
+          </section>
+          <section class='sl-card'>
+            <h3>检测区域与标注</h3>
+            <div class='sl-reco-image mb-3'><div class='sl-region'><span class='sl-badge green'>手写文本区域（A1）</span><br>实验：细胞增殖检测（CCK-8）<br>细胞：HeLa<br>接种密度：5x10^3 cells/well<br>时间：2025.05.22　9:45<br>试剂：CCK-8　10 μL/孔<br>结果：OD600 = 0.523</div></div>
+            <div class='sl-thumb screen mb-3' style='height:184px'><span class='sl-badge orange' style='position:absolute;left:14px;top:14px'>仪器读数区域（A2）</span></div>
+            <div class='sl-thumb cells' style='height:174px'><span class='sl-badge purple' style='position:absolute;left:14px;top:14px'>样本成像区域（A3）</span></div>
+          </section>
+          <section class='sl-card'>
+            <div class='sl-card-head'><h3>结构化识别结果</h3><button class='btn btn-outline-primary btn-sm'>导出结果</button></div>
+            {% for row in [
+              ['A1','手写文本区域（OCR）','实验：细胞增殖检测（CCK-8）；细胞：HeLa；接种密度：5x10^3 cells/well；结果：OD600 = 0.523','2025-05-22 10:15:23','x: 128, y: 56, w: 1620, h: 1024','0.96'],
+              ['A2','仪器读数区域（数值识别）','参数名称：OD600；识别数值：0.523；仪器类型：酶标仪；原始文本：OD600\\n0.523','2025-05-22 10:15:38','x: 236, y: 312, w: 1280, h: 720','0.99'],
+              ['A3','样本成像区域（图像分析）','图像类型：细胞显微图像；检测结果：细胞密度中等；主要细胞形态：上皮样、贴壁生长','2025-05-22 10:16:01','x: 102, y: 1340, w: 1785, h: 1340','0.93']
+            ] %}
+              <div class='sl-card mb-3' style='box-shadow:none'>
+                <span class='sl-badge {{ loop.index == 1 ? "green" : loop.index == 2 ? "orange" : "purple" }}'>{{ row[0] }}</span>
+                <b>{{ row[1] }}</b>
+                <p class='mt-2 mb-1'>{{ row[2] }}</p>
+                <div class='sl-grid cols-2 sl-muted'><span>时间戳：{{ row[3] }}</span><span>位置信息：{{ row[4] }}</span><span>置信度：{{ row[5] }}</span></div>
+              </div>
+            {% endfor %}
+          </section>
+          <section class='sl-card' style='grid-column:1 / -1'>
+            <h3>数字化实验记录档案</h3>
+            <table class='sl-table'><thead><tr><th>#</th><th>时间戳</th><th>区域类别</th><th>识别内容</th><th>位置索引</th><th>置信度</th></tr></thead><tbody>
+              <tr><td>1</td><td>2025-05-22 10:15:23</td><td><span class='sl-badge green'>A1</span></td><td>实验记录文本与结果字段</td><td>(128, 56, 1620, 1024)</td><td>0.96</td></tr>
+              <tr><td>2</td><td>2025-05-22 10:15:38</td><td><span class='sl-badge orange'>A2</span></td><td>OD600 = 0.523</td><td>(236, 312, 1280, 720)</td><td>0.99</td></tr>
+            </tbody></table>
+          </section>
+        </div>
+
+      {% elseif smartlabPatentView == 'breakpoint' %}
+        <div class='sl-grid layout-2-1'>
+          <section class='sl-card' style='grid-column:1 / -1'>
+            <h3>实验概览</h3>
+            <div class='sl-grid cols-5'>
+              {% for row in [['实验名称','qPCR实验（批次A03）'],['实验类型','分子生物学'],['开始时间','2025-05-22 09:12:15'],['结束时间','2025-05-22 10:02:41'],['已识别断点','1处']] %}
+                <div><div class='sl-muted'>{{ row[0] }}</div><b class='{{ loop.last ? "text-danger" }}'>{{ row[1] }}</b></div>
+              {% endfor %}
+            </div>
+          </section>
+          <section class='sl-card'>
+            <h3>实验事件序列（按时间顺序）</h3>
+            <table class='sl-table'>
+              <thead><tr><th>步骤</th><th>时间</th><th>操作描述</th><th>仪器读数/参数</th><th>语义连贯性</th><th>异常评分</th><th>状态</th></tr></thead>
+              <tbody>
+              {% for row in [
+                [1,'09:12:15','试剂准备：配置反应体系','-','0.98','0.12','正常'],
+                [2,'09:15:03','加入模板DNA（样本A）','浓度：12.3 ng/μL','0.96','0.15','正常'],
+                [3,'09:17:42','孵育 95°C 预变性 3 min','温度：95.1°C','0.95','0.18','正常'],
+                [4,'09:18:05','立即进入 60°C 延伸 30 s','温度：60.2°C','0.41','0.89','异常'],
+                [5,'09:18:36','循环（95°C 10 s）','温度：94.8°C','0.88','0.33','可疑'],
+                [6,'09:18:47','循环（60°C 30 s）','温度：60.1°C','0.90','0.28','正常']
+              ] %}
+                <tr class='{{ row[6] == "异常" ? "alert-row" }}'><td>{{ row[0] }}</td><td>{{ row[1] }}</td><td>{{ row[2] }}</td><td>{{ row[3] }}</td><td>{{ row[4] }}</td><td>{{ row[5] }}</td><td><span class='sl-badge {{ row[6] == "异常" ? "red" : row[6] == "可疑" ? "orange" : "green" }}'>{{ row[6] }}</span></td></tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </section>
+          <aside class='sl-side-list'>
+            <section class='sl-card'>
+              <h3>候选异常位置 <span class='sl-badge red ml-2'>2</span></h3>
+              <div class='sl-callout red mb-3'><span class='sl-badge red'>高风险</span><h3 class='mt-2'>步骤3-步骤4之间存在逻辑断点</h3><div>时间间隔：23 秒（异常偏短）</div><div>断点类型：步骤跳跃（缺少中间步骤）</div><div>异常评分：0.89</div><div>建议：确认是否遗漏退火步骤（如 55°C 退火）</div><button class='btn btn-outline-primary btn-sm btn-block mt-3'>查看详情</button></div>
+              <div class='sl-callout orange'><span class='sl-badge orange'>中风险</span><h3 class='mt-2'>步骤4-步骤5之间存在语义不连贯</h3><div>断点类型：参数突变（温度变化 +35°C）</div><div>异常评分：0.57</div><button class='btn btn-outline-primary btn-sm btn-block mt-3'>查看详情</button></div>
+            </section>
+            <section class='sl-card'>
+              <h3>断点详情（步骤3 → 步骤4）</h3>
+              {% for row in [['断点类型','步骤跳跃（缺少退火阶段）'],['涉及步骤','步骤3 → 步骤4'],['时间间隔','23 秒（期望 ≥ 60 秒）'],['语义差异','0.54'],['参数突变','温度：95°C → 60°C（Δ35°C）'],['置信度','高（0.89）']] %}
+                <div class='sl-mini-stat'><span class='sl-muted'>{{ row[0] }}</span><b class='{{ loop.last ? "text-danger" }}'>{{ row[1] }}</b></div>
+              {% endfor %}
+            </section>
+          </aside>
+          <section class='sl-card'><h3>数值跳变梯度（温度）</h3><div class='sl-chart'>{% for h in [4,4,5,22,86,15,5,8,10,9,4,1] %}<span style='height:{{ h }}%' data-label='{{ loop.index }}'></span>{% endfor %}</div></section>
+          <section class='sl-card'><h3>语义共现得分</h3><div class='sl-chart'>{% for h in [82,84,88,28,72,86,94,90,89,87,78,74] %}<span style='height:{{ h }}%;background:#2563eb' data-label='{{ loop.index }}'></span>{% endfor %}</div></section>
+          <section class='sl-card'><h3>联合异常评分</h3><div class='sl-chart'>{% for h in [21,24,31,39,95,66,34,29,45,32,25,25] %}<span style='height:{{ h }}%;background:#7c3aed' data-label='{{ loop.index }}'></span>{% endfor %}</div></section>
+        </div>
+
+      {% elseif smartlabPatentView == 'jump' %}
+        <div class='sl-grid layout-2-1'>
+          <section class='sl-card'>
+            <h3>前后记录样本图像</h3>
+            <div class='sl-grid cols-2'>
+              <div><div class='sl-gel-photo'></div><b>前一记录：上样电泳后</b><div class='sl-muted mt-2'>记录ID：EXP20250520-1023</div><div class='sl-muted'>时间：2025-05-20 10:23:41</div></div>
+              <div><div class='sl-gel-photo after'></div><b>后一记录：显色完成</b><div class='sl-muted mt-2'>记录ID：EXP20250520-1047</div><div class='sl-muted'>时间：2025-05-20 10:47:18</div></div>
+            </div>
+          </section>
+          <section class='sl-card'>
+            <div class='sl-card-head'><h3>跳步识别对比分析</h3><span class='sl-badge red'>疑似跳步</span></div>
+            <div class='sl-grid cols-2'>
+              <div class='sl-card' style='box-shadow:none'><h3>形态分布偏移量 <i class='far fa-circle-question sl-muted'></i></h3><div style='font-size:34px;color:#ef4444;font-weight:800'>0.78</div><div class='progress'><div class='progress-bar bg-danger' style='width:78%'></div></div><p class='mt-3 mb-0'>偏移显著（> 0.60）</p></div>
+              <div class='sl-card' style='box-shadow:none'><h3>光学密度参数 <i class='far fa-circle-question sl-muted'></i></h3><table class='sl-table'><thead><tr><th>指标</th><th>前一记录</th><th>后一记录</th><th>偏移量</th></tr></thead><tr><td>总信号强度</td><td>12,543</td><td>22,318</td><td class='text-danger'>+9,775 ↑</td></tr><tr><td>背景强度</td><td>1,284</td><td>2,135</td><td class='text-danger'>+851 ↑</td></tr><tr><td>倍噪比(SNR)</td><td>9.78</td><td>10.45</td><td class='text-danger'>+0.67 ↑</td></tr><tr><td>条带对比度</td><td>0.72</td><td>0.41</td><td class='text-success'>-0.31 ↓</td></tr></table></div>
+            </div>
+            <div class='alert alert-danger mt-3 mb-0'><b>系统判定：存在跳步风险</b><br>基于形态分布与光学密度联合评估，建议进行缺失步骤推理。</div>
+          </section>
+          <section class='sl-card'>
+            <h3>缺失步骤推理结果</h3>
+            <div class='sl-flow'>
+              {% for step in ['PBS洗涤','固定','封闭','一抗孵育','二抗孵育'] %}
+                <div class='sl-step-card'><div class='num'>{{ loop.index }}</div><i class='fas fa-{{ loop.index == 1 ? "flask" : loop.index == 2 ? "clipboard-check" : loop.index == 3 ? "shield-halved" : "vial" }} fa-2x my-2 text-primary'></i><div>{{ step }}</div><span class='sl-badge blue mt-2'>置信度 {{ 93 - loop.index }}</span></div>
+                {% if not loop.last %}<div class='sl-flow-arrow'>→</div>{% endif %}
+              {% endfor %}
+            </div>
+            <div class='alert alert-info mt-3 mb-0'>未检测到显色、成像等后处理步骤缺失，可能在后一记录后执行。</div>
+          </section>
+          <aside class='sl-card'>
+            <h3>参考依据与说明</h3>
+            {% for basis in ['历史完整序列：同类实验完整步骤序列统计','模板库：标准实验模板与可选步骤组合','语义匹配：步骤标签与操作语义匹配度','仪器读数范围：信号变化符合预期范围'] %}
+              <div class='py-2 border-bottom'><i class='fas fa-check text-success mr-2'></i>{{ basis }}</div>
+            {% endfor %}
+            <div class='sl-callout blue mt-4'><b><i class='far fa-lightbulb text-primary mr-2'></i>说明</b><p class='mb-0 mt-2 sl-muted'>以上推理结果仅供参考，请结合实验实际情况确认，必要时可上传补充数据以提升推理准确性。</p></div>
+          </aside>
+        </div>
+
+      {% elseif smartlabPatentView == 'templates' %}
+        <div class='sl-grid layout-1-1-1'>
+          <section class='sl-card'>
+            <h3>实验模板库</h3>
+            <div class='input-group mb-2'><input class='form-control' placeholder='搜索模板名称或类型'><div class='input-group-append'><button class='btn btn-outline-primary'><i class='fas fa-filter'></i></button></div></div>
+            <div class='sl-inline-tabs'><span>全部</span><span>qPCR</span><span>ELISA</span><span>WB</span><span>IF</span><span>流式</span><span>测序</span></div>
+            {% for tpl in [
+              ['IF实验模板（哺乳动物细胞）','IF','细胞生物学','v2.1'],
+              ['qPCR实验模板（基因表达）','qPCR','分子生物学','v3.0'],
+              ['ELISA实验模板（单因子）','ELISA','免疫学','v2.0'],
+              ['WB实验模板（蛋白检测）','WB','蛋白质研究','v2.3'],
+              ['RNA-Seq实验模板','测序','转录组学','v2.2']
+            ] %}
+              <div class='sl-card mb-2 {{ loop.first ? "border-primary" }}' style='box-shadow:none'><b>{{ tpl[0] }}</b><div class='mt-2'><span class='sl-badge blue'>{{ tpl[1] }}</span> <span class='sl-badge'>{{ tpl[2] }}</span></div><div class='sl-muted mt-2'>版本：{{ tpl[3] }}</div></div>
+            {% endfor %}
+          </section>
+          <section class='sl-card'>
+            <div class='sl-card-head'><h3>补全结果预览</h3><span class='sl-muted'>共10步，已完成8步</span></div>
+            <div class='mb-3'><span class='sl-badge green'>已直接识别填充</span> <span class='sl-badge blue'>推理补全</span> <span class='sl-badge orange'>待补全项</span></div>
+            <table class='sl-table'>
+              <tbody>
+              {% for row in [
+                ['01','样本准备','HeLa细胞，6孔板，约70%融合度','已识别'],
+                ['02','固定','4%多聚甲醛，室温，固定15 min','已识别'],
+                ['03','透透','0.1% Triton X-100，室温，10 min','已识别'],
+                ['04','封闭','5% BSA，室温，30 min','已识别'],
+                ['05','一抗孵育','抗β-actin（1:1000），4°C过夜','已识别'],
+                ['06','二抗孵育','Alexa Fluor 488山羊抗兔（1:1000），室温，1 h','推理补全'],
+                ['07','染核','DAPI（1 μg/mL），室温，5 min','已识别'],
+                ['08','洗涤','PBST洗涤3次，每次5 min','推理补全'],
+                ['09','封片','请选择封片剂、时间','待补全'],
+                ['10','成像','请选择成像仪器与参数','待补全']
+              ] %}
+                <tr><td>{{ row[0] }}</td><td><b>{{ row[1] }}</b></td><td>{{ row[2] }}</td><td><span class='sl-badge {{ row[3] == "已识别" ? "green" : row[3] == "推理补全" ? "blue" : "orange" }}'>{{ row[3] }}</span></td></tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </section>
+          <section class='sl-card'>
+            <h3>实验过程草稿</h3>
+            {% for draft in [
+              ['实验目的','检测β-actin在HeLa细胞中的表达与定位。'],
+              ['样本信息','样本名称：HeLa细胞；培养条件：DMEM，10% FBS，37°C，5% CO2。'],
+              ['操作步骤','1. 样本准备；2. 固定；3. 透透；4. 封闭；5. 一抗孵育；6. 二抗孵育；7. 染核；8. 洗涤；9. 封片：待补全；10. 成像：待补全。'],
+              ['仪器读数','成像仪器：待补全；曝光/通道：待补全。'],
+              ['异常标记','未检测到异常（基于当前识别与推理结果）。'],
+              ['生成说明','蓝色为推理补全内容，橙色为待人工确认内容。提交导师审核前需要补齐封片和成像参数。']
+            ] %}
+              <div class='sl-callout blue mb-2'><b>{{ draft[0] }}</b><p class='mb-0 mt-2'>{{ draft[1] }}</p></div>
+            {% endfor %}
+          </section>
+          <section class='sl-card' style='grid-column:2 / 3'>
+            <h3>识别依据</h3>
+            {% for source in ['原始记录_20250520_IF_001.txt（已解析）','显微图像文件：IMG_20250520_001.tif（已识别DAPI通道）','试剂列表：抗体使用记录_20250520.xlsx','历史相似实验：IF_20250510_HeLa（相似度0.86）'] %}
+              <div class='py-2 border-bottom'><i class='fas fa-circle-check text-primary mr-2'></i>{{ source }}</div>
+            {% endfor %}
+          </section>
+        </div>
+        <div class='sl-footer-actions'><button class='btn btn-primary'>确认补全</button><button class='btn btn-outline-primary'>导出草稿</button><button class='btn btn-primary'>提交导师审核</button></div>
+
+      {% elseif smartlabPatentView == 'algorithms' %}
+        <div class='sl-grid layout-2-1'>
+          <section class='sl-card'>
+            <div class='d-flex justify-content-between align-items-center mb-3'><h3>算法与模型服务</h3><div><button class='btn btn-outline-primary btn-sm'>模型服务健康检查</button> <button class='btn btn-primary btn-sm'>新建算法服务</button></div></div>
+            <table class='sl-table'>
+              <thead><tr><th>算法/模型名称</th><th>状态</th><th>版本</th><th>平均延迟</th><th>使用场景</th><th>最后更新</th><th>操作</th></tr></thead>
+              <tbody>
+              {% for row in [
+                ['目标检测','通用目标检测模型','v2.3.1','128 ms','实验图像目标定位、器皿/试剂识别','2025-05-21 18:32'],
+                ['OCR识别','通用OCR识别模型','v3.1.0','96 ms','文本提取、表格识别、标签识别','2025-05-21 17:41'],
+                ['语义分析','医学文档语义理解模型','v1.8.2','210 ms','文本语义理解、实体抽取、关系识别','2025-05-21 16:55'],
+                ['断点识别引擎','实验断点定位与分类','v2.2.0','152 ms','识别实验流程中的断点及原因','2025-05-21 16:20'],
+                ['跳步识别引擎','实验缺失检测引擎','v2.1.4','134 ms','检测实验流程中缺失或跳过的步骤','2025-05-21 15:48'],
+                ['步骤推理引擎','实验步骤推理与补全','v3.0.2','176 ms','推理下一步骤、补全缺失步骤','2025-05-21 14:33'],
+                ['模板补全引擎','模板匹配与字段补全','v1.6.3','112 ms','模板匹配、字段抽取与智能补全','2025-05-21 13:59']
+              ] %}
+                <tr><td><span class='sl-service-icon'><i class='fas fa-{{ loop.index == 1 ? "camera-retro" : loop.index == 2 ? "expand" : loop.index == 3 ? "brain" : loop.index == 4 ? "layer-group" : loop.index == 5 ? "puzzle-piece" : loop.index == 6 ? "diagram-project" : "file-circle-check" }}'></i></span><b>{{ row[0] }}</b><div class='sl-muted ml-5'>{{ row[1] }}</div></td><td><span class='sl-badge green'>在线</span></td><td>{{ row[2] }}</td><td>{{ row[3] }}</td><td>{{ row[4] }}</td><td>{{ row[5] }}</td><td><a href='#'>配置</a>　<a href='#'>监控</a></td></tr>
+              {% endfor %}
+              </tbody>
+            </table>
+            <div class='sl-muted mt-3'>共 7 条算法服务</div>
+          </section>
+          <aside class='sl-card'>
+            <h3>策略参数</h3>
+            <p class='sl-muted'>全局策略参数影响算法推理与决策行为。</p>
+            <label>异常阈值<input class='form-control mt-1 mb-3' value='0.60'></label>
+            <div class='sl-muted mb-3'>当异常置信度 ≥ 阈值时触发异常</div>
+            <label>置信度阈值<input class='form-control mt-1 mb-3' value='0.75'></label>
+            <div class='sl-muted mb-3'>低于该阈值的识别结果将进入待审核</div>
+            <label>模板匹配策略<select class='form-control mt-1 mb-3'><option>综合最优匹配</option></select></label>
+            <label>推理路径数量<select class='form-control mt-1 mb-3'><option>5</option></select></label>
+            <label>最大补全字段数<input class='form-control mt-1 mb-3' value='10'></label>
+            <div class='custom-control custom-switch mb-3'><input type='checkbox' class='custom-control-input' id='retrySwitch' checked><label class='custom-control-label' for='retrySwitch'>重试机制</label></div>
+            <label>最大重试次数<input class='form-control mt-1 mb-3' value='2'></label>
+            <button class='btn btn-primary btn-block'>保存策略</button>
+          </aside>
+          <section class='sl-card' style='grid-column:1 / 2'>
+            <h3>算法服务在 SmartLab 工作流中的调用链路</h3>
+            <div class='sl-workflow'>
+              {% for step in [
+                ['原始数据上传','图片 / 文档 / 表格','blue'],
+                ['智能识别层','目标检测 / OCR','blue'],
+                ['问题识别层','断点识别 / 跳步识别','green'],
+                ['推理补全层','步骤推理 / 模板补全','orange'],
+                ['草稿生成','结构化实验记录','purple']
+              ] %}
+                <div class='sl-workflow-node {{ step[2] }}'><i class='fas fa-{{ loop.index == 1 ? "upload" : loop.index == 2 ? "camera-retro" : loop.index == 3 ? "crosshairs" : loop.index == 4 ? "flask-vial" : "file-lines" }} d-block mb-2'></i>{{ step[0] }}<div class='sl-muted'>{{ step[1] }}</div></div>{% if not loop.last %}<div class='sl-flow-arrow'>→</div>{% endif %}
+              {% endfor %}
+            </div>
+            <div class='mt-4'>
+              <span class='sl-badge blue'>目标检测</span>
+              <span class='sl-badge blue'>OCR识别</span>
+              <span class='sl-badge green'>断点识别引擎</span>
+              <span class='sl-badge green'>跳步识别引擎</span>
+              <span class='sl-badge orange'>步骤推理引擎</span>
+              <span class='sl-badge orange'>模板补全引擎</span>
+              <span class='sl-badge purple'>语义分析</span>
+            </div>
+          </section>
+        </div>
+      {% endif %}
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}

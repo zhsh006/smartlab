@@ -1,6 +1,6 @@
 {
   "name": "smartlab-v4",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "private": true,
   "scripts": {
     "elab:up": "docker compose -f deploy/local/docker-compose.yml --env-file deploy/local/.env up -d --build",
@@ -16,6 +16,7 @@
   },
   "devDependencies": {
     "@types/node": "^20",
+    "playwright": "^1.60.0",
     "tsx": "^4.20.5",
     "typescript": "^5"
   }
