@@ -1,34 +1,30 @@
-# SmartLab v4
+# SmartLab V2
+
+SmartLab V2 是面向医学科研训练场景的智能辅助系统，围绕“实验记录采集、原始数据归档、智能识别、断点识别、跳步识别、模板补全、导师审核”形成一套连续的实验训练工作流。
 
 项目仓库创建时间记录见 [`PROJECT_CREATED_2025-06-02.md`](./PROJECT_CREATED_2025-06-02.md)。
 
-这个仓库现在是一个以 `eLabFTW` 为代码基座的 SmartLab 项目。
-代码、部署、数据库扩展和工具脚本已经按长期维护结构重新排列，不再保留迁移期的门户壳层。
+说明：SmartLab 负责医学科研训练业务、专利功能页面、数据链路、算法服务适配和部署交付。
 
 ## 目录结构
 
-- [`apps/elabftw`](/home/h3clab/smartlab-v4/apps/elabftw)
-  eLabFTW 源码基座和 SmartLab 对其的页面、控制器、模型定制。
-- [`deploy/local`](/home/h3clab/smartlab-v4/deploy/local)
-  本地 Docker 部署文件，包括 compose、Dockerfile 和本地部署 env。
-- [`database/elabftw`](/home/h3clab/smartlab-v4/database/elabftw)
-  直接扩展 eLabFTW MySQL 的 SQL 文件。
-- [`tools/elabftw`](/home/h3clab/smartlab-v4/tools/elabftw)
-  针对 eLabFTW 数据库执行扩展 schema 和 seed 的辅助脚本。
-- [`docs/architecture`](/home/h3clab/smartlab-v4/docs/architecture)
-  eLabFTW 基座保留范围、重构方向和 schema 草案文档。
+- `apps/`：Web 应用源码与 SmartLab 定制代码。
+- `deploy/`：本地和服务器部署文件。
+- `database/`：SmartLab 数据库扩展 SQL。
+- `tools/`：数据库初始化、数据导入和验收辅助脚本。
+- `docs/`：架构、数据模型和研发说明。
+- `figtest/`：专利图、运行截图、开发资料和证明材料。
 
-## 核心原则
+## 核心功能
 
-- 业务实现优先落在 eLabFTW 本体代码上，而不是外挂门户。
-- 本地运行和交付都围绕 Docker 化 eLabFTW 实例组织。
-- 项目、样本、审核等能力通过扩展 eLabFTW 页面、控制器和数据库实现。
-
-## 文档
-
-- eLabFTW 核心保留/改造地图见 [`docs/architecture/elabftw-core-map.md`](/home/h3clab/smartlab-v4/docs/architecture/elabftw-core-map.md)
-- SmartLab 扩展表草案见 [`docs/architecture/phase1-schema-draft.sql`](/home/h3clab/smartlab-v4/docs/architecture/phase1-schema-draft.sql)
-- 本地 eLabFTW 部署说明见 [`deploy/local/README.md`](/home/h3clab/smartlab-v4/deploy/local/README.md)
+- 学生端实验项目和实验记录创建。
+- 原始记录、仪器结果、实验图片和数据表上传归档。
+- qPCR、ELISA、Western blot、免疫荧光等实验结果识别与展示。
+- 实验事件序列构建和逻辑断点识别。
+- 前后实验记录对比、跳步识别和缺失步骤推理。
+- 实验模板补全和过程草稿生成。
+- 导师端审核、反馈和闭环归档。
+- 图像分析 worker 与算法服务健康检查。
 
 ## 本地运行
 
@@ -39,7 +35,7 @@ npm run elab:up
 
 地址：`https://127.0.0.1:3159`
 
-如果需要把 SmartLab 扩展表打进 eLabFTW MySQL：
+初始化 SmartLab 扩展表和种子数据：
 
 ```bash
 npm run elab:phase1:apply
@@ -54,6 +50,7 @@ npm run elab:down
 
 ## 开发说明
 
-- 所有页面与功能改造都应优先落在 [`apps/elabftw`](/home/h3clab/smartlab-v4/apps/elabftw)
-- 容器镜像通过 [`deploy/local/Dockerfile`](/home/h3clab/smartlab-v4/deploy/local/Dockerfile) 从本仓库源码构建
-- SmartLab 的数据库扩展统一放在 [`database/elabftw`](/home/h3clab/smartlab-v4/database/elabftw)
+- SmartLab 的业务页面、控制器、模型和模板统一在 Web 应用源码内维护。
+- 数据库扩展统一放在 `database/`。
+- 部署镜像通过 `deploy/local/Dockerfile` 从本仓库源码构建。
+- 审查员版 V2 自主研发证明材料位于 `figtest/`。
