@@ -963,15 +963,22 @@ final class SmartlabExperiments extends AbstractSmartlabModel
         $hasRawData = $uploadCount > 0;
         $hasRecognitionEvidence = $this->hasWorkflowRecognitionEvidence($packKey, $payload);
         $hasRecognizedResults = $this->hasWorkflowResults($packKey, $payload, $results);
-        $canSubmitReview = $canPrintBenchSheet && $hasRawData && $hasRecognitionEvidence && $hasRecognizedResults;
+        $canSubmitReview = $canPrintBenchSheet && $hasRawData && $hasRecognizedResults;
 
         $steps = array(
             array('key' => 'prepare', 'label' => '实验准备', 'done' => $canPrintBenchSheet, 'active' => !$canPrintBenchSheet),
             array('key' => 'upload', 'label' => '上传原始数据', 'done' => $hasRawData, 'active' => $canPrintBenchSheet && !$hasRawData),
-            array('key' => 'recognize', 'label' => '智能识别与断点检查', 'done' => $hasRecognitionEvidence, 'active' => $hasRawData && !$hasRecognitionEvidence),
+            array('key' => 'recognize', 'label' => '辅助检查（可选）', 'done' => $hasRecognitionEvidence, 'active' => $hasRawData && !$hasRecognitionEvidence),
             array('key' => 'results', 'label' => '结果回填确认', 'done' => $hasRecognizedResults, 'active' => $hasRecognitionEvidence && !$hasRecognizedResults),
-            array('key' => 'submit', 'label' => '进行智能检测', 'done' => $hasSubmittedReview, 'active' => $canSubmitReview && !$hasSubmittedReview),
+            array('key' => 'submit', 'label' => '提交导师审核', 'done' => $hasSubmittedReview, 'active' => $canSubmitReview && !$hasSubmittedReview),
         );
+
+        $activeSet = false;
+        foreach ($steps as &$step) {
+            $step['active'] = !$activeSet && !$step['done'] && $step['key'] !== 'recognize';
+            $activeSet = $activeSet || $step['active'];
+        }
+        unset($step);
 
         $studentChecks = $this->buildStudentWorkflowChecks($packKey, $payload, $feedback, $missingMaterials, $uploadCount, $hasRecognitionEvidence, $hasRecognizedResults, $hasPlan);
         $mentorChecks = $this->buildMentorWorkflowChecks($packKey, $payload, $feedback, $missingMaterials, $uploadCount, $hasRecognitionEvidence, $hasRecognizedResults);

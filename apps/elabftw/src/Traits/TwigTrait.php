@@ -39,7 +39,7 @@ trait TwigTrait
 
         $options = array(
             // use local cache
-            'cache' => FsTools::getCacheFolder('twig'),
+            'cache' => FsTools::getCacheFolder('twig-notebook-20261012-3'),
             // debug mode means the cache is not used (useful in dev of course)
             'debug' => $debug,
         );

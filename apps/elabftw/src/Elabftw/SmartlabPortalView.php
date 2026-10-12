@@ -134,10 +134,6 @@ final class SmartlabPortalView
             return self::Mentor;
         }
 
-        if ($isAdmin) {
-            return self::Assistant;
-        }
-
         $teamCondition = $team > 0 ? 'AND p.team_id = :team' : '';
         $assistantReq = $Db->prepare('SELECT 1
             FROM smartlab_project_members AS pm
@@ -155,7 +151,7 @@ final class SmartlabPortalView
             return self::Assistant;
         }
 
-        return self::Student;
+        return $isAdmin ? self::Mentor : self::Student;
     }
 
     private static function canUseRequestedView(Users $Users, string $view): bool

@@ -159,20 +159,11 @@
 
     setSummary('recognition', recognized ? '已关联' : '待关联', recognized ? 'success' : 'warning');
     setSummary('results', resultCount + ' 行', hasResults ? 'success' : (recognized ? 'warning' : ''));
-    setStudentWorkflowStep(
-      'recognize',
-      '3. 智能识别与断点检查 · ' + (recognized ? '已完成' : '当前步骤'),
-      recognized ? 'success' : 'active'
-    );
-    setStudentWorkflowStep(
-      'results',
-      '4. 结果回填确认 · ' + (hasResults ? '已完成' : '待完成'),
-      hasResults ? 'success' : ''
-    );
-    if (hasResults) {
-      setStudentWorkflowStep('submit', '5. 进行智能检测 · 当前步骤', 'active');
+    var uploadCount = Number(document.getElementById('smartlab-wb-workflow').dataset.lsUploads || 0);
+    var alert = document.querySelector('[data-smartlab-workflow-alert]');
+    if (alert && uploadCount === 0) {
+      alert.textContent = '尚未上传原始附件。可先编辑过程记录，完成实验后再补充原始数据。';
     }
-    setWorkflowAlert(recognized, hasResults);
 
     if (recognized) {
       setModule('record', '已形成原图、lane/ROI 标注和结构化字段索引。', 'success');

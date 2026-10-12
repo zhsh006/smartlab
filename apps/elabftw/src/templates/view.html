@@ -2,6 +2,15 @@
 
 {% block body %}
 
+{% if Entity.entityType.value == 'experiments' %}
+  <div class='ls-record-actions'><a href='dashboard.php'>← 返回实验列表</a><div>
+    {% if smartlabCanManageExperiments %}<a class='btn btn-primary btn-sm' href='experiments.php?mode=edit&id={{ Entity.id }}'>编辑记录</a>{% endif %}
+    <a class='btn btn-outline-secondary btn-sm' href='make.php?type=experiments&id={{ Entity.id }}&format=pdf'>导出 PDF</a>
+  </div></div>
+  <nav class='ls-record-tabs' aria-label='实验记录内容'><a href='#body_view'>过程记录</a><a href='#filesDiv'>原始附件</a><a href='#ls-record-parameters' data-ls-open='ls-record-parameters'>参数与结果</a><a href='#ls-record-review'>导师意见与送审</a></nav>
+{% endif %}
+
+
 {% macro smartlabDictionarySelect(id, name, value, options, placeholder, selectClass) %}
   <select id='{{ id }}' class='{{ selectClass|default('form-control') }}' name='{{ name }}'>
     <option value=''>{{ placeholder|default('请选择') }}</option>
@@ -113,8 +122,7 @@
     {% set smartlabExperimentEditable = smartlabCanManageExperiments %}
     <div id='experiment-workflow' class='card border-0 shadow-sm my-3'>
       <div class='card-body'>
-        <div class='smallgray text-uppercase mb-1'>Experiment workflow</div>
-        <h3 class='mb-3'>{{ smartlabExperimentEditable ? '项目与审核' : '实验上下文与审核' }}</h3>
+
 
         {% if not smartlabExperimentEditable %}
           <div class='mb-3'>
@@ -133,8 +141,24 @@
           <div class='smallgray mb-3'>助理端和导师端仅查看实验归属、审核状态和分析结果，不在这里执行项目挂接或送审提交。</div>
         {% endif %}
 
+
+        <section id='ls-record-review' class='ls-panel p-3 mb-3'>
+          <h3 class='h5'>导师意见与送审</h3>
+          {% if smartlabExperimentEditable %}
+          <p class='smallgray'>记录当前进展，说明需要导师查看的问题。辅助分析不是送审的必经步骤。</p>
+          <form method='post' action='experiments.php?mode=view&id={{ Entity.id }}'>
+            {{ App.Session.get('csrf')|csrf }}<input type='hidden' name='smartlab_action' value='submit_review'><input type='hidden' name='notebook_manual' value='1'>
+            <label for='ls-review-project'>所属课题</label><select id='ls-review-project' name='project_id' class='form-control mb-3' required><option value=''>请选择课题</option>
+              {% for project in smartlabProjectsArr|default([]) %}<option value='{{ project.id }}'>{{ project.code }} · {{ project.name }}</option>{% endfor %}
+              {% for project in smartlabAvailableProjectsArr|default([]) %}<option value='{{ project.id }}'>{{ project.code }} · {{ project.name }}</option>{% endfor %}
+            </select>
+            <label for='ls-review-comment'>希望导师检查什么？</label><textarea id='ls-review-comment' name='review_comment' class='form-control mb-3' rows='3' required placeholder='说明实验进展、当前结果或需要指导的问题。'></textarea>
+            <button class='btn btn-primary' type='submit'>提交当前记录给导师</button>
+          </form>
+          {% else %}<p class='smallgray'>在下方查看反馈，或进入导师待办处理本次提交。</p><a class='btn btn-outline-primary btn-sm' href='reviews.php'>打开导师待办</a>{% endif %}
+        </section>
         <div>
-          <div class='smallgray text-uppercase mb-2'>审核流</div>
+          <div class='smallgray text-uppercase mb-2'>历史反馈</div>
           <div class='list-group list-group-flush'>
             {% for flow in smartlabReviewFlowsArr|default([]) %}
               <div class='list-group-item px-0'>
@@ -238,7 +262,7 @@
               {% endif %}
               {% set smartlabWorkflowDemo = smartlabWorkflow.workflow_demo|default(smartlabWorkflow.patent_demo|default({})) %}
               {% if smartlabAssayPackArr.pack_key == 'western_blot' and smartlabWorkflowDemo.modules|default([]) %}
-                <div id='smartlab-wb-workflow' class='border rounded bg-white p-3 mt-3'>
+                <div id='smartlab-wb-workflow' data-ls-uploads='{{ smartlabWorkflow.upload_count|default(0) }}' class='border rounded bg-white p-3 mt-3'>
                   <div class='d-flex justify-content-between align-items-start flex-wrap mb-3'>
                     <div class='mr-3'>
                       <div class='smallgray text-uppercase mb-1'>Workflow visibility</div>
@@ -1658,7 +1682,7 @@
             </datalist>
 
             <script defer src='/assets/smartlab-usage.js?v={{ v }}-usage-1'></script>
-            <script defer src='/assets/smartlab-wb-workflow-sync.js?v={{ v }}-wb-workflow-1'></script>
+            <script defer src='/assets/smartlab-wb-workflow-sync.js?v={{ v }}-wb-workflow-20261012'></script>
             {# <script>
               document.addEventListener('DOMContentLoaded', function () {
                 const sampleSelect = document.getElementById('assay-linked-sample-id');
@@ -1916,7 +1940,7 @@
           </div>
         </div>
 
-		        <div id='experiment-materials' class='row d-none' aria-hidden='true'>
+		        <div id='experiment-materials' class='row d-none' aria-hidden='true' hidden>
 		          <div class='col-lg-6 mb-3'>
 		            <div class='smallgray text-uppercase mb-2'>关联样本</div>
             <div class='list-group list-group-flush'>

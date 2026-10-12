@@ -60,14 +60,16 @@ final class ReviewsController extends AbstractHtmlController
     #[Override]
     protected function getPageTitle(): string
     {
-        return '审核';
+        return '导师待办';
     }
 
     #[Override]
     protected function getData(): array
     {
-        return array_merge(parent::getData(), array(
-            'reviewsArr' => (new SmartlabReviews($this->app->Users))->readAll(),
-        ));
+        $history = $this->app->Request->query->getBoolean('history');
+        $teamScope = $this->app->Users->isAdmin && $this->app->Request->query->getString('scope') === 'team';
+        $rows = (new SmartlabReviews($this->app->Users))->readAll(!$teamScope, $history);
+        if (!$history) { $rows = array_values(array_filter($rows, static fn(array $row): bool => $row['status'] === 'submitted')); }
+        return array_merge(parent::getData(), array('reviewsArr' => $rows, 'notebookReviewHistory' => $history, 'notebookReviewTeam' => $teamScope));
     }
 }

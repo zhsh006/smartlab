@@ -21,9 +21,8 @@
   </p>
 
   <p class='footer-right'>
-    LabSmart {% if App.Session.has('is_auth') %}<span class='smallgray'>科研训练智能辅助系统</span>{% endif %}{% if App.demoMode %} | Demo mode{% endif %}
-    <br>
-    医学科研训练智能辅助系统
+    LabSmart <span class='smallgray'>实验记录与导师协作</span>{% if App.demoMode %} | Demo mode{% endif %}
+
     {% if App.devMode -%}
       <br>{{ 'Page generated in' }} {{ generationTime() }} {{ 'seconds'|trans }}
       ({{ numberOfQueries() }} SQL)

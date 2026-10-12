@@ -1,69 +1,7 @@
 {% extends 'base.html' %}
-
 {% block body %}
-<div class='d-flex justify-content-between align-items-start mb-3'>
-  <div>
-    <p class='smallgray text-uppercase mb-1'>SmartLab</p>
-    <h2 class='mb-2'>{{ smartlabCanManageReviewDecisions ? '审核中心' : '审核协同中心' }}</h2>
-    <p class='mb-0'>{{ smartlabCanManageReviewDecisions ? '导师端在这里执行最终审核裁决。' : '助理端在这里跟踪审核状态、整理意见并催办，不直接做最终通过/退回/拒绝。' }}</p>
-  </div>
-</div>
-
-<div class='list-group'>
-  {% for review in reviewsArr %}
-    <div class='list-group-item'>
-      <div class='d-flex justify-content-between align-items-start flex-wrap'>
-        <div class='mr-3'>
-          <div class='smallgray text-uppercase'>{{ review.entity_type }} #{{ review.entity_id }}</div>
-          <h5 class='mt-2 mb-1'>{{ review.project_code ?: '未绑定项目' }}{% if review.project_name %} · {{ review.project_name }}{% endif %}</h5>
-          <div>提交人：{{ review.requester_name ?: '未知' }}</div>
-          <div>审核人：{{ review.assignee_name ?: '未分配' }}</div>
-          {% if review.decision %}
-            <div class='smallgray text-uppercase mt-1'>处理结果
-              {{
-                review.decision == 'approved' ? '通过'
-                : review.decision == 'changes_requested' ? '退回修改'
-                : review.decision == 'rejected' ? '拒绝'
-                : review.decision
-              }}
-            </div>
-          {% endif %}
-          {% if review.comment %}
-            <div class='mt-2 smallgray'>{{ review.comment }}</div>
-          {% endif %}
-          {% if review.entity_type == 'experiment' %}
-            <div class='mt-2'>
-              <a class='btn btn-outline-secondary btn-sm mr-2' href='experiments.php?mode=view&id={{ review.entity_id }}'>查看实验记录</a>
-              <a class='btn btn-outline-primary btn-sm' href='make.php?type=experiments&id={{ review.entity_id }}&format=pdf' target='_blank' rel='noopener'>下载实验 PDF</a>
-            </div>
-          {% endif %}
-        </div>
-        <div>
-          <span class='badge badge-dark'>
-            {{ review.status == 'submitted' ? '已提交' : review.status == 'approved' ? '已通过' : review.status == 'needs_revision' ? '待修改' : review.status == 'rejected' ? '已拒绝' : review.status }}
-          </span>
-        </div>
-      </div>
-      {% if smartlabCanManageReviewDecisions %}
-        <form method='post' action='reviews.php' class='mt-3'>
-          {{ App.Session.get('csrf')|csrf }}
-          <input type='hidden' name='flow_id' value='{{ review.id }}' />
-          <div class='form-group mb-2'>
-            <label for='comment-{{ review.id }}' class='smallgray text-uppercase'>审核意见</label>
-            <textarea class='form-control' id='comment-{{ review.id }}' name='comment' rows='2' placeholder='填写审核意见或修改要求。'>{{ review.comment }}</textarea>
-          </div>
-          <div class='d-flex flex-wrap'>
-            <button class='btn btn-success btn-sm mr-2 mb-2' type='submit' name='decision' value='approve'>通过</button>
-            <button class='btn btn-warning btn-sm mr-2 mb-2' type='submit' name='decision' value='request_changes'>退回修改</button>
-            <button class='btn btn-danger btn-sm mr-2 mb-2' type='submit' name='decision' value='reject'>拒绝</button>
-          </div>
-        </form>
-      {% else %}
-        <div class='mt-3 smallgray'>助理端只做审核协同和意见整理，最终裁决由导师端完成。</div>
-      {% endif %}
-    </div>
-  {% else %}
-    <div class='alert alert-info mb-0'>当前团队下还没有 SmartLab 审核流。</div>
-  {% endfor %}
-</div>
-{% endblock body %}
+<div class='ls-page-header'><div><h2>{{ notebookReviewHistory ? '审核记录' : '导师待办' }}</h2><p>{{ notebookReviewTeam ? '团队范围的审核记录，按实验提交整理。' : '核对原始证据，给学生留下明确的反馈。' }}</p></div><span class='ls-status'>{{ reviewsArr|length }} 项</span></div>
+<nav class='ls-tabs' aria-label='审核范围'><a class='{{ not notebookReviewHistory and not notebookReviewTeam ? "active" }}' href='reviews.php'>我的待审</a>{% if App.Users.isAdmin %}<a class='{{ notebookReviewTeam and not notebookReviewHistory ? "active" }}' href='reviews.php?scope=team'>团队待审</a>{% endif %}<a class='{{ notebookReviewHistory ? "active" }}' href='reviews.php?history=1{{ notebookReviewTeam ? "&scope=team" }}'>历史记录</a></nav>
+<div class='ls-review-list'>{% for review in reviewsArr %}<article class='ls-review'><div class='ls-review-top'><div class='ls-review-meta'>实验 #{{ review.entity_id }} · {{ review.project_code ?: '尚未关联课题' }}<br>提交人：{{ review.requester_name ?: '未知' }} · {{ review.created_at|date('Y-m-d') }}</div><span class='ls-status {{ review.status }}'>{{ review.status == 'submitted' ? '待审核' : review.status == 'approved' ? '已通过' : review.status == 'needs_revision' ? '等待补充' : review.status == 'rejected' ? '已退回' : review.status }}</span></div><h3>{{ review.experiment_title ?: review.project_name ?: '实验记录' }}</h3><div class='ls-review-meta'>审核人：{{ review.assignee_name ?: '尚未分配' }}</div>{% if review.comment %}<p class='mt-3'>{{ review.comment }}</p>{% endif %}{% if review.entity_type == 'experiment' %}<div class='ls-review-actions'><a class='btn btn-outline-primary btn-sm' href='experiments.php?mode=view&id={{ review.entity_id }}'>查看记录与原始附件</a><a class='smallgray' href='make.php?type=experiments&id={{ review.entity_id }}&format=pdf'>下载 PDF</a></div>{% endif %}
+{% if smartlabCanManageReviewDecisions and review.status == 'submitted' %}<form method='post' action='reviews.php{{ notebookReviewTeam ? "?scope=team" }}' class='mt-4'>{{ App.Session.get('csrf')|csrf }}<input type='hidden' name='flow_id' value='{{ review.id }}'><label for='comment-{{ review.id }}-{{ review.task_id }}'>给学生的反馈</label><textarea id='comment-{{ review.id }}-{{ review.task_id }}' name='comment' class='form-control' rows='3' placeholder='说明需要补充的证据或修改内容。'></textarea><div class='ls-review-actions'><button class='btn btn-primary' type='submit' name='decision' value='approve'>通过审核</button><button class='btn btn-outline-secondary' type='submit' name='decision' value='request_changes'>退回补充</button><button class='btn btn-danger btn-sm' type='submit' name='decision' value='reject'>不通过</button></div></form>{% endif %}</article>{% else %}<div class='ls-panel ls-empty'><strong>{{ notebookReviewHistory ? '暂无历史审核记录' : '待办已经处理完了' }}</strong>分配给你的审核任务会在这里出现。{% if App.Users.isAdmin and not notebookReviewTeam %}<div class='mt-3'><a href='reviews.php?scope=team'>查看团队待审记录</a></div>{% endif %}</div>{% endfor %}</div>
+{% endblock %}

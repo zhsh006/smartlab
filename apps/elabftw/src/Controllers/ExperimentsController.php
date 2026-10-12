@@ -230,8 +230,19 @@ final class ExperimentsController extends AbstractEntityController
                 $this->App->Request->request->all('key_upload_ids'),
             );
             if ($projectId > 0) {
+                if ($this->App->Request->request->getBoolean('notebook_manual')) {
+                    $this->Entity->canOrExplode(\Elabftw\Enums\AccessType::Write);
+                    $allowedProjects = array_merge($SmartlabExperiments->readProjects($experimentId), $SmartlabExperiments->readAvailableProjects($experimentId));
+                    if (!in_array($projectId, array_map('intval', array_column($allowedProjects, 'id')), true)) {
+                        throw new \Elabftw\Exceptions\UnauthorizedException();
+                    }
+                    if (trim(strip_tags((string) $this->Entity->entityData['body'])) === '' && trim($comment) === '') {
+                        $this->App->Session->getFlashBag()->add('ko', '请填写实验过程或希望导师检查的问题。');
+                        return new RedirectResponse(sprintf('/experiments.php?mode=view&id=%d', $experimentId));
+                    }
+                }
                 $workflow = $SmartlabExperiments->readAssayPack($experimentId)['workflow'] ?? array();
-                if (!(bool) ($workflow['can_submit_review'] ?? false)) {
+                if (!$this->App->Request->request->getBoolean('notebook_manual') && !(bool) ($workflow['can_submit_review'] ?? false)) {
                     $this->App->Session->getFlashBag()->add('ko', '请先完成实验计划、样本材料确认、原始数据上传和结果确认，再提交导师审核。');
                     return new RedirectResponse(sprintf('/experiments.php?mode=view&id=%d', $experimentId));
                 }

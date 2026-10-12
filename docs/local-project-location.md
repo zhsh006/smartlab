@@ -25,7 +25,11 @@
 
 当前访问入口：`http://172.18.21.142:3180/login.php`，页面标示 SmartLab V3。
 
-历史部署资料记载目录：`/srv/smartlab-v5/labsmart-server-deploy`。该路径尚未通过当前服务器会话核实。
+已通过服务器会话核实：当前部署项目为 `/srv/smartlab-v5/labsmart-patent-2.3`，实际运行的 Web 容器为 `labsmart-patent-23-web`。项目目录与容器源码存在差异，本地以改版前运行容器的源码为基线。
 
-公开仓库不包含构建文件引用的 `apps/elabftw` 目录。服务器 SSH 已可达，但现有本机凭据尚未通过认证；需要取得完整本地源码路径或可用 SSH 登录方式，再继续修改当前系统。
+完整应用源码已导入 `apps/elabftw`，包含 PHP 业务、模板及 Web 资源；数据库、原始附件、服务器环境配置继续保存在服务器。
+
+本次版本：`notebook-20261012`（2026-10-12 师生工作流简化版）。服务器发布目录为 `/srv/smartlab-v5/releases/notebook-20261012`。旧界面标示 V3；磁盘部署名称中的 2.3、V5 是历史名称，不代表同一套版本编号。
+
+部署、验证与回退说明见 `docs/release-notebook-20261012.md`。
 

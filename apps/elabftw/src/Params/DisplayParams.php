@@ -66,6 +66,18 @@ final class DisplayParams extends BaseQueryParams
         $this->adjust();
     }
 
+    public function appendSmartlabProjectFilter(int $projectId, int $teamId): void
+    {
+        if ($projectId > 0) {
+            $this->filterSql .= sprintf(' AND entity.id IN (SELECT pe.entity_id FROM smartlab_project_entities pe INNER JOIN smartlab_projects p ON p.id = pe.project_id WHERE pe.entity_type = "experiment" AND p.id = %d AND p.team_id = %d)', $projectId, $teamId);
+        }
+    }
+
+    public function appendSmartlabFeedbackFilter(): void
+    {
+        $this->filterSql .= ' AND entity.id IN (SELECT f.entity_id FROM smartlab_review_flows f WHERE f.entity_type = "experiment" AND f.status IN ("needs_revision", "rejected") AND f.id = (SELECT MAX(f2.id) FROM smartlab_review_flows f2 WHERE f2.entity_type = "experiment" AND f2.entity_id = f.entity_id))';
+    }
+
     public function appendFilterSql(FilterableColumn $column, int $value): void
     {
         $this->filterSql .= sprintf(' AND %s = %d', $column->value, $value);

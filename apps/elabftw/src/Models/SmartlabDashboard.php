@@ -95,6 +95,28 @@ final class SmartlabDashboard extends AbstractSmartlabModel
         return $req->fetch();
     }
 
+    public function readNotebookContext(array $ids): array
+    {
+        $ids = array_values(array_filter(array_map('intval', $ids), static fn(int $id): bool => $id > 0));
+        if ($ids === array()) { return array(); }
+        $sql = 'SELECT e.id, COUNT(DISTINCT u.id) AS upload_count,
+            GROUP_CONCAT(DISTINCT CONCAT(p.code, " · ", p.name) SEPARATOR "、") AS project_label,
+            COALESCE(rf.status, "") AS review_status
+            FROM experiments e
+            LEFT JOIN uploads u ON u.item_id = e.id AND u.type = "experiments"
+            LEFT JOIN smartlab_project_entities pe ON pe.entity_type = "experiment" AND pe.entity_id = e.id
+            LEFT JOIN smartlab_projects p ON p.id = pe.project_id AND p.team_id = e.team
+            LEFT JOIN smartlab_review_flows rf ON rf.id = (SELECT MAX(r.id) FROM smartlab_review_flows r WHERE r.entity_type = "experiment" AND r.entity_id = e.id)
+            WHERE e.team = :team AND e.id IN (' . implode(',', $ids) . ')
+            GROUP BY e.id, rf.status';
+        $query = $this->Db->prepare($sql);
+        $query->bindValue(':team', $this->Users->team, PDO::PARAM_INT);
+        $this->Db->execute($query);
+        $result = array();
+        foreach ($query->fetchAll() as $row) { $result[(int) $row['id']] = $row; }
+        return $result;
+    }
+
     public function readRecentExperiments(int $limit = 6): array
     {
         $isSupervisor = $this->isCurrentUserTeamSupervisor();

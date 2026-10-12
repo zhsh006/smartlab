@@ -18,6 +18,9 @@ require_once 'app/init.inc.php';
 $Response = new Response();
 
 try {
+    if (!$Request->isMethod('POST')) {
+        throw new AppException('请从实验列表的新建表单创建记录。');
+    }
     $portalView = SmartlabPortalView::resolve($Request, $App->Session, $App->Users);
     if (!SmartlabPortalView::canOperateExperiments($App->Users, $portalView)) {
         throw new AppException('Only students can create student experiments.');
@@ -28,11 +31,25 @@ try {
         $title = '空白实验 · ' . (new DateTimeImmutable())->format('Y-m-d');
     }
 
+    $dateText = $Request->request->getString('date') ?: (new DateTimeImmutable())->format('Y-m-d');
+    $date = DateTimeImmutable::createFromFormat('!Y-m-d', $dateText);
+    if ($date === false || $date->format('Y-m-d') !== $dateText) {
+        throw new AppException('请选择有效的实验日期。');
+    }
+    $projectId = max(0, $Request->request->getInt('project_id'));
+    $Projects = new \Elabftw\Models\SmartlabProjects($App->Users);
+    if ($projectId > 0) {
+        $Projects->readOneForCurrentUser($projectId);
+    }
     $newId = (new Experiments($App->Users))->create(
         title: $title,
+        date: $date,
         canreadBase: BasePermissions::User,
         canwriteBase: BasePermissions::User,
     );
+    if ($projectId > 0) {
+        $Projects->addEntity($projectId, 'experiment', $newId);
+    }
 
     $App->Session->getFlashBag()->add('ok', '空白实验已创建。');
     $Response = new RedirectResponse(sprintf('/experiments.php?mode=edit&id=%d', $newId));

@@ -12,8 +12,8 @@
 <div class='text-center'>
   <div class='smartlab-login-brand'>
     <div class='smartlab-login-mark'><i class='fas fa-snowflake'></i></div>
-    <div class='smartlab-login-title'>SmartLab V3</div>
-    <div class='smartlab-login-subtitle'>医学科研训练智能辅助系统</div>
+    <div class='smartlab-login-title'>LabSmart</div>
+    <div class='smartlab-login-subtitle'>实验记录与导师协作</div>
   </div>
 </div>
 <div class='separator col-md-4 mx-auto'></div>
@@ -104,7 +104,7 @@
     {# Login form , the id is for an acceptance test #}
     <form method='post' id='login' action='app/controllers/LoginController.php' autocomplete='off' aria-label='local or ldap login'>
       {{ App.Session.get('csrf')|csrf }}
-      <h1 class='my-4 '>登录 SmartLab V3</h1>
+      <h1 class='my-4 '>登录 LabSmart</h1>
       <div class='col-md-4 mx-auto text-left form-group'>
         <label for='email'>{{ App.Config.configArr.ldap_search_attr == 'mail' ? 'Email'|trans : 'Login'|trans }}</label>
         <input class='form-control mb-4' id='email' name='email' type='{{ App.Config.configArr.ldap_search_attr == 'mail' ? 'email' : 'text' }}' value='{{ App.Session.has('email') ? App.Session.get('email') }}' autocomplete='email' required />

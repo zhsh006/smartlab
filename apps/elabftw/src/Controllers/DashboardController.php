@@ -25,6 +25,7 @@ use Elabftw\Models\ItemsStatus;
 use Elabftw\Models\ItemsTypes;
 use Elabftw\Models\Scheduler;
 use Elabftw\Models\SmartlabDashboard;
+use Elabftw\Models\SmartlabProjects;
 use Elabftw\Models\Templates;
 use Elabftw\Models\UserRequestActions;
 use Elabftw\Params\DisplayParams;
@@ -49,7 +50,7 @@ final class DashboardController extends AbstractHtmlController
     #[Override]
     protected function getPageTitle(): string
     {
-        return '系统总览';
+        return '实验记录';
     }
 
     #[Override]
@@ -87,9 +88,29 @@ final class DashboardController extends AbstractHtmlController
         $SmartlabDashboard = new SmartlabDashboard($this->app->Users);
         $isMentorView = SmartlabPortalView::resolve($this->app->Request, $this->app->Session, $this->app->Users) === SmartlabPortalView::Mentor;
 
+        $page = max(1, $this->app->Request->query->getInt('page', 1));
+        $notebookQuery = new InputBag(array('scope' => $isMentorView ? '2' : '1', 'q' => $this->app->Request->query->getString('q'), 'limit' => '51', 'offset' => (string) (($page - 1) * 50)));
+        $notebookParams = new DisplayParams($this->app->Users, EntityType::Experiments, query: $notebookQuery, limit: 51);
+        $projectId = max(0, $this->app->Request->query->getInt('project'));
+        $notebookParams->appendSmartlabProjectFilter($projectId, (int) $this->app->Users->team);
+        if ($this->app->Request->query->getString('tab') === 'tasks') {
+            $notebookParams->appendSmartlabFeedbackFilter();
+        }
+        $notebookRows = $Experiments->readShow($notebookParams);
+        $notebookHasMore = count($notebookRows) > 50;
+        $notebookRows = array_slice($notebookRows, 0, 50);
+        $notebookContext = $SmartlabDashboard->readNotebookContext(array_column($notebookRows, 'id'));
+        $Projects = new SmartlabProjects($this->app->Users);
+        $notebookProjects = $isMentorView ? $Projects->readAll() : $Projects->readForCurrentUser();
+
         return array_merge(
             parent::getData(),
             array(
+                'notebookRows' => $notebookRows,
+                'notebookContext' => $notebookContext,
+                'notebookProjects' => $notebookProjects,
+                'notebookPage' => $page,
+                'notebookHasMore' => $notebookHasMore,
                 'bookingsArr' => $Scheduler->readAll(),
                 'itemsStatusArr' => $ItemsStatus->readAll(),
                 'experimentsArr' => $Experiments->readShow($DisplayParamsExp),

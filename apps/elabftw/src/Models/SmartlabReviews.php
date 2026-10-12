@@ -24,29 +24,37 @@ final class SmartlabReviews extends AbstractSmartlabModel
         parent::__construct($Users);
     }
 
-    public function readAll(): array
+    public function readAll(bool $mineOnly = false, bool $history = false): array
     {
+        $userid = (int) $this->Users->userid;
+        $mineSql = $mineOnly ? ' AND rt.assignee_userid = ' . $userid : '';
+        $latestSql = $history ? '' : ' AND rf.id = (SELECT MAX(newer.id) FROM smartlab_review_flows newer WHERE newer.entity_type = rf.entity_type AND newer.entity_id = rf.entity_id)';
         $sql = 'SELECT
                 rf.id,
                 rf.entity_type,
                 rf.entity_id,
+                e.title AS experiment_title,
                 rf.status,
                 rf.created_at,
                 p.code AS project_code,
                 p.name AS project_name,
                 CONCAT(req.firstname, " ", req.lastname) AS requester_name,
                 CONCAT(assignee.firstname, " ", assignee.lastname) AS assignee_name,
+                rt.id AS task_id,
+                rt.assignee_userid,
                 rt.decision,
                 rt.decided_at,
                 rt.comment
             FROM smartlab_review_flows AS rf
+            LEFT JOIN experiments AS e ON rf.entity_type = "experiment" AND e.id = rf.entity_id
             LEFT JOIN smartlab_projects AS p ON p.id = rf.project_id
             LEFT JOIN users AS req ON req.userid = rf.requester_userid
-            LEFT JOIN smartlab_review_tasks AS rt ON rt.flow_id = rf.id
+            LEFT JOIN smartlab_review_tasks AS rt ON rt.id = (SELECT t.id FROM smartlab_review_tasks t WHERE t.flow_id = rf.id ORDER BY (t.assignee_userid = ' . $userid . ') DESC, t.id DESC LIMIT 1)
             LEFT JOIN users AS assignee ON assignee.userid = rt.assignee_userid
-            WHERE p.team_id = :team OR (p.team_id IS NULL AND req.userid IN (
+            WHERE (p.team_id = :team OR (p.team_id IS NULL AND req.userid IN (
                 SELECT users_id FROM users2teams WHERE teams_id = :team
-            ))
+            )))
+            ' . $mineSql . $latestSql . '
             ORDER BY rf.updated_at DESC, rf.id DESC';
         $req = $this->Db->prepare($sql);
         $req->bindValue(':team', $this->Users->team, PDO::PARAM_INT);
@@ -138,8 +146,10 @@ final class SmartlabReviews extends AbstractSmartlabModel
             LEFT JOIN smartlab_projects AS p ON p.id = rf.project_id
             WHERE rt.flow_id = :flow_id
               AND (p.team_id = :team OR (p.team_id IS NULL AND rf.requester_userid = :userid))
+            ORDER BY (rt.assignee_userid = :preferred_userid) DESC, rt.id DESC
             LIMIT 1';
         $req = $this->Db->prepare($sql);
+        $req->bindValue(':preferred_userid', $this->Users->userid, PDO::PARAM_INT);
         $req->bindValue(':flow_id', $flowId, PDO::PARAM_INT);
         $req->bindValue(':team', $this->Users->team, PDO::PARAM_INT);
         $req->bindValue(':userid', $this->Users->userid, PDO::PARAM_INT);

@@ -1,6 +1,8 @@
-# SmartLab 
+# SmartLab
 
-SmartLab 是面向医学科研训练场景的智能辅助系统，围绕“实验记录采集、原始数据归档、智能识别、断点识别、跳步识别、模板补全、导师审核”形成一套连续的实验训练工作流。
+LabSmart 基于 eLabFTW，面向师生的日常实验记录与导师协作。2026-10-12 版以实验记录、课题和待办为主入口，自动识别及检查作为按需展开的辅助工具。
+
+当前版本与验证记录见 [`docs/release-notebook-20261012.md`](./docs/release-notebook-20261012.md)，本地源码与历史材料位置见 [`docs/local-project-location.md`](./docs/local-project-location.md)。
 
 项目仓库创建时间记录见 [`PROJECT_CREATED_2025-06-02.md`](./PROJECT_CREATED_2025-06-02.md)。
 

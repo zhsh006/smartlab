@@ -384,9 +384,11 @@
   <script defer src='/assets/main.bundle.js?v={{ v }}'></script>
   <script defer src='/assets/smartlab-upload-dialog.js?v={{ v }}-upload-dialog-2'></script>
   {# smartlab-image-analysis.js loaded per-page where image analysis UI exists (view.html) #}
+<link rel='stylesheet' href='/assets/labsmart-notebook.css?v=20261012-4' />
+<script defer src='/assets/labsmart-notebook.js?v=20261012-4'></script>
 </head>
 
-<body>
+<body class='ls-simple {{ App.Session.has('is_auth') ? 'ls-authenticated' : 'ls-anonymous' }}'>
 {# skip link for accessibility: RGAA 4.0 12.7 link goes to content directly, skipping menu/header/nav #}
 <a class='sr-only' aria-label='{{ 'Skip to content'|trans }}' href='#content-start'></a>
 {# when this disappears from the viewport, scroll to top button appears #}
@@ -407,200 +409,23 @@
     <a href='dashboard.php' class='logo-header' title='{{ 'Go to dashboard'|trans }}' aria-label='{{ 'Go to dashboard'|trans }}'>
       <span class='smartlab-brand-mark'><i class='fas fa-snowflake'></i></span>
       <span>
-        <span class='smartlab-brand-title'>SmartLab V3</span>
-        <span class='smartlab-brand-subtitle'>医学科研训练智能辅助系统</span>
+        <span class='smartlab-brand-title'>LabSmart</span>
+        <span class='smartlab-brand-subtitle'>实验记录与导师协作</span>
       </span>
     </a>
     {% if App.Session.has('is_auth') %}
     {# everything in there will be part of the burger #}
     <div class='collapse navbar-collapse' id='main-nav'>
-        <div class='navbar-nav'>
-            <a aria-label='{{ 'Go to dashboard'|trans }}' class='nav-item nav-link {{ scriptName == 'dashboard.php' ? 'active' }}'
-                href='dashboard.php' title='{{ 'Go to dashboard'|trans }}'>
-                <i class='fas fa-house fa-fw'></i>{% if smartlabIsStudentView %}工作台{% else %}首页{% endif %}</a>
-            <div class='nav-item dropdown d-flex align-items-center mr-3'>
-              <button class='btn btn-sm btn-light dropdown-toggle' id='smartlabViewSwitch' type='button' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>
-                {{ smartlabPortalRoleLabel }}
-              </button>
-              <div class='dropdown-menu' aria-labelledby='smartlabViewSwitch'>
-                {% if smartlabCanAccessMentorView %}
-                  <a class='dropdown-item {{ smartlabIsMentorView ? 'active' }}' href='dashboard.php?smartlab_view=mentor' {{ smartlabIsMentorView ? 'aria-current="page"' }}>导师端 · 项目推进与成果审核</a>
-                {% endif %}
-                {% if smartlabCanAccessAssistantView %}
-                  <a class='dropdown-item {{ smartlabIsAssistantView ? 'active' }}' href='dashboard.php?smartlab_view=assistant' {{ smartlabIsAssistantView ? 'aria-current="page"' }}>助理端 · 资源库存与运营支持</a>
-                {% endif %}
-                <a class='dropdown-item {{ smartlabIsStudentView ? 'active' }}' href='dashboard.php?smartlab_view=student' {{ smartlabIsStudentView ? 'aria-current="page"' }}>学生端 · 自主实验与课题执行</a>
-              </div>
-            </div>
-            {% if smartlabIsStudentView %}
-              {% set isActive = scriptName == 'experiments.php' or scriptName in ['templates.php'] %}
-              <a class='nav-item nav-link {{ isActive ? 'active' }}'
-                  href='experiments.php?scope=1' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-clipboard-list fa-fw'></i>实验记录</a>
-              {% set isActive = scriptName in ['smartlab-upload.php', 'smartlab-recognition.php', 'smartlab-breakpoint.php', 'smartlab-jump.php', 'smartlab-templates.php'] %}
-              <a class='nav-item nav-link {{ isActive ? 'active' }}'
-                  href='smartlab-upload.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-magnifying-glass-chart fa-fw'></i>智能检测</a>
-              {% set isActive = scriptName == 'database.php' %}
-              <a class='nav-item nav-link {{ isActive ? 'active' }}'
-                  href='database.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-book-open fa-fw'></i>知识库</a>
-            {% else %}
-            {% if smartlabIsMentorView %}
-              {% set isActive = scriptName == 'projects.php' %}
-              <a class='nav-item nav-link {{ isActive ? 'active' }}'
-                  href='projects.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-diagram-project fa-fw'></i>项目</a>
-            {% endif %}
-            {% set isActive = scriptName == 'samples.php' %}
-            <a class='nav-item nav-link {{ isActive ? 'active' }}'
-                href='samples.php' {{ isActive ? 'aria-current="page"' }}>
-                <i class='fas fa-vial-circle-check fa-fw'></i>{{ smartlabIsMentorView ? '样本' : smartlabIsAssistantView ? '样本工作台' : '我的样本' }}</a>
-            {% if smartlabCanAccessOperations and not smartlabIsMentorView %}
-              {% set isActive = scriptName == 'reviews.php' %}
-              <a class='nav-item nav-link {{ isActive ? 'active' }}'
-                  href='reviews.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-file-circle-check fa-fw'></i>审核</a>
-            {% endif %}
-            <div class='nav-item dropdown'>
-              {% if App.devMode -%}
-                <!-- [html-validate-disable-next prefer-native-element: using a button here will mess up the navbar] -->
-              {%- endif %}
-              <a id='navExperimentsDropdown' href='#' class='nav-link dropdown-toggle {{ scriptName in ['experiments.php', 'templates.php', 'experiments-categories.php', 'experiments-status.php'] ? 'active' }}' role='button' data-toggle='dropdown' aria-haspopup='menu' aria-expanded='false'>
-              <i class='fas fa-clipboard-list fa-fw'></i>实验
-              </a>
-              <div class='dropdown-menu' aria-labelledby='navExperimentsDropdown'>
-                <form class='dropdown-item form-inline' action='experiments.php' aria-label='快速搜索实验'>
-                  <label for='nav-search-experiments' class='sr-only'>搜索实验</label>
-                  <div class='input-group'>
-                    <input id='nav-search-experiments' class='form-control' type='search' name='q' placeholder='搜索' aria-label='搜索' />
-                    <div class='input-group-append'>
-                      <button type='submit' class='btn btn-sm btn-primary' aria-label='搜索'><i class='fas fa-magnifying-glass color-white' aria-hidden='true'></i></button>
-                    </div>
-                  </div>
-                </form>
-                {% set isActive = scriptName == 'experiments.php' and App.Request.query.get('scope') == 1 %}
-                <a class='dropdown-item {{ isActive ? 'active' }}' href='experiments.php?scope=1' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-user fa-fw mr-1 {{ isActive ? 'color-white' }}'></i>我的实验</a>
-                {% set isActive = scriptName == 'experiments.php' and App.Request.query.get('scope') == 2 %}
-                <a class='dropdown-item {{ isActive ? 'active' }}' href='experiments.php?scope=2' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-users fa-fw mr-1 {{ isActive ? 'color-white' }}'></i>团队实验</a>
-                {% set isActive = scriptName == 'experiments.php' and App.Request.query.get('scope') == 3 %}
-                <a class='dropdown-item {{ isActive ? 'active' }}' href='experiments.php?scope=3' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-globe fa-fw mr-1 {{ isActive ? 'color-white' }}'></i>全部实验</a>
-                <div class='dropdown-divider'></div>
-                {% for entity in App.experimentsCategoryArr|filter(c => c.is_current_team == 1) %}
-                  {% set isActive = scriptName == 'experiments.php' and App.Request.query.get('category') == entity.id %}
-                  <a class='dropdown-item {{ isActive ? 'active' }}' href='experiments.php?category={{ entity.id }}' {{ isActive ? 'aria-current="page"' }}><span class='round-spot mr-1' style='background-color: #{{ entity.color }}'></span>{{ entity.title }}</a>
-                {% endfor %}
-                <div class='dropdown-divider'></div>
-                {% set isActive = scriptName == 'templates.php' %}
-                <a class='dropdown-item {{ isActive ? 'active' }}' href='templates.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-copy fa-fw mr-1 {{ isActive ? 'color-white' }}'></i>实验模板</a>
-                {% set isActive = scriptName == 'experiments-categories.php' %}
-                <a class='dropdown-item {{ isActive ? 'active' }} {{ not App.Teams.teamArr.users_canwrite_experiments_categories and not App.Users.isAdmin ? 'disabled' }}' href='experiments-categories.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-rectangle-list fa-fw mr-1 {{ isActive ? 'color-white' }}'></i>实验分类</a>
-                {% set isActive = scriptName == 'experiments-status.php' %}
-                <a class='dropdown-item {{ isActive ? 'active' }} {{ not App.Teams.teamArr.users_canwrite_experiments_status and not App.Users.isAdmin ? 'disabled' }}' href='experiments-status.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-list-check fa-fw mr-1 {{ isActive ? 'color-white' }}'></i>实验状态</a>
-              </div>
-            </div>
-            {% if smartlabIsAssistantView %}
-            <div class='nav-item dropdown'>
-              {% if App.devMode -%}
-                <!-- [html-validate-disable-next prefer-native-element: using a button here will mess up the navbar] -->
-              {%- endif %}
-              <a id='navResourcesDropdown' href='#' class='nav-link dropdown-toggle {{ scriptName in ['database.php', 'resources-templates.php', 'resources-categories.php', 'resources-status.php'] ? 'active' }}' role='button' data-toggle='dropdown' aria-haspopup='menu' aria-expanded='false'>
-              资源
-              </a>
-              <div class='dropdown-menu' aria-labelledby='navResourcesDropdown'>
-                <form class='dropdown-item form-inline' action='database.php' aria-label='快速搜索资源'>
-                  <label for='nav-search-resources' class='sr-only'>搜索资源</label>
-                  <div class='input-group'>
-                    <input id='nav-search-resources' class='form-control' type='search' name='q' placeholder='搜索' />
-                    <div class='input-group-append'>
-                      <button type='submit' class='btn btn-sm btn-primary' aria-label='搜索'><i class='fas fa-magnifying-glass color-white' aria-hidden='true'></i></button>
-                    </div>
-                  </div>
-                </form>
-                {% set isActive = scriptName == 'database.php' and App.Request.query.get('scope') == 1 %}
-                <a class='dropdown-item {{ isActive ? 'active' }}' href='database.php?scope=1' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-user fa-fw mr-1 {{ isActive ? 'color-white' }}'></i>我的资源</a>
-                {% set isActive = scriptName == 'database.php' and App.Request.query.get('scope') == 2 %}
-                <a class='dropdown-item {{ isActive ? 'active' }}' href='database.php?scope=2' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-users fa-fw mr-1 {{ isActive ? 'color-white' }}'></i>团队资源</a>
-                {% set isActive = scriptName == 'database.php' and App.Request.query.get('scope') == 3 %}
-                <a class='dropdown-item {{ isActive ? 'active' }}' href='database.php?scope=3' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-globe fa-fw mr-1 {{ isActive ? 'color-white' }}'></i>全部资源</a>
-                {% set isActive = scriptName == 'database.php' and App.Request.query.get('bookable') == 1 %}
-                <a class='dropdown-item {{ isActive ? 'active' }}' href='database.php?bookable=1' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-calendar-check fa-fw mr-1 {{ isActive ? 'color-white' }}'></i>可预约资源</a>
-                <div class='dropdown-divider'></div>
-                {% for entity in App.itemsCategoryArr|filter(c => c.is_current_team == 1) %}
-                  {% set isActive = scriptName == 'database.php' and App.Request.query.get('category') == entity.id %}
-                  <a class='dropdown-item {{ isActive ? 'active' }}' href='database.php?category={{ entity.id }}' {{ isActive ? 'aria-current="page"' }}><span class='round-spot mr-1' style='background-color: #{{ entity.color }}'></span>{{ entity.title }}</a>
-                {% endfor %}
-                <div class='dropdown-divider'></div>
-                {% set isActive = scriptName == 'resources-templates.php' %}
-                <a class='dropdown-item {{ isActive ? 'active' }}' href='resources-templates.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-copy fa-fw mr-1 {{ isActive ? 'color-white' }}'></i>资源模板</a>
-                {% set isActive = scriptName == 'resources-categories.php' %}
-                <a class='dropdown-item {{ isActive ? 'active' }} {{ not App.Teams.teamArr.users_canwrite_resources_categories and not App.Users.isAdmin ? 'disabled' }}' href='resources-categories.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-rectangle-list fa-fw mr-1 {{ isActive ? 'color-white' }}'></i>资源分类</a>
-                {% set isActive = scriptName == 'resources-status.php' %}
-                <a class='dropdown-item {{ isActive ? 'active' }} {{ not App.Teams.teamArr.users_canwrite_resources_status and not App.Users.isAdmin ? 'disabled' }}' href='resources-status.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-list-check fa-fw mr-1 {{ isActive ? 'color-white' }}'></i>资源状态</a>
-              </div>
-            </div>
-            {% endif %}
-            {% set isActive = scriptName == 'scheduler.php' %}
-            <a class='nav-item nav-link {{ isActive ? 'active' }}'
-                href='scheduler.php' {{ isActive ? 'aria-current="page"' }}>
-                <i class='far fa-calendar-check fa-fw'></i>{{ smartlabIsMentorView ? '预约中心' : smartlabIsAssistantView ? '预约与资源' : '我的预约' }}</a>
-
-            {% set isActive = scriptName == 'experiments.php' or scriptName in ['templates.php'] %}
-            <a class='nav-item nav-link {{ isActive ? 'active' }}'
-                href='experiments.php?scope=1' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-clipboard-list fa-fw'></i>实验记录</a>
-            {% set isActive = scriptName == 'smartlab-upload.php' %}
-            <a class='nav-item nav-link {{ isActive ? 'active' }}'
-                href='smartlab-upload.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-upload fa-fw'></i>原始记录上传</a>
-            {% set isActive = scriptName == 'smartlab-recognition.php' %}
-            <a class='nav-item nav-link {{ isActive ? 'active' }}'
-                href='smartlab-recognition.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-camera-retro fa-fw'></i>智能识别</a>
-            {% set isActive = scriptName == 'smartlab-breakpoint.php' %}
-            <a class='nav-item nav-link {{ isActive ? 'active' }}'
-                href='smartlab-breakpoint.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-magnifying-glass-chart fa-fw'></i>断点识别</a>
-            {% set isActive = scriptName == 'smartlab-jump.php' %}
-            <a class='nav-item nav-link {{ isActive ? 'active' }}'
-                href='smartlab-jump.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-chart-line fa-fw'></i>跳步识别</a>
-            {% set isActive = scriptName == 'smartlab-reasoning.php' %}
-            <a class='nav-item nav-link {{ isActive ? 'active' }}'
-                href='smartlab-reasoning.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-brain fa-fw'></i>步骤推理</a>
-            {% set isActive = scriptName == 'smartlab-templates.php' %}
-            <a class='nav-item nav-link {{ isActive ? 'active' }}'
-                href='smartlab-templates.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-layer-group fa-fw'></i>模板补全</a>
-            {% set isActive = scriptName == 'smartlab-algorithms.php' %}
-            <a class='nav-item nav-link {{ isActive ? 'active' }}'
-                href='smartlab-algorithms.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-gear fa-fw'></i>算法配置</a>
-
-            {% if not App.Session.has('is_anon') %}
-            {% set isActive = scriptName == 'team.php' %}
-            <a class='nav-item nav-link {{ isActive ? 'active' }}'
-                href='team.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-users fa-fw'></i>团队</a>
-            {% endif %}
-
-            <div class='nav-item dropdown'>
-              {% if App.devMode -%}
-                <!-- [html-validate-disable-next prefer-native-element: using a button here will mess up the navbar] -->
-              {%- endif %}
-              <a id='navToolsDropdown' href='#' class='nav-link dropdown-toggle {{ scriptName in ['compounds.php', 'chem-editor.php', 'syc.php', 'inventory.php', 'assay-catalog.php'] ? 'active' }}' role='button' data-toggle='dropdown' aria-haspopup='menu' aria-expanded='false'>
-              {{ smartlabIsMentorView ? '总览' : '工具' }}
-              </a>
-              <div class='dropdown-menu' aria-labelledby='navToolsDropdown'>
-                {% if smartlabIsAssistantView %}
-                  {% set isActive = scriptName == 'compounds.php' %}
-                  <a class='dropdown-item {{ isActive ? 'active' }}' href='compounds.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-flask fa-fw mr-1 {{ isActive ? 'color-white' }}'></i>化合物</a>
-                  {% set isActive = scriptName == 'chem-editor.php' %}
-                  <a class='dropdown-item {{ isActive ? 'active' }}' href='chem-editor.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-pen-to-square fa-fw mr-1 {{ isActive ? 'color-white' }}'></i>化学结构编辑器</a>
-                  {% set isActive = scriptName == 'syc.php' %}
-                  <a class='dropdown-item {{ not envAsBool('USE_OPENCLONING') ? 'disabled' }} {{ isActive ? 'active' }}' href='syc.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-dna fa-fw mr-1 {{ isActive ? 'color-white' }}'></i>{{ 'OpenCloning'|trans }}</a>
-                  {% set isActive = scriptName == 'inventory.php' %}
-                  <a class='dropdown-item {{ isActive ? 'active' }}' href='inventory.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-warehouse fa-fw mr-1 {{ isActive ? 'color-white' }}'></i>库存</a>
-                  {% set isActive = scriptName == 'assay-catalog.php' %}
-                  <a class='dropdown-item {{ isActive ? 'active' }}' href='assay-catalog.php' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-vial-circle-check fa-fw mr-1 {{ isActive ? 'color-white' }}'></i>对象字典</a>
-                {% elseif smartlabIsMentorView %}
-                  {% set isActive = scriptName == 'inventory.php' %}
-                  <a class='dropdown-item {{ isActive ? 'active' }}' href='inventory.php?smartlab_view=mentor' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-warehouse fa-fw mr-1 {{ isActive ? 'color-white' }}'></i>库存风险总览</a>
-                  {% set isActive = scriptName == 'assay-catalog.php' %}
-                  <a class='dropdown-item {{ isActive ? 'active' }}' href='assay-catalog.php?smartlab_view=mentor' {{ isActive ? 'aria-current="page"' }}><i class='fas fa-vial-circle-check fa-fw mr-1 {{ isActive ? 'color-white' }}'></i>对象字典只读</a>
-                {% endif %}
-              </div>
-            </div>
-            {% endif %}
-        </div>
-
+      <div class='navbar-nav'>
+        <a class='nav-item nav-link {{ scriptName == "dashboard.php" and App.Request.query.get("tab") != "tasks" or scriptName == "experiments.php" ? "active" }}' href='dashboard.php'><i class='fas fa-book-open fa-fw'></i>实验记录</a>
+        <a class='nav-item nav-link {{ scriptName in ["projects.php", "student-projects.php"] ? "active" }}' href='{{ smartlabIsStudentView ? "student-projects.php" : "projects.php" }}'><i class='fas fa-folder-open fa-fw'></i>课题</a>
+        <a class='nav-item nav-link {{ scriptName == "reviews.php" or App.Request.query.get("tab") == "tasks" ? "active" }}' href='{{ smartlabIsStudentView ? "dashboard.php?tab=tasks" : "reviews.php" }}'><i class='fas fa-list-check fa-fw'></i>{{ smartlabIsStudentView ? '待办与反馈' : '导师待办' }}</a>
+      </div>
+      <details class='ls-nav-tools'><summary>常用工具</summary>
+        <a href='samples.php'>样本</a><a href='scheduler.php'>仪器预约</a><a href='database.php'>资料与知识库</a><a href='templates.php'>记录模板</a>
+        {% if smartlabCanAccessOperations %}<a href='inventory.php'>库存与耗材</a><a href='assay-catalog.php'>实验材料字典</a><a href='team.php'>团队成员</a>{% endif %}
+        {% if App.Users.isAdmin %}<a href='smartlab-algorithms.php'>高级分析设置</a>{% endif %}
+      </details>
     </div>
     {% include 'create-new-modal.html' %}
   {% else %} {# not auth #}
@@ -625,20 +450,7 @@
             {% endfor %}
             <div class='dropdown-divider'></div>
             <a class='dropdown-item hover-danger' href='#' data-userid='{{ App.Users.userData.userid }}' data-action='destroy-notif'><i class='fas fa-trash-alt fa-fw' title='{{ 'Clear all'|trans }}'></i> {{ 'Clear all'|trans }}</a>
-          {% else %}
-            <a class='notification p-3 d-block text-reset text-decoration-none' href='{{ smartlabIsMentorView ? 'reviews.php?smartlab_view=mentor' : 'smartlab-review.php' }}'>
-              <div class='d-flex align-items-center mb-1'><span class='badge badge-warning mr-2'>{{ smartlabIsMentorView ? '待处理审核' : '导师审核' }}</span><b>{{ smartlabIsMentorView ? '学生送审提醒' : '审核结果提醒' }}</b></div>
-              <div class='smallgray'>{{ smartlabIsMentorView ? '学生提交实验后，会进入导师审核中心集中处理。' : '导师通过、退回或填写意见后，会在“我的送审状态”同步查看。' }}</div>
-            </a>
-            <a class='notification p-3 d-block text-reset text-decoration-none' href='smartlab-templates.php'>
-              <div class='d-flex align-items-center mb-1'><span class='badge badge-primary mr-2'>Western blot</span><b>草稿送审提醒</b></div>
-              <div class='smallgray'>模板补全/草稿已支持提交反馈，提交后可跳转查看状态。</div>
-            </a>
-            <a class='notification p-3 d-block text-reset text-decoration-none' href='smartlab-jump.php'>
-              <div class='d-flex align-items-center mb-1'><span class='badge badge-success mr-2'>版本更新</span><b>WB 跳步识别已上线</b></div>
-              <div class='smallgray'>当前流程聚焦 Western blot：断点识别、跳步识别、模板补全和送审闭环。</div>
-            </a>
-            <div class='dropdown-divider'></div>
+          {% else %}<div class='p-3 smallgray'>暂无新消息。需要修改的记录可在待办中查看。</div>
           {% endif %}
           <a href='/ucp.php?tab=4' class='dropdown-item'><i class='fas fa-cogs fa-fw'></i> {{ 'Notifications settings'|trans }}</a>
         </div>
@@ -662,6 +474,12 @@
           {% if App.Users.userData.is_sysadmin %}
             <a class='dropdown-item' href='sysconfig.php'><i class='fas fa-tools fa-fw' style='color:#e6614c'></i> {{ 'Sysadmin panel'|trans }}</a>
           {% endif %}
+        {% endif %}
+        {% if smartlabCanAccessMentorView or smartlabCanAccessAssistantView %}
+          <div class='dropdown-divider'></div><h6 class='dropdown-header'>工作视图</h6>
+          {% if smartlabCanAccessMentorView %}<a class='dropdown-item' href='dashboard.php?smartlab_view=mentor'>导师视图</a>{% endif %}
+          {% if smartlabCanAccessAssistantView %}<a class='dropdown-item' href='dashboard.php?smartlab_view=assistant'>实验室管理</a>{% endif %}
+          <a class='dropdown-item' href='dashboard.php?smartlab_view=student'>学生视图</a>
         {% endif %}
         <div class='dropdown-divider'></div>
         <a class='dropdown-item' href='#' data-action='logout'><i class='fas fa-sign-out-alt fa-fw'></i>退出登录</a>

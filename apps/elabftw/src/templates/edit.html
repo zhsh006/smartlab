@@ -24,6 +24,7 @@
   {% endblock %}
 {% endembed %}
 
+{% if Entity.entityType.value == 'experiments' %}<div class='ls-record-actions'><a href='dashboard.php'>← 返回实验列表</a><a class='btn btn-outline-primary btn-sm' href='experiments.php?mode=view&amp;id={{ Entity.id }}'>查看记录与导师反馈</a></div>{% endif %}
 {% include('view-edit-toolbar.html') %}
 
 <section id='main_section' aria-label='main section'>

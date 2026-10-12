@@ -6,7 +6,9 @@
 .DS_Store
 *.pem
 .local/
-apps/elabftw/
+apps/elabftw/vendor/
+apps/elabftw/node_modules/
+apps/elabftw/web/uploads/
 
 # debug
 npm-debug.log*
