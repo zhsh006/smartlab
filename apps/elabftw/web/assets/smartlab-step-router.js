@@ -1,6 +1,8 @@
 (function () {
   function initSmartlabStepRouter() {
-    var panels = Array.prototype.slice.call(document.querySelectorAll('[data-smartlab-step-panel]'));
+    var panels = Array.prototype.slice.call(document.querySelectorAll('[data-smartlab-step-panel]')).filter(function (panel) {
+      return panel.id !== 'filesDiv';
+    });
     var links = Array.prototype.slice.call(document.querySelectorAll('[data-smartlab-step-link]'));
     if (!panels.length || !links.length) {
       return;
