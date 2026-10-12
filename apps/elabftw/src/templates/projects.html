@@ -1,0 +1,514 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<div class='d-flex justify-content-between align-items-start mb-3'>
+  <div>
+    <p class='smallgray text-uppercase mb-1'>SmartLab</p>
+    <h2 class='mb-2'>项目中心</h2>
+    <p class='mb-0'>项目正在成为实验、样本、资源和审核工作的统一入口。</p>
+  </div>
+  <div class='ml-3 mb-2'>
+    <button type='button' class='btn btn-primary' data-toggle='collapse' data-target='#createProjectPanel' aria-expanded='false' aria-controls='createProjectPanel'>
+      <i class='fas fa-plus mr-1'></i>添加项目
+    </button>
+  </div>
+</div>
+
+<div class='collapse mb-4' id='createProjectPanel'>
+  <div class='card rounded border-0 shadow-sm'>
+    <div class='card-body'>
+      <div class='d-flex justify-content-between align-items-start flex-wrap mb-3'>
+        <div class='mr-3'>
+          <div class='smallgray text-uppercase mb-1'>New project</div>
+          <h3 class='h5 mb-1'>添加项目</h3>
+          <p class='smallgray mb-0'>新项目会归入当前团队，并将当前导师设为项目负责人。</p>
+        </div>
+      </div>
+      <form method='post' action='projects.php'>
+        {{ App.Session.get('csrf')|csrf }}
+        <input type='hidden' name='action' value='create_project' />
+        <div class='row'>
+          <div class='col-md-4 mb-3'>
+            <label for='project-code'>项目编号</label>
+            <input id='project-code' class='form-control' name='code' required maxlength='64' placeholder='例如 P-2026-001' />
+          </div>
+          <div class='col-md-8 mb-3'>
+            <label for='project-name'>项目名称</label>
+            <input id='project-name' class='form-control' name='name' required maxlength='255' placeholder='例如 炎症模型 WB/qPCR 验证' />
+          </div>
+          <div class='col-12 mb-3'>
+            <label for='project-description'>项目说明</label>
+            <textarea id='project-description' class='form-control' name='description' rows='3' placeholder='可写研究目标、样本范围、主要实验路线或导师关注点。'></textarea>
+          </div>
+        </div>
+        <div class='d-flex justify-content-end'>
+          <button type='button' class='btn btn-outline-secondary mr-2' data-toggle='collapse' data-target='#createProjectPanel'>取消</button>
+          <button type='submit' class='btn btn-primary'>保存项目</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% if activeProject %}
+  <section class='card rounded border-0 shadow-sm mb-4'>
+    <div class='card-body'>
+      <div class='d-flex justify-content-between align-items-start flex-wrap'>
+        <div class='mr-3 mb-3'>
+          <div class='smallgray text-uppercase'>{{ activeProject.code }}</div>
+          <h3 class='mt-2 mb-2'>{{ activeProject.name }}</h3>
+          <p class='mb-3'>{{ activeProject.description ?: '暂无项目描述。' }}</p>
+          <div class='smallgray'>创建人：{{ activeProject.creator_name ?: '未知' }}</div>
+        </div>
+        <div class='d-flex flex-wrap justify-content-end'>
+          <span class='badge badge-light mr-2 mb-2'>成员 {{ activeProject.member_count }}</span>
+          <span class='badge badge-light mr-2 mb-2'>实验 {{ activeProject.experiment_count }}</span>
+          <span class='badge badge-light mr-2 mb-2'>样本 {{ activeProject.sample_count }}</span>
+          <span class='badge badge-light mr-2 mb-2'>资源 {{ activeProject.resource_count }}</span>
+          <span class='badge badge-light mr-2 mb-2'>审核 {{ activeProject.review_count }}</span>
+          <span class='badge badge-dark mr-2 mb-2'>状态 {{ activeProject.status == 1 ? '进行中' : activeProject.status }}</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='card rounded border-0 shadow-sm mb-4'>
+    <div class='card-body'>
+      <div class='d-flex justify-content-between align-items-start flex-wrap mb-3'>
+        <div class='mr-3'>
+          <div class='smallgray text-uppercase mb-1'>Group meeting materials</div>
+          <h4 class='mb-2'>实验汇报材料</h4>
+          <p class='smallgray mb-0'>学生提交的实验记录会带着 PDF 快照、关键图和讨论点进入导师端，适合作为组会式审阅材料。</p>
+        </div>
+        <span class='badge badge-light'>{{ projectReportMaterialsArr|length }} 份材料</span>
+      </div>
+      <div class='row'>
+        {% for material in projectReportMaterialsArr %}
+          <div class='col-xl-6 mb-3'>
+            <article class='border rounded p-3 h-100'>
+              <div class='d-flex justify-content-between align-items-start flex-wrap'>
+                <div class='mr-3 mb-2'>
+                  <div class='smallgray'>{{ material.created_at|date('Y-m-d H:i') }} · {{ material.student_name ?: '未知学生' }}</div>
+                  <h5 class='mt-1 mb-1'>{{ material.title }}</h5>
+                  <div class='smallgray'>
+                    <a href='experiments.php?mode=view&amp;id={{ material.experiment_id }}'>实验 #{{ material.experiment_id }} · {{ material.experiment_title ?: '未命名实验' }}</a>
+                    {% if material.experiment_date %} · {{ material.experiment_date|date('Y-m-d') }}{% endif %}
+                  </div>
+                </div>
+                <span class='badge badge-{{
+                  material.status in ['continue', 'figure_ready', 'manuscript_candidate'] ? 'success'
+                  : material.status in ['repeat_experiment', 'insufficient_data'] ? 'warning'
+                  : 'secondary'
+                }} mb-2'>
+                  {{
+                    material.status == 'submitted' ? '待导师反馈'
+                    : material.status == 'continue' ? '继续推进'
+                    : material.status == 'repeat_experiment' ? '补实验'
+                    : material.status == 'insufficient_data' ? '数据不足'
+                    : material.status == 'figure_ready' ? '可整理成图'
+                    : material.status == 'manuscript_candidate' ? '可写入论文'
+                    : material.status
+                  }}
+                </span>
+              </div>
+
+              {% if material.student_summary %}
+                <div class='mt-2'>
+                  <div class='smallgray text-uppercase'>学生摘要</div>
+                  <p class='mb-2'>{{ material.student_summary|nl2br }}</p>
+                </div>
+              {% endif %}
+              {% if material.discussion_points %}
+                <div class='mt-2'>
+                  <div class='smallgray text-uppercase'>希望导师重点看</div>
+                  <p class='mb-2'>{{ material.discussion_points|nl2br }}</p>
+                </div>
+              {% endif %}
+
+              {% if material.key_uploads %}
+                <div class='row mt-2'>
+                  {% for upload in material.key_uploads %}
+                    {% set thumb_name = upload.long_name ~ '_th.jpg' %}
+                    <div class='col-sm-4 mb-2'>
+                      <a class='d-block text-center' target='_blank' rel='noopener' href='app/download.php?f={{ upload.long_name|e('url') }}&amp;storage={{ upload.storage }}&amp;name={{ upload.real_name|e('url') }}'>
+                        <img class='img-thumbnail rounded mb-1' src='app/download.php?f={{ thumb_name|e('url') }}&amp;storage={{ upload.storage }}&amp;name={{ upload.real_name|e('url') }}' alt='{{ upload.real_name|e('html_attr') }}' />
+                        <span class='small text-break'>{{ upload.real_name }}</span>
+                      </a>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div class='smallgray mt-2'>学生未选择关键图片；可直接打开实验 PDF 查看完整记录。</div>
+              {% endif %}
+
+              <div class='d-flex flex-wrap mt-3'>
+                <a class='btn btn-outline-secondary btn-sm mr-2 mb-2' href='experiments.php?mode=view&amp;id={{ material.experiment_id }}'>查看实验记录</a>
+                <a class='btn btn-outline-primary btn-sm mr-2 mb-2' href='{{ material.pdf_url }}' target='_blank' rel='noopener'>下载实验 PDF</a>
+              </div>
+
+              {% if material.mentor_feedback %}
+                <div class='alert alert-light border mt-2 mb-3'>
+                  <div class='smallgray'>{{ material.feedback_user_name ?: '导师' }} · {{ material.feedback_at ? material.feedback_at|date('Y-m-d H:i') : '' }}</div>
+                  {{ material.mentor_feedback|nl2br }}
+                </div>
+              {% endif %}
+
+              <form method='post' action='projects.php?id={{ activeProject.id }}' class='mt-2'>
+                {{ App.Session.get('csrf')|csrf }}
+                <input type='hidden' name='action' value='experiment_report_feedback' />
+                <input type='hidden' name='project_id' value='{{ activeProject.id }}' />
+                <input type='hidden' name='material_id' value='{{ material.id }}' />
+                <div class='form-group mb-2'>
+                  <label class='smallgray text-uppercase' for='material-feedback-{{ material.id }}'>导师反馈</label>
+                  <textarea class='form-control' id='material-feedback-{{ material.id }}' name='feedback' rows='2' placeholder='像组会点评一样写：下一步怎么推进、需要补什么、哪些图能沉淀为成果。'>{{ material.mentor_feedback }}</textarea>
+                </div>
+                <div class='d-flex flex-wrap'>
+                  <button class='btn btn-success btn-sm mr-2 mb-2' type='submit' name='feedback_action' value='continue'>继续推进</button>
+                  <button class='btn btn-warning btn-sm mr-2 mb-2' type='submit' name='feedback_action' value='repeat_experiment'>补实验</button>
+                  <button class='btn btn-warning btn-sm mr-2 mb-2' type='submit' name='feedback_action' value='insufficient_data'>数据不足</button>
+                  <button class='btn btn-info btn-sm mr-2 mb-2' type='submit' name='feedback_action' value='figure_ready'>可整理成图</button>
+                  <button class='btn btn-primary btn-sm mr-2 mb-2' type='submit' name='feedback_action' value='manuscript_candidate'>可写入论文</button>
+                </div>
+              </form>
+            </article>
+          </div>
+        {% else %}
+          <div class='col-12'>
+            <div class='alert alert-info mb-0'>还没有学生提交实验汇报材料。学生可在实验详情页生成 PDF 汇报并提交导师端。</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <div class='row mb-4'>
+    <div class='col-lg-4 mb-3'>
+      <div class='card rounded border-0 shadow-sm h-100'>
+        <div class='card-body'>
+          <h4 class='mb-3'>项目实验</h4>
+          <div class='list-group list-group-flush'>
+            {% for experiment in projectExperimentsArr %}
+              <div class='list-group-item px-0'>
+                <div class='font-weight-bold'>
+                  <a href='experiments.php?mode=view&id={{ experiment.id }}'>#{{ experiment.id }} · {{ experiment.title ?: '未命名实验' }}</a>
+                </div>
+                <div class='smallgray'>开始时间 {{ experiment.date|date('Y-m-d') }} · 最后更新 {{ experiment.modified_at|date('Y-m-d H:i') }}</div>
+                <div class='smallgray'>
+                  审核
+                  {{
+                    experiment.review_status == 'submitted' ? '已提交'
+                    : experiment.review_status == 'approved' ? '已通过'
+                    : experiment.review_status == 'needs_revision' ? '待修改'
+                    : experiment.review_status == 'rejected' ? '已拒绝'
+                    : experiment.review_status ? experiment.review_status : '未发起'
+                  }}
+                </div>
+                {% if experiment.review_comment %}
+                  <div class='smallgray mt-1'>{{ experiment.review_comment }}</div>
+                {% endif %}
+              </div>
+            {% else %}
+              <div class='smallgray'>当前项目还没有关联实验。</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class='col-lg-4 mb-3'>
+      <div class='card rounded border-0 shadow-sm h-100'>
+        <div class='card-body'>
+          <h4 class='mb-3'>项目成员</h4>
+          <div class='list-group list-group-flush'>
+            {% for member in projectMembersArr %}
+              <div class='list-group-item px-0'>
+                <div class='font-weight-bold'>{{ member.firstname }} {{ member.lastname }}</div>
+                <div class='smallgray'>{{ member.email }}</div>
+                <div class='smallgray text-uppercase'>{{ member.role }}</div>
+              </div>
+            {% else %}
+              <div class='smallgray'>当前项目还没有成员。</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class='col-lg-4 mb-3'>
+      <div class='card rounded border-0 shadow-sm h-100'>
+        <div class='card-body'>
+          <h4 class='mb-3'>项目样本</h4>
+          <div class='list-group list-group-flush'>
+            {% for sample in projectSamplesArr %}
+              <div class='list-group-item px-0'>
+                <div class='font-weight-bold'>
+                  <a href='samples.php?id={{ sample.id }}'>{{ sample.code }} · {{ sample.name }}</a>
+                </div>
+                <div class='smallgray'>{{ sample.sample_type }}{% if sample.quantity %} · {{ sample.quantity }} {{ sample.unit }}{% endif %}</div>
+                <div class='smallgray text-uppercase'>
+                  {{ sample.status == 'active' ? '在用' : sample.status == 'consumed' ? '已消耗' : sample.status == 'archived' ? '已归档' : sample.status }}
+                </div>
+                {% if sample.source_item_title %}
+                  <div class='smallgray'>来源资源：{{ sample.source_item_title }}</div>
+                {% endif %}
+              </div>
+            {% else %}
+              <div class='smallgray'>当前项目还没有关联样本。</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class='col-lg-4 mb-3'>
+      <div class='card rounded border-0 shadow-sm h-100'>
+        <div class='card-body'>
+          <h4 class='mb-3'>项目审核流</h4>
+          <div class='list-group list-group-flush'>
+            {% for review in projectReviewsArr %}
+              <div class='list-group-item px-0'>
+                <div class='font-weight-bold'>
+                  {% if review.entity_type == 'experiment' %}
+                    <a href='experiments.php?mode=view&id={{ review.entity_id }}'>实验 #{{ review.entity_id }}</a>
+                  {% elseif review.entity_type == 'item' %}
+                    <a href='database.php?mode=view&id={{ review.entity_id }}'>资源 #{{ review.entity_id }}</a>
+                  {% elseif review.entity_type == 'sample' %}
+                    <a href='samples.php?id={{ review.entity_id }}'>样本 #{{ review.entity_id }}</a>
+                  {% else %}
+                    {{ review.entity_type }} #{{ review.entity_id }}
+                  {% endif %}
+                </div>
+                <div class='smallgray'>提交人：{{ review.requester_name ?: '未知' }}</div>
+                <div class='smallgray'>审核人：{{ review.assignee_name ?: '未分配' }}</div>
+                <div class='smallgray text-uppercase'>
+                  {{ review.status == 'submitted' ? '已提交' : review.status == 'approved' ? '已通过' : review.status == 'needs_revision' ? '待修改' : review.status == 'rejected' ? '已拒绝' : review.status }}
+                </div>
+                {% if review.comment %}
+                  <div class='smallgray mt-1'>{{ review.comment }}</div>
+                {% endif %}
+                {% if review.entity_type == 'experiment' %}
+                  <div class='mt-2'>
+                    <a class='btn btn-outline-secondary btn-sm mr-2' href='experiments.php?mode=view&id={{ review.entity_id }}'>查看实验记录</a>
+                    <a class='btn btn-outline-primary btn-sm' href='make.php?type=experiments&id={{ review.entity_id }}&format=pdf' target='_blank' rel='noopener'>下载实验 PDF</a>
+                  </div>
+                {% endif %}
+                <form method='post' action='projects.php?id={{ activeProject.id }}' class='mt-3'>
+                  {{ App.Session.get('csrf')|csrf }}
+                  <input type='hidden' name='action' value='review_decision' />
+                  <input type='hidden' name='project_id' value='{{ activeProject.id }}' />
+                  <input type='hidden' name='flow_id' value='{{ review.id }}' />
+                  <div class='form-group mb-2'>
+                    <label for='project-review-comment-{{ review.id }}' class='smallgray text-uppercase'>导师意见</label>
+                    <textarea class='form-control' id='project-review-comment-{{ review.id }}' name='comment' rows='2' placeholder='填写通过理由、退回修改意见或拒绝原因。'>{{ review.comment }}</textarea>
+                  </div>
+                  <div class='d-flex flex-wrap'>
+                    <button class='btn btn-success btn-sm mr-2 mb-2' type='submit' name='decision' value='approve'>通过</button>
+                    <button class='btn btn-warning btn-sm mr-2 mb-2' type='submit' name='decision' value='request_changes'>退回修改</button>
+                    <button class='btn btn-danger btn-sm mr-2 mb-2' type='submit' name='decision' value='reject'>拒绝</button>
+                  </div>
+                </form>
+              </div>
+            {% else %}
+              <div class='smallgray'>当前项目还没有审核记录。</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class='card rounded border-0 shadow-sm mb-4'>
+    <div class='card-body'>
+      <div class='d-flex justify-content-between align-items-center mb-3'>
+        <h4 class='mb-0'>最近活动</h4>
+        <span class='badge badge-light'>项目闭环时间线</span>
+      </div>
+      <div class='list-group list-group-flush'>
+        {% for activity in projectActivityArr %}
+          <div class='list-group-item px-0'>
+            <div class='d-flex justify-content-between align-items-start flex-wrap'>
+              <div class='mr-3'>
+                <div class='font-weight-bold'>
+                  {% if activity.activity_type == 'sample_event' %}
+                    样本 {{ activity.subject_code }} · {{ activity.subject_name }}
+                  {% elseif activity.activity_type == 'experiment_report' %}
+                    实验汇报 {{ activity.subject_code }} · {{ activity.subject_name }}
+                  {% else %}
+                    审核流 {{ activity.subject_code }} · {{ activity.subject_name }}
+                  {% endif %}
+                </div>
+                <div class='smallgray mt-1'>
+                  {% if activity.activity_type == 'sample_event' %}
+                    事件 {{ activity.state_label }}{% if activity.actor_name %} · 执行人 {{ activity.actor_name }}{% endif %}
+                  {% elseif activity.activity_type == 'experiment_report' %}
+                    状态
+                    {{
+                      activity.state_label == 'submitted' ? '待导师反馈'
+                      : activity.state_label == 'continue' ? '继续推进'
+                      : activity.state_label == 'repeat_experiment' ? '补实验'
+                      : activity.state_label == 'insufficient_data' ? '数据不足'
+                      : activity.state_label == 'figure_ready' ? '可整理成图'
+                      : activity.state_label == 'manuscript_candidate' ? '可写入论文'
+                      : activity.state_label
+                    }}
+                    {% if activity.actor_name %} · 学生 {{ activity.actor_name }}{% endif %}
+                  {% else %}
+                    状态
+                    {{
+                      activity.state_label == 'submitted' ? '已提交'
+                      : activity.state_label == 'approved' ? '已通过'
+                      : activity.state_label == 'needs_revision' ? '待修改'
+                      : activity.state_label == 'rejected' ? '已拒绝'
+                      : activity.state_label
+                    }}
+                    {% if activity.actor_name %} · 审核人 {{ activity.actor_name }}{% endif %}
+                  {% endif %}
+                </div>
+                {% if activity.detail %}
+                  <div class='smallgray mt-1'>{{ activity.detail }}</div>
+                {% endif %}
+              </div>
+              <div class='smallgray'>{{ activity.activity_at|date('Y-m-d H:i') }}</div>
+            </div>
+          </div>
+        {% else %}
+          <div class='smallgray'>当前项目还没有形成样本事件或审核活动。</div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class='card rounded border-0 shadow-sm mb-4'>
+    <div class='card-body'>
+      <h4 class='mb-3'>关联实验与资源</h4>
+      <div class='row'>
+        <div class='col-lg-6 mb-3'>
+          <form method='post' action='projects.php?id={{ activeProject.id }}'>
+            {{ App.Session.get('csrf')|csrf }}
+            <input type='hidden' name='action' value='add_entity' />
+            <input type='hidden' name='project_id' value='{{ activeProject.id }}' />
+            <input type='hidden' name='entity_type' value='experiment' />
+            <label class='smallgray text-uppercase' for='experiment-select'>添加实验</label>
+            <div class='input-group'>
+              <select class='form-control' id='experiment-select' name='entity_id'>
+                {% for experiment in availableExperimentsArr %}
+                  <option value='{{ experiment.id }}'>#{{ experiment.id }} · {{ experiment.title ?: '未命名实验' }}</option>
+                {% else %}
+                  <option value=''>暂无可添加实验</option>
+                {% endfor %}
+              </select>
+              <div class='input-group-append'>
+                <button class='btn btn-primary' type='submit' {% if not availableExperimentsArr %}disabled{% endif %}>关联实验</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class='col-lg-6 mb-3'>
+          <form method='post' action='projects.php?id={{ activeProject.id }}'>
+            {{ App.Session.get('csrf')|csrf }}
+            <input type='hidden' name='action' value='add_entity' />
+            <input type='hidden' name='project_id' value='{{ activeProject.id }}' />
+            <input type='hidden' name='entity_type' value='item' />
+            <label class='smallgray text-uppercase' for='item-select'>添加资源</label>
+            <div class='input-group'>
+              <select class='form-control' id='item-select' name='entity_id'>
+                {% for item in availableItemsArr %}
+                  <option value='{{ item.id }}'>#{{ item.id }} · {{ item.title ?: '未命名资源' }}</option>
+                {% else %}
+                  <option value=''>暂无可添加资源</option>
+                {% endfor %}
+              </select>
+              <div class='input-group-append'>
+                <button class='btn btn-primary' type='submit' {% if not availableItemsArr %}disabled{% endif %}>关联资源</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class='card rounded border-0 shadow-sm mb-4'>
+    <div class='card-body'>
+      <div class='d-flex justify-content-between align-items-center mb-3'>
+        <h4 class='mb-0'>关联对象</h4>
+        <a class='btn btn-outline-secondary btn-sm' href='projects.php'>返回项目列表</a>
+      </div>
+      <div class='table-responsive'>
+        <table class='table table-hover'>
+          <thead>
+            <tr>
+              <th>类型</th>
+              <th>对象</th>
+              <th>关联时间</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entity in projectEntitiesArr %}
+              <tr>
+                <td class='text-uppercase'>{{ entity.entity_type == 'experiment' ? '实验' : (entity.entity_type == 'item' ? '资源' : entity.entity_type) }}</td>
+                <td>
+                  {% if entity.experiment_title %}
+                    <a href='experiments.php?mode=view&amp;id={{ entity.entity_id }}'>{{ entity.experiment_title }}</a>
+                  {% elseif entity.item_title %}
+                    <a href='database.php?mode=view&amp;id={{ entity.entity_id }}'>{{ entity.item_title }}</a>
+                  {% elseif entity.sample_name %}
+                    <a href='samples.php?id={{ entity.entity_id }}'>{{ entity.sample_code }} · {{ entity.sample_name }}</a>
+                  {% else %}
+                    #{{ entity.entity_id }}
+                  {% endif %}
+                </td>
+                <td>{{ entity.created_at }}</td>
+                <td class='text-right'>
+                  <form method='post' action='projects.php?id={{ activeProject.id }}' class='d-inline'>
+                    {{ App.Session.get('csrf')|csrf }}
+                    <input type='hidden' name='action' value='remove_entity' />
+                    <input type='hidden' name='project_id' value='{{ activeProject.id }}' />
+                    <input type='hidden' name='link_id' value='{{ entity.id }}' />
+                    <button class='btn btn-outline-danger btn-sm' type='submit'>解除关联</button>
+                  </form>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan='4' class='smallgray'>当前项目还没有关联实验或资源。</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+{% endif %}
+
+<div class='row'>
+  {% for project in projectsArr %}
+    <div class='col-md-6 mb-3'>
+      <article class='card rounded border-0 shadow-sm h-100'>
+        <div class='card-body'>
+          <div class='smallgray text-uppercase'>{{ project.code }}</div>
+          <h4 class='mt-2'><a href='projects.php?id={{ project.id }}'>{{ project.name }}</a></h4>
+          <p class='mt-2'>{{ project.description ?: '暂无项目描述。' }}</p>
+          <div class='d-flex flex-wrap mt-3'>
+            <span class='badge badge-light mr-2 mb-2'>成员 {{ project.member_count }}</span>
+            <span class='badge badge-light mr-2 mb-2'>对象 {{ project.entity_count }}</span>
+            <span class='badge badge-dark mr-2 mb-2'>状态 {{ project.status == 1 ? '进行中' : project.status }}</span>
+          </div>
+          <div class='mt-3'>
+            <a class='btn btn-outline-primary btn-sm' href='projects.php?id={{ project.id }}'>打开项目</a>
+          </div>
+        </div>
+      </article>
+    </div>
+  {% else %}
+    <div class='col-12'>
+      <div class='alert alert-info mb-0 d-flex justify-content-between align-items-center flex-wrap'>
+        <span class='mr-3'>当前团队下还没有 SmartLab 项目。</span>
+        <button type='button' class='btn btn-primary btn-sm mt-2 mt-sm-0' data-toggle='collapse' data-target='#createProjectPanel' aria-expanded='false' aria-controls='createProjectPanel'>添加第一个项目</button>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock body %}

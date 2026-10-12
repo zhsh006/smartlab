@@ -1,0 +1,2322 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+{% macro smartlabDictionarySelect(id, name, value, options, placeholder, selectClass) %}
+  <select id='{{ id }}' class='{{ selectClass|default('form-control') }}' name='{{ name }}'>
+    <option value=''>{{ placeholder|default('请选择') }}</option>
+    {% for item in options|default([]) %}
+      <option value='{{ item }}' {{ value == item ? 'selected' }}>{{ item }}</option>
+    {% endfor %}
+    {% if value and value not in options|default([]) %}
+      <option value='{{ value }}' selected>{{ value }}（原记录）</option>
+    {% endif %}
+  </select>
+{% endmacro %}
+
+{% macro smartlabSampleSelect(id, name, value, samples, placeholder, selectClass) %}
+  <select id='{{ id }}' class='{{ selectClass|default('form-control') }}' name='{{ name }}'>
+    <option value=''>{{ placeholder|default('请选择关联样本') }}</option>
+    {% for sample in samples|default([]) %}
+      {% set sampleLabel = sample.code ~ ' · ' ~ sample.name %}
+      <option value='{{ sampleLabel }}' {{ value == sampleLabel or value == sample.code ? 'selected' }}>{{ sampleLabel }}{% if sample.sample_type %} · {{ sample.sample_type }}{% endif %}{% if sample.project_code %} · {{ sample.project_code }}{% endif %}</option>
+    {% endfor %}
+    {% if value %}
+      <option value='{{ value }}' selected>{{ value }}（原记录）</option>
+    {% endif %}
+  </select>
+{% endmacro %}
+
+{% macro smartlabUploadSelect(id, name, value, uploads, placeholder, selectClass) %}
+  <select id='{{ id }}' class='{{ selectClass|default('form-control') }}' name='{{ name }}'>
+    <option value=''>{{ placeholder|default('请选择附件') }}</option>
+    {% for upload in uploads|default([]) %}
+      <option value='{{ upload.real_name }}' {{ value == upload.real_name ? 'selected' }}>{{ upload.real_name }}</option>
+    {% endfor %}
+    {% if value %}
+      <option value='{{ value }}' selected>{{ value }}（原记录）</option>
+    {% endif %}
+  </select>
+{% endmacro %}
+
+{% embed 'view-edit.html' %}
+  {% block createnew %}
+  {% include 'catstat-view-edit.html' %}
+  <div class='d-flex'>
+    <div class='align-self-center flex-grow-1 mr-2'>
+      {# CUSTOM ID #}
+      {# TITLE #}
+      <h1 class='text-dark' >
+        {% if Entity.entityData.custom_id %}
+          <span title='{{ 'Custom ID'|trans }}' class='color-medium'>{{ Entity.entityData.custom_id }}</span>
+        {% endif %}
+         <!-- [html-validate-disable-block prefer-native-element: suppress error from malle] -->
+        <span id='documentTitle' class='breakable {{ not Entity.isReadOnly ? 'malleable-title hl-hover-gray' }} rounded py-1' data-target='title' data-endpoint='{{ Entity.entityType.value }}' data-id='{{ Entity.id }}'>{{ Entity.entityData.title }}</span>
+      </h1>
+    </div>
+  </div>
+  {% endblock %}
+  {% block createmodal %}
+    {% include 'show-view-edit.html' %}
+  {% endblock %}
+{% endembed %}
+
+{# Exclusive edit mode notification #}
+<div id='exclusiveEditModeInfo'>
+  {% if Entity.entityData.exclusive_edit_mode.locked_by > 0 and Entity.entityData.exclusive_edit_mode.locked_by != App.Users.userid and not Entity.entityData.exclusive_edit_mode.is_stale %}
+  {% macro writeLockNotice(locked_by_human) %}
+  {{ 'This entry is being edited by %s.'|trans|format(locked_by_human) }}
+      <button type='button' class='btn btn-sm btn-secondary' data-action='override-exclusive-edit-lock'>{{ 'Override lock'|trans }}</button>
+  {% endmacro %}
+  {{ _self.writeLockNotice(Entity.entityData.exclusive_edit_mode.locked_by_human)|msg('warning', false) }}
+{% endif %}
+</div>
+
+{% include('view-edit-toolbar.html') %}
+
+<div id='isTimestampedByInfoDiv'>
+{% if Entity.entityData.timestamped %}
+  {{ 'Entry was timestamped by %s on %s at %s'|trans|format(timestamperFullname, Entity.entityData.timestamped_at|date('Y-m-d'), Entity.entityData.timestamped_at|date('H:i:s'))|msg('ok', false) }}
+{% endif %}
+</div>
+
+{% if Entity.entityData.locked %}
+  {{ 'Locked by %s on %s at %s'|trans|format(lockerFullname, Entity.entityData.locked_at|date('Y-m-d'), Entity.entityData.locked_at|date('H:i:s'))|msg('ok', false) }}
+{% endif %}
+
+<section>
+
+  {# DATE #}
+  {% if Entity.entityType.value != 'experiments_templates' and not (smartlabIsStudentView and Entity.entityType.value == 'experiments') %}
+    <div class='color-medium mb-2'>
+      {{ 'Started on'|trans }} {{ Entity.entityData.date|date('Y-m-d') }}
+    </div>
+  {% endif %}
+
+  {# OWNER #}
+  <div class='d-flex mb-2 align-items-center'>
+    <div class='edit-mode-label'>
+      <i aria-hidden='true' class='fas fa-fw fa-user mr-1'></i>{{ 'Owner'|trans }}
+    </div>
+    {{ Entity.entityData.fullname }}
+  </div>
+
+  {# TEAM #}
+  <div class='d-flex mb-2 align-items-center'>
+    <div class='edit-mode-label'>
+      <i aria-hidden='true' class='fas fa-fw fa-users mr-1'></i>{{ 'Team'|trans }}
+    </div>
+    {{ Entity.entityData.team_name }}
+  </div>
+
+  {% if Entity.entityType.value == 'experiments' %}
+    {% set smartlabExperimentEditable = smartlabCanManageExperiments %}
+    <div id='experiment-workflow' class='card border-0 shadow-sm my-3'>
+      <div class='card-body'>
+        <div class='smallgray text-uppercase mb-1'>Experiment workflow</div>
+        <h3 class='mb-3'>{{ smartlabExperimentEditable ? '项目与审核' : '实验上下文与审核' }}</h3>
+
+        {% if not smartlabExperimentEditable %}
+          <div class='mb-3'>
+            <div class='smallgray text-uppercase mb-2'>所属项目</div>
+            <div class='d-flex flex-wrap'>
+              {% for project in smartlabProjectsArr|default([]) %}
+                <span class='badge badge-light mr-2 mb-2'>{{ project.code }} · {{ project.name }}</span>
+              {% else %}
+                <span class='smallgray'>当前实验尚未挂到项目。</span>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        {% if not smartlabExperimentEditable %}
+          <div class='smallgray mb-3'>助理端和导师端仅查看实验归属、审核状态和分析结果，不在这里执行项目挂接或送审提交。</div>
+        {% endif %}
+
+        <div>
+          <div class='smallgray text-uppercase mb-2'>审核流</div>
+          <div class='list-group list-group-flush'>
+            {% for flow in smartlabReviewFlowsArr|default([]) %}
+              <div class='list-group-item px-0'>
+                <div class='font-weight-bold'>{{ flow.project_code ?: '未绑定项目' }}{% if flow.project_name %} · {{ flow.project_name }}{% endif %}</div>
+                <div class='smallgray'>状态
+                  {{
+                    flow.status == 'submitted' ? '已提交'
+                    : flow.status == 'approved' ? '已通过'
+                    : flow.status == 'needs_revision' ? '待修改'
+                    : flow.status == 'rejected' ? '已拒绝'
+                    : flow.status
+                  }}
+                  {% if flow.decision %}
+                    · 结果
+                    {{
+                      flow.decision == 'approved' ? '通过'
+                      : flow.decision == 'changes_requested' ? '退回修改'
+                      : flow.decision == 'rejected' ? '拒绝'
+                      : flow.decision
+                    }}
+                  {% endif %}
+                </div>
+                <div class='smallgray'>提交人：{{ flow.requester_name ?: '未知' }} · 审核人：{{ flow.assignee_name ?: '未分配' }}</div>
+                {% if flow.comment %}
+                  <div class='smallgray mt-1'>{{ flow.comment }}</div>
+                {% endif %}
+              </div>
+            {% else %}
+              <div class='smallgray'>当前实验还没有审核流。</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <hr>
+
+        <div id='experiment-assay-pack' class='card border-0 bg-light mb-4'>
+          <div class='card-body'>
+            <div class='smallgray text-uppercase mb-1'>Structured record</div>
+            <h3 class='mb-3'>结构化实验记录</h3>
+            {% if smartlabAssayPackArr.pack_key == 'western_blot' %}
+              <div class='alert alert-info py-2 mb-3 d-flex justify-content-between align-items-center flex-wrap'>
+                <div class='mr-3'>智能工作流已接入当前 WB 记录：采集/记录、智能识别、断点识别、跳步识别和模板补全会在本页直接展示。</div>
+                <a class='btn btn-outline-primary btn-sm mt-2 mt-md-0' href='#smartlab-wb-workflow'>查看智能工作流</a>
+              </div>
+            {% endif %}
+            {% if smartlabAssayPackArr.pack_key %}
+              <p class='smallgray mb-3'>这里先完成实验计划、样本与材料确认，后续数据和分析不在第一步前置显示。</p>
+            {% else %}
+              <p class='smallgray mb-3'>请选择实验记录类型，系统会自动建立计划并进入样本与材料确认。</p>
+            {% endif %}
+            {% set smartlabWorkflow = smartlabAssayPackArr.workflow|default({}) %}
+            <div class='border rounded bg-white p-3 mb-3'>
+              <div class='d-flex justify-content-between align-items-start flex-wrap mb-2'>
+                <div>
+                  <div class='smallgray text-uppercase'>Student workflow</div>
+                  <div class='font-weight-bold'>实验流程：准备样本与材料后打印操作单，完成实验后上传原始数据，进入智能识别与断点检查，再回填结果并进行智能检测。</div>
+                </div>
+                <div class='d-flex flex-wrap'>
+                  {% if smartlabWorkflow.can_print_bench_sheet|default(false) %}
+                    <a class='btn btn-outline-primary btn-sm mb-2' href='make.php?type=experiments&amp;id={{ Entity.id }}&amp;format=pdf' target='_blank' rel='noopener'>打印操作单</a>
+                  {% else %}
+                    <button class='btn btn-outline-primary btn-sm mb-2' type='button' disabled>打印操作单</button>
+                  {% endif %}
+                  {% if smartlabWorkflow.can_print_bench_sheet|default(false) and not smartlabWorkflow.has_raw_data|default(false) %}
+                    <a class='btn btn-primary btn-sm mb-2 ml-2' href='experiments.php?mode=view&amp;id={{ Entity.id }}&amp;smartlab_step=upload' data-smartlab-step-link='upload'>上传原始数据</a>
+                  {% elseif smartlabWorkflow.has_raw_data|default(false) and not smartlabWorkflow.has_recognition_evidence|default(false) %}
+                    <a class='btn btn-primary btn-sm mb-2 ml-2' href='experiments.php?mode=view&amp;id={{ Entity.id }}&amp;smartlab_step=recognize' data-smartlab-step-link='recognize'>打开 WB 智能识别</a>
+                  {% elseif smartlabWorkflow.has_recognition_evidence|default(false) and not smartlabWorkflow.has_recognized_results|default(false) %}
+                    <a class='btn btn-primary btn-sm mb-2 ml-2' href='experiments.php?mode=view&amp;id={{ Entity.id }}&amp;smartlab_step=results' data-smartlab-step-link='results'>结果回填确认</a>
+                  {% elseif smartlabWorkflow.can_submit_review|default(false) and not smartlabWorkflow.has_submitted_review|default(false) %}
+                    <a class='btn btn-success btn-sm mb-2 ml-2' href='smartlab-upload.php?experiment_id={{ Entity.id }}'>进行智能检测</a>
+                  {% endif %}
+                </div>
+              </div>
+              <div class='d-flex flex-wrap align-items-center'>
+                {% for step in smartlabWorkflow.steps|default([]) %}
+                  <button class='badge badge-light border mr-2 mb-2 px-2 py-2 {{ step.done ? 'border-success text-success' : (step.active ? 'border-primary text-primary' : 'text-muted') }}' type='button' data-smartlab-step-link='{{ step.key }}'>
+                    {{ loop.index }}. {{ step.label }} · {{ step.done ? '已完成' : (step.active ? '当前步骤' : '待完成') }}
+                  </button>
+                  {% if step.key == 'submit' and smartlabExperimentEditable %}
+                    <div class='w-100'></div>
+                    <div id='smartlab-submit-review' class='border rounded bg-light p-2 mb-2 text-dark' style='max-width: 46rem;' data-smartlab-step-panel='submit'>
+                      <div class='smallgray text-uppercase mb-2'>进行智能检测</div>
+                      <div class='mb-2'>当前实验记录已完成结果回填。请进入智能检测，按“原始记录上传 → 智能识别 → 断点识别 → 跳步识别 → 模板补全/草稿”完成检查；导师审核提交放在模板补全/草稿页。</div>
+                      <a class='btn btn-success btn-sm' href='smartlab-upload.php?experiment_id={{ Entity.id }}'>进入智能检测</a>
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+              <div class='smallgray mt-2'>实验准备完成后可打印操作单；实验结束后进入编辑页，在附件区上传原始数据。</div>
+              {% if not smartlabWorkflow.can_print_bench_sheet|default(false) %}
+                <div class='alert alert-warning mt-2 mb-0 py-2' data-smartlab-workflow-alert>先完成实验计划和样本与材料确认，系统就会放开打印。</div>
+              {% elseif not smartlabWorkflow.has_raw_data|default(false) %}
+                <div class='alert alert-info mt-2 mb-0 py-2' data-smartlab-workflow-alert>操作单已可打印。实验结束后点击“上传原始数据”，把 WB 原图、曝光图或仪器导出文件传到附件区。</div>
+              {% elseif not smartlabWorkflow.has_recognition_evidence|default(false) %}
+                <div class='alert alert-warning mt-2 mb-0 py-2' data-smartlab-workflow-alert>已上传原始数据。下一步请打开 WB 智能识别，完成 lane/ROI 识别、原图关联和断点检查。</div>
+              {% elseif not smartlabWorkflow.has_recognized_results|default(false) %}
+                <div class='alert alert-warning mt-2 mb-0 py-2' data-smartlab-workflow-alert>智能识别与断点检查已完成。下一步请回填 WB 结构化结果并保存记录。</div>
+              {% elseif smartlabWorkflow.can_submit_review|default(false) and not smartlabWorkflow.has_submitted_review|default(false) %}
+                <div class='alert alert-success mt-2 mb-0 py-2' data-smartlab-workflow-alert>结果已回填。点击“进行智能检测”，按“原始记录上传 → 智能识别 → 断点识别 → 跳步识别 → 模板补全/草稿”完成检查后，在模板补全/草稿页提交导师审核。</div>
+              {% endif %}
+              {% set smartlabWorkflowDemo = smartlabWorkflow.workflow_demo|default(smartlabWorkflow.patent_demo|default({})) %}
+              {% if smartlabAssayPackArr.pack_key == 'western_blot' and smartlabWorkflowDemo.modules|default([]) %}
+                <div id='smartlab-wb-workflow' class='border rounded bg-white p-3 mt-3'>
+                  <div class='d-flex justify-content-between align-items-start flex-wrap mb-3'>
+                    <div class='mr-3'>
+                      <div class='smallgray text-uppercase mb-1'>Workflow visibility</div>
+                      <h4 class='mb-1'>WB 智能工作流</h4>
+                      <div class='smallgray'>当前 Western Blot 记录把采集、记录、智能识别、断点识别、跳步识别和模板补全直接映射到五步实验流程。</div>
+                    </div>
+                    <div class='d-flex flex-wrap mt-2 mt-lg-0'>
+                      <a class='btn btn-outline-primary btn-sm mb-2 mr-2' href='smartlab-jump.php?experiment_id={{ Entity.id }}'>跳步识别</a>
+                      <a class='btn btn-outline-primary btn-sm mb-2' href='smartlab-templates.php?experiment_id={{ Entity.id }}'>模板补全</a>
+                    </div>
+                  </div>
+                  <div class='row'>
+                    {% for item in smartlabWorkflowDemo.summary|default([]) %}
+                      <div class='col-lg-3 col-md-6 mb-2'>
+                        {% set smartlabWbSummaryKey = item.label == '附件证据' ? 'uploads' : (item.label == '识别证据' ? 'recognition' : (item.label == '结构化结果' ? 'results' : (item.label == '待补全项' ? 'missing' : ''))) %}
+                        <div class='border rounded p-2 h-100 {{ item.tone == 'success' ? 'border-success' : (item.tone == 'warning' ? 'border-warning' : '') }}' {% if smartlabWbSummaryKey %}data-smartlab-wb-summary='{{ smartlabWbSummaryKey }}'{% endif %}>
+                          <div class='smallgray'>{{ item.label }}</div>
+                          <div class='font-weight-bold {{ item.tone == 'success' ? 'text-success' : (item.tone == 'warning' ? 'text-warning' : '') }}'>{{ item.value }}</div>
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                  <div class='row mt-2'>
+                    <div class='col-lg-6 mb-3'>
+                      <div class='smallgray text-uppercase mb-2'>模块链路</div>
+                      <div class='list-group list-group-flush'>
+                        {% for module in smartlabWorkflowDemo.modules|default([]) %}
+                          {% set smartlabWbModuleKey = module.label == '采集模块' ? 'upload' : (module.label == '记录模块' ? 'record' : (module.label == '断点识别模块' ? 'breakpoint' : (module.label == '跳步识别模块' ? 'jump' : (module.label == '模板补全模块' ? 'templates' : '')))) %}
+                          <div class='list-group-item px-0 py-2' {% if smartlabWbModuleKey %}data-smartlab-wb-module='{{ smartlabWbModuleKey }}'{% endif %}>
+                            <div class='d-flex justify-content-between align-items-start flex-wrap'>
+                              <div class='font-weight-bold small mr-3 {{ module.tone == 'success' ? 'text-success' : (module.tone == 'warning' ? 'text-warning' : '') }}'>{{ module.label }}</div>
+                              <div class='smallgray flex-fill'>{{ module.detail }}</div>
+                            </div>
+                          </div>
+                        {% endfor %}
+                      </div>
+                    </div>
+                    <div class='col-lg-6 mb-3'>
+                      <div class='smallgray text-uppercase mb-2'>模板补全预览</div>
+                      <div class='table-responsive'>
+                        <table class='table table-sm table-bordered bg-white mb-2'>
+                          <thead>
+                            <tr>
+                              <th>步骤</th>
+                              <th>WB 字段</th>
+                              <th>状态</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for step in smartlabWorkflowDemo.template_steps|default([]) %}
+                              <tr data-smartlab-wb-step='{{ step.num }}'>
+                                <td class='font-weight-bold'>{{ step.num }} · {{ step.label }}<div class='smallgray'>{{ step.detail }}</div></td>
+                                <td>{{ step.status }}</td>
+                                <td><span class='badge {{ step.tone == 'success' ? 'badge-success' : (step.tone == 'warning' ? 'badge-warning' : 'badge-light') }}'>{{ step.tone == 'success' ? '已识别' : (step.tone == 'warning' ? '推理补全' : '待补全') }}</span></td>
+                              </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div class='alert {{ smartlabWorkflowDemo.gap_tone|default('warning') == 'success' ? 'alert-success' : 'alert-warning' }} mb-0 py-2'>{{ smartlabWorkflowDemo.gap_message }}</div>
+                    </div>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+            {% if smartlabIsMentorView %}
+              <div class='border rounded bg-white p-3 mb-3'>
+                <div class='smallgray text-uppercase mb-2'>Breakpoint / jump review</div>
+                <div class='list-group list-group-flush'>
+                  {% for check in smartlabWorkflow.mentor_checks|default([]) %}
+                    <div class='list-group-item px-0 py-2'>
+                      <div class='d-flex justify-content-between align-items-start flex-wrap'>
+                        <div class='font-weight-bold small mr-3 {{ check.tone == 'success' ? 'text-success' : (check.tone == 'warning' ? 'text-warning' : '') }}'>{{ check.label }}</div>
+                        <div class='smallgray flex-fill'>{{ check.message }}</div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+            <div id='smartlab-bench-sheet' class='d-none'>
+              <h2>实验操作单</h2>
+              <p>实验编号：#{{ Entity.id }}　实验名称：{{ Entity.entityData.title }}</p>
+              <p>实验类型：{{ smartlabAssayPackArr.pack_key ?: '未选择' }}　操作者：{{ smartlabAssayPackArr.payload.cover.operator_name ?: '未填写' }}　日期：{{ smartlabAssayPackArr.payload.cover.run_date ?: Entity.entityData.date|date('Y-m-d') }}</p>
+              <h3>基本信息</h3>
+              <table>
+                <tr><th>实验目的</th><td>{{ smartlabAssayPackArr.payload.cover.objective ?: '未填写' }}</td></tr>
+                <tr><th>样本来源</th><td>{{ smartlabAssayPackArr.payload.cover.sample_source ?: smartlabAssayPackArr.payload.sample.sample_origin ?: smartlabAssayPackArr.payload.sample.tissue_id ?: '未填写' }}</td></tr>
+              </table>
+              <h3>关键样本与材料</h3>
+              <table>
+                {% for item in smartlabWorkflow.required_materials|default([]) %}
+                  <tr><th>{{ item.label }}</th><td>{{ item.value ?: '待补齐' }}</td></tr>
+                {% else %}
+                  <tr><th>状态</th><td>请先选择实验类型并保存结构化记录。</td></tr>
+                {% endfor %}
+              </table>
+              <h3>现场记录栏</h3>
+              <table>
+                <tr><th>开始时间</th><td></td><th>结束时间</th><td></td></tr>
+                <tr><th>异常情况</th><td colspan='3'></td></tr>
+                <tr><th>操作者签名</th><td></td><th>复核人</th><td></td></tr>
+              </table>
+            </div>
+
+            <form method='post' action='experiments.php?mode=view&id={{ Entity.id }}'>
+              {{ App.Session.get('csrf')|csrf }}
+              <input type='hidden' name='smartlab_action' value='save_assay_pack' />
+              {% if not smartlabExperimentEditable %}
+                <fieldset disabled>
+              {% endif %}
+              {% if smartlabAssayPackArr.pack_key == 'western_blot' %}
+                <div id='smartlab-wb-prepare-panel' data-smartlab-step-panel='prepare'>
+              {% endif %}
+
+			        <div class='row'>
+                {% if smartlabAssayPackArr.pack_key %}
+                  <input type='hidden' name='pack_key' value='{{ smartlabAssayPackArr.pack_key }}' />
+                {% else %}
+                  <div class='col-lg-4 mb-3'>
+                    <label class='smallgray text-uppercase' for='smartlab-assay-pack-key'>实验类型</label>
+                    <select id='smartlab-assay-pack-key' class='form-control' name='pack_key'>
+                      <option value='western_blot'>Western Blot</option>
+                      <option value='if'>免疫荧光</option>
+                      <option value='ihc'>免疫组化</option>
+                    </select>
+                  </div>
+                {% endif %}
+                <input type='hidden' name='pack_mode' value='quick' />
+              </div>
+
+				        <div class='row'>
+                <input type='hidden' name='assay_objective' value='{{ smartlabAssayPackArr.payload.cover.objective }}' />
+                <input type='hidden' name='assay_run_date' value='{{ smartlabAssayPackArr.payload.cover.run_date ?: Entity.entityData.date|date('Y-m-d') }}' />
+                <input type='hidden' name='assay_operator_name' value='{{ smartlabAssayPackArr.payload.cover.operator_name }}' />
+              </div>
+
+              {% if smartlabAssayPackArr.pack_key == 'qpcr' %}
+                <div class='row'>
+                  <div class='col-lg-4 mb-3'>
+                    <label for='qpcr-sample-origin'>样本编号/来源说明</label>
+                    {{ _self.smartlabDictionarySelect('qpcr-sample-origin', 'qpcr_sample_origin', smartlabAssayPackArr.payload.sample.sample_origin, smartlabAssayPresetCatalogArr.qpcr.sample_origins, '请选择样本来源') }}
+                  </div>
+                  <div class='col-lg-2 mb-3'>
+                    <label for='qpcr-treatment-group'>处理分组</label>
+                    {{ _self.smartlabDictionarySelect('qpcr-treatment-group', 'qpcr_treatment_group', smartlabAssayPackArr.payload.sample.treatment_group, smartlabAssayPresetCatalogArr.qpcr.treatment_groups, '请选择分组') }}
+                  </div>
+                  <div class='col-lg-2 mb-3'>
+                    <label for='qpcr-rna-concentration'>RNA 浓度</label>
+                    {{ _self.smartlabDictionarySelect('qpcr-rna-concentration', 'qpcr_rna_concentration', smartlabAssayPackArr.payload.sample.rna_concentration, smartlabAssayPresetCatalogArr.qpcr.rna_concentrations, '请选择浓度区间') }}
+                  </div>
+                  <div class='col-lg-2 mb-3'>
+                    <label for='qpcr-a260-a280'>A260/280</label>
+                    {{ _self.smartlabDictionarySelect('qpcr-a260-a280', 'qpcr_a260_a280', smartlabAssayPackArr.payload.sample.a260_a280, smartlabAssayPresetCatalogArr.qpcr.a260_a280_values, '请选择纯度') }}
+                  </div>
+                </div>
+
+                <div class='row'>
+                  <div class='col-lg-4 mb-3'>
+                    <label for='qpcr-rt-batch'>逆转录批次</label>
+                    {{ _self.smartlabDictionarySelect('qpcr-rt-batch', 'qpcr_rt_batch', smartlabAssayPackArr.payload.sample.reverse_transcription_batch, smartlabAssayPresetCatalogArr.qpcr.rt_batches, '请选择逆转录批次') }}
+                  </div>
+                  <div class='col-lg-4 mb-3'>
+                    <label for='qpcr-primer-object-id'>引物对象</label>
+                    <select id='qpcr-primer-object-id' class='form-control smartlab-object-select' name='qpcr_primer_object_id' data-targets='qpcr-primer-code:code,qpcr-target-gene:targetGene,qpcr-reference-gene:referenceGene,qpcr-amplicon-bp:ampliconBp,qpcr-annealing-temperature:annealingTemperature'>
+                      <option value='0'>请选择引物对象</option>
+                      {% for row in smartlabAssayObjectCatalogArr.primers|default([]) %}
+                        <option value='{{ row.id }}'
+                          data-code='{{ row.code|e('html_attr') }}'
+                          data-target-gene='{{ row.target_gene|e('html_attr') }}'
+                          data-reference-gene='{{ row.reference_gene|e('html_attr') }}'
+                          data-amplicon-bp='{{ row.amplicon_bp|e('html_attr') }}'
+                          data-annealing-temperature='{{ row.annealing_temperature|e('html_attr') }}'
+                          data-summary='{{ (row.code ~ " · " ~ row.target_gene ~ (row.reference_gene ? " / " ~ row.reference_gene : "") ~ (row.amplicon_bp ? " · " ~ row.amplicon_bp ~ " bp" : "") ~ (row.annealing_temperature ? " · " ~ row.annealing_temperature ~ "°C" : ""))|e('html_attr') }}'
+                          {{ smartlabAssayPackArr.payload.primer.object.id == row.id ? 'selected' }}>
+                          {{ row.code }} · {{ row.target_gene }}{% if row.reference_gene %} / {{ row.reference_gene }}{% endif %}{% if row.amplicon_bp %} · {{ row.amplicon_bp }} bp{% endif %}
+                        </option>
+                      {% endfor %}
+                    </select>
+                    <div class='smallgray mt-1' data-object-hint='qpcr-primer-object-id'>选择后自动回填目标基因、内参、片段长度和退火温度。</div>
+                  </div>
+                  <div class='col-lg-2 mb-3'>
+                    <label for='qpcr-target-gene'>目标基因</label>
+                    {{ _self.smartlabDictionarySelect('qpcr-target-gene', 'qpcr_target_gene', smartlabAssayPackArr.payload.primer.target_gene, smartlabAssayPresetCatalogArr.qpcr.target_genes, '由引物对象回填') }}
+                  </div>
+                  <div class='col-lg-2 mb-3'>
+                    <label for='qpcr-reference-gene'>内参基因</label>
+                    {{ _self.smartlabDictionarySelect('qpcr-reference-gene', 'qpcr_reference_gene', smartlabAssayPackArr.payload.primer.reference_gene, smartlabAssayPresetCatalogArr.qpcr.reference_genes, '由引物对象回填') }}
+                  </div>
+                  <input id='qpcr-primer-code' type='hidden' name='qpcr_primer_code' value='{{ smartlabAssayPackArr.payload.primer.primer_code }}' />
+                  <div class='col-lg-2 mb-3'>
+                    <label for='qpcr-amplicon-bp'>扩增片段长度</label>
+                    {{ _self.smartlabDictionarySelect('qpcr-amplicon-bp', 'qpcr_amplicon_bp', smartlabAssayPackArr.payload.primer.amplicon_bp, smartlabAssayPresetCatalogArr.qpcr.amplicon_ranges, '由引物对象回填') }}
+                  </div>
+                </div>
+
+                <div class='row'>
+                  <div class='col-lg-3 mb-3'>
+                    <label for='qpcr-annealing-temperature'>退火温度</label>
+                    {{ _self.smartlabDictionarySelect('qpcr-annealing-temperature', 'qpcr_annealing_temperature', smartlabAssayPackArr.payload.primer.annealing_temperature, smartlabAssayPresetCatalogArr.qpcr.annealing_temperatures, '由引物对象回填') }}
+                  </div>
+                  <div class='col-lg-3 mb-3'>
+                    <label for='qpcr-kit-object-id'>试剂盒</label>
+                    <select id='qpcr-kit-object-id' class='form-control smartlab-object-select' name='qpcr_kit_object_id' data-targets='qpcr-kit-name:name'>
+                      <option value='0'>请选择试剂盒对象</option>
+                      {% for row in smartlabAssayObjectCatalogArr.reagents|default([]) %}
+                        {% if row.reagent_scope in ['qpcr_kit'] %}
+                          <option value='{{ row.id }}'
+                            data-code='{{ row.code|e('html_attr') }}'
+                            data-name='{{ row.name|e('html_attr') }}'
+                            data-vendor='{{ row.vendor|e('html_attr') }}'
+                            data-model-hint='{{ row.model_hint|e('html_attr') }}'
+                            data-summary='{{ (row.code ~ " · " ~ row.name ~ (row.vendor ? " · " ~ row.vendor : "") ~ (row.model_hint ? " / " ~ row.model_hint : ""))|e('html_attr') }}'
+                            {{ smartlabAssayPackArr.payload.setup.kit_object.id == row.id ? 'selected' }}>
+                            {{ row.code }} · {{ row.name }}{% if row.vendor %} · {{ row.vendor }}{% endif %}
+                          </option>
+                        {% endif %}
+                      {% endfor %}
+                    </select>
+                    <input id='qpcr-kit-name' type='hidden' name='qpcr_kit_name' value='{{ smartlabAssayPackArr.payload.setup.kit_name }}' />
+                    <div class='smallgray mt-1' data-object-hint='qpcr-kit-object-id'>从对象字典选择，名称会自动写入记录。</div>
+                  </div>
+                  <div class='col-lg-2 mb-3'>
+                    <label for='qpcr-reaction-volume'>反应体系</label>
+                    {{ _self.smartlabDictionarySelect('qpcr-reaction-volume', 'qpcr_reaction_volume', smartlabAssayPackArr.payload.setup.reaction_volume, smartlabAssayPresetCatalogArr.qpcr.reaction_volumes, '请选择反应体系') }}
+                  </div>
+                  <div class='col-lg-2 mb-3'>
+                    <label for='qpcr-instrument-object-id'>仪器型号</label>
+                    <select id='qpcr-instrument-object-id' class='form-control smartlab-object-select' name='qpcr_instrument_object_id' data-targets='qpcr-instrument-model:name'>
+                      <option value='0'>请选择仪器对象</option>
+                      {% for row in smartlabAssayObjectCatalogArr.reagents|default([]) %}
+                        {% if row.reagent_scope in ['qpcr_instrument'] %}
+                          <option value='{{ row.id }}'
+                            data-code='{{ row.code|e('html_attr') }}'
+                            data-name='{{ row.name|e('html_attr') }}'
+                            data-vendor='{{ row.vendor|e('html_attr') }}'
+                            data-model-hint='{{ row.model_hint|e('html_attr') }}'
+                            data-summary='{{ (row.code ~ " · " ~ row.name ~ (row.vendor ? " · " ~ row.vendor : "") ~ (row.model_hint ? " / " ~ row.model_hint : ""))|e('html_attr') }}'
+                            {{ smartlabAssayPackArr.payload.setup.instrument_object.id == row.id ? 'selected' }}>
+                            {{ row.code }} · {{ row.name }}{% if row.model_hint %} / {{ row.model_hint }}{% endif %}
+                          </option>
+                        {% endif %}
+                      {% endfor %}
+                    </select>
+                    <input id='qpcr-instrument-model' type='hidden' name='qpcr_instrument_model' value='{{ smartlabAssayPackArr.payload.setup.instrument_model }}' />
+                    <div class='smallgray mt-1' data-object-hint='qpcr-instrument-object-id'>选择仪器对象后自动回填型号。</div>
+                  </div>
+                </div>
+
+                {% if smartlabAssayPackArr.pack_mode == 'standard' %}
+                  <div class='form-group mb-3'>
+                    <label for='qpcr-cycler-program'>循环参数 / Protocol 骨架</label>
+                    {{ _self.smartlabDictionarySelect('qpcr-cycler-program', 'qpcr_cycler_program', smartlabAssayPackArr.payload.setup.cycler_program, smartlabAssayPresetCatalogArr.qpcr.cycler_programs, '请选择循环参数') }}
+                  </div>
+                {% endif %}
+
+                {% if smartlabAssayPackArr.pack_key == 'western_blot' %}
+                  <div class='mt-2 mb-3'>
+                    <div class='d-flex justify-content-between align-items-center flex-wrap mb-2'>
+                      <div class='smallgray text-uppercase mb-0'>结构化结果表</div>
+                      <div class='d-flex align-items-center flex-wrap'>
+                        <label class='btn btn-outline-secondary btn-sm mb-0 mr-2' for='qpcr-import-file'>导入 qPCR 文件</label>
+                        <input id='qpcr-import-file' class='d-none' type='file' accept='.csv,.xlsx,.xls,.ods' data-smartlab-import='qpcr' />
+                        <span class='smallgray'>支持 QuantStudio / CFX 导出，以及 sample, group, target, ct, reference_ct, fold_change 等通用表头</span>
+                      </div>
+                    </div>
+                    <div id='smartlab-qpcr-import-status' class='smallgray mb-2'>可直接导入仪器导出的结果表，系统会优先识别 QuantStudio / Bio-Rad CFX 常见列名。</div>
+                    <div class='table-responsive'>
+                      <table class='table table-sm table-bordered bg-white'>
+                        <thead>
+                          <tr>
+                            <th>Sample ID</th>
+                            <th>Group</th>
+                            <th>Target</th>
+                            <th>Ct</th>
+                            <th>Reference Ct</th>
+                            <th>ΔCt</th>
+                            <th>ΔΔCt</th>
+                            <th>Fold Change</th>
+                            <th>重复数</th>
+                            <th>异常孔</th>
+                            <th>备注</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for row in smartlabAssayPackArr.results %}
+                            <tr>
+                              <td>{{ _self.smartlabSampleSelect('qpcr-result-sample-' ~ loop.index, 'qpcr_result_sample_label[]', row.sample_label, smartlabSamplesArr, '请选择样本', 'form-control form-control-sm') }}</td>
+                              <td>{{ _self.smartlabDictionarySelect('qpcr-result-group-' ~ loop.index, 'qpcr_result_group_label[]', row.group_label|default(''), smartlabAssayPresetCatalogArr.qpcr.treatment_groups, '请选择分组', 'form-control form-control-sm') }}</td>
+                              <td>{{ _self.smartlabDictionarySelect('qpcr-result-target-' ~ loop.index, 'qpcr_result_target_gene[]', row.target_gene, smartlabAssayPresetCatalogArr.qpcr.target_genes, '请选择靶标', 'form-control form-control-sm') }}</td>
+                              <td><input class='form-control form-control-sm' name='qpcr_result_ct_value[]' type='number' step='0.0001' value='{{ row.ct_value }}' /></td>
+                              <td><input class='form-control form-control-sm' name='qpcr_result_reference_ct[]' type='number' step='0.0001' value='{{ row.reference_ct }}' /></td>
+                              <td><input class='form-control form-control-sm' name='qpcr_result_delta_ct[]' type='number' step='0.0001' value='{{ row.delta_ct }}' /></td>
+                              <td><input class='form-control form-control-sm' name='qpcr_result_delta_delta_ct[]' type='number' step='0.0001' value='{{ row.delta_delta_ct }}' /></td>
+                              <td><input class='form-control form-control-sm' name='qpcr_result_fold_change[]' type='number' step='0.000001' value='{{ row.fold_change }}' /></td>
+                              <td><input class='form-control form-control-sm' name='qpcr_result_replicate_count[]' type='number' min='1' value='{{ row.replicate_count }}' /></td>
+                              <td>
+                                <select class='form-control form-control-sm' name='qpcr_result_is_outlier[]'>
+                                  <option value='0' {{ not row.is_outlier ? 'selected' }}>否</option>
+                                  <option value='1' {{ row.is_outlier ? 'selected' }}>是</option>
+                                </select>
+                              </td>
+                              <td>{{ _self.smartlabDictionarySelect('qpcr-result-note-' ~ loop.index, 'qpcr_result_note[]', row.note, smartlabAssayPresetCatalogArr.qpcr.result_notes, '请选择备注', 'form-control form-control-sm') }}</td>
+                            </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+
+                  <div class='row'>
+                    <div class='col-lg-4 mb-3'>
+                      <label for='qpcr-negative-control'>阴性对照是否扩增</label>
+                      <select id='qpcr-negative-control' class='form-control' name='qpcr_negative_control_amplified'>
+                        <option value='no' {{ smartlabAssayPackArr.payload.qc.negative_control_amplified == 'no' ? 'selected' }}>否</option>
+                        <option value='yes' {{ smartlabAssayPackArr.payload.qc.negative_control_amplified == 'yes' ? 'selected' }}>是</option>
+                      </select>
+                    </div>
+                    <div class='col-lg-4 mb-3'>
+                      <label for='qpcr-melting-curve'>熔解曲线是否单峰</label>
+                      <select id='qpcr-melting-curve' class='form-control' name='qpcr_melting_curve_single_peak'>
+                        <option value='yes' {{ smartlabAssayPackArr.payload.qc.melting_curve_single_peak == 'yes' ? 'selected' }}>是</option>
+                        <option value='no' {{ smartlabAssayPackArr.payload.qc.melting_curve_single_peak == 'no' ? 'selected' }}>否</option>
+                      </select>
+                    </div>
+                    <div class='col-lg-4 mb-3'>
+                      <label for='qpcr-qc-notes'>质控备注</label>
+                      {{ _self.smartlabDictionarySelect('qpcr-qc-notes', 'qpcr_qc_notes', smartlabAssayPackArr.payload.qc.notes, smartlabAssayPresetCatalogArr.qpcr.qc_notes, '请选择质控备注') }}
+                    </div>
+                  </div>
+                {% endif %}
+              {% elseif smartlabAssayPackArr.pack_key == 'western_blot' %}
+                <div class='row'>
+                  <div class='col-lg-6 mb-3'><label for='wb-sample-origin'>WB 样本批次</label>{{ _self.smartlabDictionarySelect('wb-sample-origin', 'wb_sample_origin', smartlabAssayPackArr.payload.sample.sample_origin, smartlabAssayPresetCatalogArr.western_blot.sample_origins, '请选择已制备 WB 样本') }}</div>
+                  <div class='col-lg-3 mb-3'><label for='wb-loading-amount'>上样量</label>{{ _self.smartlabDictionarySelect('wb-loading-amount', 'wb_loading_amount', smartlabAssayPackArr.payload.sample.loading_amount, smartlabAssayPresetCatalogArr.western_blot.loading_amounts, '请选择上样量') }}</div>
+                  <div class='col-lg-3 mb-3'><label for='wb-denaturation-condition'>变性条件</label>{{ _self.smartlabDictionarySelect('wb-denaturation-condition', 'wb_denaturation_condition', smartlabAssayPackArr.payload.sample.denaturation_condition, smartlabAssayPresetCatalogArr.western_blot.denaturation_conditions, '请选择变性条件') }}</div>
+                </div>
+                <div class='row'>
+                  <div class='col-lg-2 mb-3'><label for='wb-gel-percentage'>胶浓度</label>{{ _self.smartlabDictionarySelect('wb-gel-percentage', 'wb_gel_percentage', smartlabAssayPackArr.payload.run.gel_percentage, smartlabAssayPresetCatalogArr.western_blot.gel_percentages, '请选择胶浓度') }}</div>
+                  <div class='col-lg-3 mb-3'><label for='wb-electrophoresis-condition'>跑胶条件</label>{{ _self.smartlabDictionarySelect('wb-electrophoresis-condition', 'wb_electrophoresis_condition', smartlabAssayPackArr.payload.run.electrophoresis_condition, smartlabAssayPresetCatalogArr.western_blot.electrophoresis_conditions, '请选择跑胶条件') }}</div>
+                  <div class='col-lg-2 mb-3'><label for='wb-transfer-condition'>转膜条件</label>{{ _self.smartlabDictionarySelect('wb-transfer-condition', 'wb_transfer_condition', smartlabAssayPackArr.payload.run.transfer_condition, smartlabAssayPresetCatalogArr.western_blot.transfer_conditions, '请选择转膜条件') }}</div>
+                  <div class='col-lg-2 mb-3'><label for='wb-membrane-object-id'>膜类型</label><select id='wb-membrane-object-id' class='form-control smartlab-object-select' name='wb_membrane_object_id' data-targets='wb-membrane-type:name'><option value='0'>请选择库存对象</option>{% for row in smartlabAssayObjectCatalogArr.reagents|default([]) %}{% if row.reagent_scope in ['western_blot_membrane'] %}<option value='{{ row.id }}' data-code='{{ row.code|e('html_attr') }}' data-name='{{ row.name|e('html_attr') }}' data-vendor='{{ row.vendor|e('html_attr') }}' data-model-hint='{{ row.model_hint|e('html_attr') }}' data-summary='{{ (row.code ~ " · " ~ row.name ~ (row.vendor ? " · " ~ row.vendor : "") ~ (row.model_hint ? " / " ~ row.model_hint : ""))|e('html_attr') }}' {{ smartlabAssayPackArr.payload.reagent.membrane_object.id == row.id ? 'selected' }}>{{ row.code }} · {{ row.name }}</option>{% endif %}{% endfor %}</select><input id='wb-membrane-type' type='hidden' name='wb_membrane_type' value='{{ smartlabAssayPackArr.payload.run.membrane_type }}' /><div class='smallgray mt-1' data-object-hint='wb-membrane-object-id'>从库存对象选择膜。</div></div>
+                </div>
+                <div class='row'>
+                  <div class='col-lg-3 mb-3'><label for='wb-primary-object-id'>一抗</label><select id='wb-primary-object-id' class='form-control smartlab-object-select' name='wb_primary_object_id' data-targets='wb-primary-antibody:name,wb-primary-dilution:dilutionHint'><option value='0'>请选择一抗对象</option>{% for row in smartlabAssayObjectCatalogArr.antibodies|default([]) %}{% if row.application_scope in ['western_blot'] and row.antibody_role|default('primary') != 'secondary' %}<option value='{{ row.id }}' data-code='{{ row.code|e('html_attr') }}' data-name='{{ row.name|e('html_attr') }}' data-target-name='{{ row.target_name|e('html_attr') }}' data-host-species='{{ row.host_species|e('html_attr') }}' data-dilution-hint='{{ row.dilution_hint|e('html_attr') }}' data-summary='{{ (row.code ~ " · " ~ row.name ~ (row.target_name ? " · " ~ row.target_name : "") ~ (row.host_species ? " · " ~ row.host_species : "") ~ (row.dilution_hint ? " · " ~ row.dilution_hint : ""))|e('html_attr') }}' {{ smartlabAssayPackArr.payload.reagent.primary_object.id == row.id ? 'selected' }}>{{ row.code }} · {{ row.name }}{% if row.target_name %} · {{ row.target_name }}{% endif %}{% if row.dilution_hint %} · {{ row.dilution_hint }}{% endif %}</option>{% endif %}{% endfor %}</select><input id='wb-primary-antibody' type='hidden' name='wb_primary_antibody' value='{{ smartlabAssayPackArr.payload.reagent.primary_antibody }}' /><div class='smallgray mt-1' data-object-hint='wb-primary-object-id'>选择抗体后自动回填名称和建议稀释比例；靶标会显示在下拉项中。</div></div>
+                  <div class='col-lg-2 mb-3'><label for='wb-primary-dilution'>一抗稀释</label>{{ _self.smartlabDictionarySelect('wb-primary-dilution', 'wb_primary_dilution', smartlabAssayPackArr.payload.reagent.primary_dilution, smartlabAssayPresetCatalogArr.western_blot.dilutions, '请选择稀释比例') }}</div>
+                  <div class='col-lg-3 mb-3'><label for='wb-secondary-object-id'>二抗</label><select id='wb-secondary-object-id' class='form-control smartlab-object-select' name='wb_secondary_object_id' data-targets='wb-secondary-antibody:name,wb-secondary-dilution:dilutionHint'><option value='0'>请选择二抗对象</option>{% for row in smartlabAssayObjectCatalogArr.antibodies|default([]) %}{% if row.application_scope in ['western_blot'] and row.antibody_role|default('primary') != 'primary' %}<option value='{{ row.id }}' data-code='{{ row.code|e('html_attr') }}' data-name='{{ row.name|e('html_attr') }}' data-target-name='{{ row.target_name|e('html_attr') }}' data-host-species='{{ row.host_species|e('html_attr') }}' data-dilution-hint='{{ row.dilution_hint|e('html_attr') }}' data-summary='{{ (row.code ~ " · " ~ row.name ~ (row.host_species ? " · " ~ row.host_species : "") ~ (row.dilution_hint ? " · " ~ row.dilution_hint : ""))|e('html_attr') }}' {{ smartlabAssayPackArr.payload.reagent.secondary_object.id == row.id ? 'selected' }}>{{ row.code }} · {{ row.name }}{% if row.dilution_hint %} · {{ row.dilution_hint }}{% endif %}</option>{% endif %}{% endfor %}</select><input id='wb-secondary-antibody' type='hidden' name='wb_secondary_antibody' value='{{ smartlabAssayPackArr.payload.reagent.secondary_antibody }}' /><div class='smallgray mt-1' data-object-hint='wb-secondary-object-id'>选择后自动回填二抗名称和建议稀释比例。</div></div>
+                  <div class='col-lg-2 mb-3'><label for='wb-secondary-dilution'>二抗稀释</label>{{ _self.smartlabDictionarySelect('wb-secondary-dilution', 'wb_secondary_dilution', smartlabAssayPackArr.payload.reagent.secondary_dilution, smartlabAssayPresetCatalogArr.western_blot.dilutions, '请选择稀释比例') }}</div>
+                  <div class='col-lg-2 mb-3'><label for='wb-detection-object-id'>显色试剂</label><select id='wb-detection-object-id' class='form-control smartlab-object-select' name='wb_detection_object_id' data-targets='wb-detection-reagent:name'><option value='0'>请选择显色试剂</option>{% for row in smartlabAssayObjectCatalogArr.reagents|default([]) %}{% if row.reagent_scope in ['western_blot_detection'] %}<option value='{{ row.id }}' data-code='{{ row.code|e('html_attr') }}' data-name='{{ row.name|e('html_attr') }}' data-vendor='{{ row.vendor|e('html_attr') }}' data-model-hint='{{ row.model_hint|e('html_attr') }}' data-summary='{{ (row.code ~ " · " ~ row.name ~ (row.vendor ? " · " ~ row.vendor : "") ~ (row.model_hint ? " / " ~ row.model_hint : ""))|e('html_attr') }}' {{ smartlabAssayPackArr.payload.reagent.detection_object.id == row.id ? 'selected' }}>{{ row.code }} · {{ row.name }}</option>{% endif %}{% endfor %}</select><input id='wb-detection-reagent' type='hidden' name='wb_detection_reagent' value='{{ smartlabAssayPackArr.payload.reagent.detection_reagent }}' /><div class='smallgray mt-1' data-object-hint='wb-detection-object-id'>从对象字典选择显色试剂。</div></div>
+                </div>
+                <div class='row'>
+                  <div class='col-lg-3 mb-3'><label for='wb-target-band-kda'>目标条带(kDa)</label>{{ _self.smartlabDictionarySelect('wb-target-band-kda', 'wb_target_band_kda', smartlabAssayPackArr.payload.analysis.target_band_kda, smartlabAssayPresetCatalogArr.western_blot.target_band_kda, '请选择范围') }}</div>
+                  <div class='col-lg-3 mb-3'><label for='wb-reference-control'>内参</label>{{ _self.smartlabDictionarySelect('wb-reference-control', 'wb_reference_control', smartlabAssayPackArr.payload.analysis.reference_control, smartlabAssayPresetCatalogArr.western_blot.reference_controls, '请选择内参') }}</div>
+                </div>
+                </div>
+                {% if smartlabAssayPackArr.pack_key == 'western_blot' %}
+                  <div id='smartlab-wb-result-settings' class='row' data-smartlab-step-panel='results'>
+                    <div class='col-lg-3 mb-3'><label for='wb-normalization-method'>归一化方法</label>{{ _self.smartlabDictionarySelect('wb-normalization-method', 'wb_normalization_method', smartlabAssayPackArr.payload.analysis.normalization_method, smartlabAssayPresetCatalogArr.western_blot.normalization_methods, '请选择方法') }}</div>
+                    <div class='col-lg-5 mb-3'><label for='wb-conclusion'>结论</label>{{ _self.smartlabDictionarySelect('wb-conclusion', 'wb_conclusion', smartlabAssayPackArr.payload.analysis.conclusion, smartlabAssayPresetCatalogArr.western_blot.conclusions, '请选择结论') }}</div>
+                  </div>
+                  <div id='smartlab-wb-result-table' class='mt-2 mb-3' data-smartlab-step-panel='results'>
+                    <div class='smallgray text-uppercase mb-2'>结果回填确认</div>
+                    <div class='table-responsive'>
+                      <table class='table table-sm table-bordered bg-white'>
+                        <thead>
+                          <tr>
+                            <th>Sample ID</th>
+                            <th>Target Signal</th>
+                            <th>Reference Signal</th>
+                            <th>Normalized</th>
+                            <th>Trend</th>
+                            <th>Note</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for row in smartlabAssayPackArr.payload.results %}
+                            <tr>
+                              <td>{{ _self.smartlabSampleSelect('wb-result-sample-' ~ loop.index, 'wb_result_sample_label[]', row.label, smartlabSamplesArr, '请选择样本', 'form-control form-control-sm') }}</td>
+                              <td><input class='form-control form-control-sm' name='wb_result_target_signal[]' value='{{ row.target_signal }}' /></td>
+                              <td><input class='form-control form-control-sm' name='wb_result_reference_signal[]' value='{{ row.reference_signal }}' /></td>
+                              <td><input class='form-control form-control-sm' name='wb_result_normalized_signal[]' value='{{ row.normalized_signal }}' /></td>
+                              <td>{{ _self.smartlabDictionarySelect('wb-result-trend-' ~ loop.index, 'wb_result_trend[]', row.trend, smartlabAssayPresetCatalogArr.western_blot.trends, '请选择趋势', 'form-control form-control-sm') }}</td>
+                              <td>{{ _self.smartlabDictionarySelect('wb-result-note-' ~ loop.index, 'wb_result_note[]', row.note, smartlabAssayPresetCatalogArr.western_blot.result_notes, '请选择备注', 'form-control form-control-sm') }}</td>
+                            </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                {% endif %}
+                <div class='mb-3' id='smartlab-wb-image-analysis' data-smartlab-step-panel='recognize'>
+                    <input id='wb-raw-image-ref' type='hidden' name='wb_raw_image_ref' value='{{ smartlabAssayPackArr.payload.image.raw_image_ref }}' />
+                    <input id='wb-cropped-image-ref' type='hidden' name='wb_cropped_image_ref' value='{{ smartlabAssayPackArr.payload.image.cropped_image_ref }}' />
+                    <input id='wb-annotation-note' type='hidden' name='wb_annotation_note' value='{{ smartlabAssayPackArr.payload.image.annotation_note }}' />
+                    <input id='wb-transfer-uniform' type='hidden' name='wb_transfer_uniform' value='{{ smartlabAssayPackArr.payload.qc.transfer_uniform ?: 'yes' }}' />
+                    <input id='wb-background-clean' type='hidden' name='wb_background_clean' value='{{ smartlabAssayPackArr.payload.qc.background_clean ?: 'yes' }}' />
+                    <input id='wb-replicate-consistent' type='hidden' name='wb_replicate_consistent' value='{{ smartlabAssayPackArr.payload.qc.replicate_consistent ?: 'yes' }}' />
+                    <input id='wb-qc-notes' type='hidden' name='wb_qc_notes' value='{{ smartlabAssayPackArr.payload.qc.notes }}' />
+                    <div class='d-flex justify-content-between align-items-start flex-wrap mb-2'>
+                      <div>
+                        <div class='smallgray text-uppercase mb-1'>WB image recognition</div>
+                        <h4 class='mb-1'>WB 智能图像识别</h4>
+                        <div class='smallgray'>导入 blot 图后，在图上拖框选择 WB 条带区域；可用“自动建议”预填 lane/band，再拖动蓝色 lane 框边界或红/绿条带修正。</div>
+                      </div>
+                    </div>
+                    <div class='row'>
+                      <div class='col-lg-4 mb-3'>
+                        <label for='wb-analysis-upload-select'>已上传原始数据</label>
+                        <select id='wb-analysis-upload-select' class='form-control mb-2'>
+                          <option value=''>选择已上传 WB 图片</option>
+                          {% for upload in Entity.entityData.uploads|default([]) %}
+                            {% if upload.real_name matches '/\.(bmp|jpg|jpeg|png|webp)$/i' %}
+                              <option value='{{ upload.id }}' data-upload-name='{{ upload.real_name|e('html_attr') }}'>{{ upload.real_name }}</option>
+                            {% endif %}
+                          {% endfor %}
+                        </select>
+                        <button id='wb-analysis-import-upload' class='btn btn-outline-primary btn-sm mb-2 mr-2' type='button'>载入原始数据</button>
+                        <label class='btn btn-outline-secondary btn-sm mb-2' for='wb-analysis-file'>从本地临时导入</label>
+                        <input id='wb-analysis-file' class='d-none' type='file' accept='.png,.jpg,.jpeg,.webp,.bmp' />
+                        <div id='smartlab-wb-analysis-status' class='smallgray'>上传原始数据后会自动载入第一张 WB 图片；也可从这里切换已上传附件。</div>
+                      </div>
+                      <div class='col-lg-2 mb-3'>
+                        <label for='wb-analysis-lanes'>Lane 数</label>
+                        <input id='wb-analysis-lanes' class='form-control' type='number' min='1' max='24' value='4' />
+                      </div>
+                      <div class='col-lg-2 mb-3'>
+                        <label for='wb-analysis-target-band'>Target band %</label>
+                        <input id='wb-analysis-target-band' class='form-control' type='number' min='5' max='95' value='35' />
+                      </div>
+                      <div class='col-lg-2 mb-3'>
+                        <label for='wb-analysis-reference-band'>Reference band %</label>
+                        <input id='wb-analysis-reference-band' class='form-control' type='number' min='5' max='95' value='75' />
+                      </div>
+                      <div class='col-lg-2 mb-3'>
+                        <label for='wb-analysis-band-window'>Band window %</label>
+                        <input id='wb-analysis-band-window' class='form-control' type='number' min='2' max='25' value='8' />
+                      </div>
+                      <div class='col-lg-3 mb-3'>
+                        <label for='wb-analysis-band-mode'>当前图用途</label>
+                        <select id='wb-analysis-band-mode' class='form-control'>
+                          <option value='pair-target'>目标蛋白图 · 单 band</option>
+                          <option value='pair-reference'>GAPDH/内参图 · 单 band</option>
+                          <option value='single-combined'>单图合并 target+内参 · 双 band</option>
+                        </select>
+                      </div>
+                      <div class='col-lg-2 mb-3'>
+                        <label for='wb-analysis-control-lane'>Control lane</label>
+                        <select id='wb-analysis-control-lane' class='form-control'>
+                          <option value='0'>Lane 1</option>
+                        </select>
+                      </div>
+                      <div class='col-lg-1 mb-3 d-flex align-items-end'>
+                        <div class='form-check mb-2'>
+                          <input id='wb-analysis-invert' class='form-check-input' type='checkbox' checked />
+                          <label class='form-check-label' for='wb-analysis-invert'>反相</label>
+                        </div>
+                      </div>
+                    </div>
+                    <div class='row'>
+                      <div class='col-lg-8 mb-3'>
+                        <div id='smartlab-wb-preview-empty' class='smallgray mb-2'>导入图片后拖框选择 WB 条带区域，再点击分析。</div>
+                        <canvas id='smartlab-wb-preview' class='w-100 border rounded bg-white d-none'></canvas>
+                        <div id='smartlab-wb-preview-meta' class='smallgray mt-2'></div>
+                      </div>
+                      <div class='col-lg-4 mb-3'>
+                        <div id='smartlab-wb-profile-empty' class='smallgray mb-2'>这里会显示按列聚合的 lane 灰度 profile，方便判断 lane 分割是否合理。</div>
+                        <canvas id='smartlab-wb-profile' class='w-100 border rounded bg-white d-none'></canvas>
+                      </div>
+                    </div>
+                    <div class='d-flex align-items-center flex-wrap mb-2'>
+                      <button id='wb-analysis-run' class='btn btn-primary btn-sm mr-2' type='button'>分析选区</button>
+                      <button id='wb-analysis-auto-detect' class='btn btn-outline-primary btn-sm mr-2' type='button'>自动建议</button>
+                      <button id='wb-analysis-reset-roi' class='btn btn-outline-secondary btn-sm mr-2' type='button'>重置选区</button>
+                      <button id='wb-analysis-export' class='btn btn-outline-secondary btn-sm mr-2' type='button'>导出标注图</button>
+                      <span class='smallgray'>拖动预览图选择整块 WB 区域；普通多图配对每张图只保留一个 band 框，只有单图合并模式显示 target/内参双框。</span>
+                    </div>
+                    <div id='smartlab-wb-pair-analysis' class='border rounded bg-white p-3 mt-3'>
+                      <div class='d-flex justify-content-between align-items-start flex-wrap mb-2'>
+                        <div>
+                          <div class='smallgray text-uppercase mb-1'>Multi-image WB pairing</div>
+                          <h5 class='mb-1'>多图配对定量</h5>
+                          <div class='smallgray'>用于膜切开后分别成像的普通 WB：目标图和内参图各自只定量一个 band，再按 lane 配对计算 Target / Reference。</div>
+                        </div>
+                        <button id='wb-pair-run' class='btn btn-primary btn-sm mt-2 mt-lg-0' type='button'>多图配对回填</button>
+                      </div>
+                      <div class='row'>
+                        <div class='col-lg-3 mb-2'>
+                          <label for='wb-pair-target-upload'>目标蛋白图</label>
+                          <select id='wb-pair-target-upload' class='form-control form-control-sm'>
+                            <option value=''>选择目标蛋白原图</option>
+                            {% for upload in Entity.entityData.uploads|default([]) %}
+                              {% if upload.real_name matches '/\.(bmp|jpg|jpeg|png|webp)$/i' %}
+                                <option value='{{ upload.id }}' data-upload-name='{{ upload.real_name|e('html_attr') }}'>{{ upload.real_name }}</option>
+                              {% endif %}
+                            {% endfor %}
+                          </select>
+                        </div>
+                        <div class='col-lg-2 mb-2'>
+                          <label for='wb-pair-target-name'>目标名称</label>
+                          <input id='wb-pair-target-name' class='form-control form-control-sm' placeholder='如 GAD67' />
+                        </div>
+                        <div class='col-lg-3 mb-2'>
+                          <label for='wb-pair-reference-upload'>GAPDH/内参图</label>
+                          <select id='wb-pair-reference-upload' class='form-control form-control-sm'>
+                            <option value=''>选择内参原图</option>
+                            {% for upload in Entity.entityData.uploads|default([]) %}
+                              {% if upload.real_name matches '/\.(bmp|jpg|jpeg|png|webp)$/i' %}
+                                <option value='{{ upload.id }}' data-upload-name='{{ upload.real_name|e('html_attr') }}'>{{ upload.real_name }}</option>
+                              {% endif %}
+                            {% endfor %}
+                          </select>
+                        </div>
+                        <div class='col-lg-2 mb-2 d-flex align-items-end'>
+                          <button id='wb-pair-add-target' class='btn btn-outline-primary btn-sm' type='button'>添加目标图</button>
+                        </div>
+                        <div class='col-lg-2 mb-2 d-flex align-items-end'>
+                          <div id='smartlab-wb-pair-status' class='smallgray'>预览目标图时只显示目标 band；预览内参图时只显示内参 band。</div>
+                        </div>
+                      </div>
+                      <div class='table-responsive'>
+                        <table class='table table-sm table-bordered mb-0'>
+                          <thead><tr><th>目标蛋白</th><th>目标图</th><th>内参图</th><th>操作</th></tr></thead>
+                          <tbody id='wb-pair-target-list'>
+                            <tr><td colspan='4' class='smallgray'>还没有添加目标蛋白图。</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                </div>
+              {% elseif smartlabAssayPackArr.pack_key == 'if' %}
+                <div class='row'>
+                  <div class='col-lg-4 mb-3'><label for='if-sample-origin'>细胞/组织</label>{{ _self.smartlabDictionarySelect('if-sample-origin', 'if_sample_origin', smartlabAssayPackArr.payload.sample.sample_origin, smartlabAssayPresetCatalogArr.if.sample_origins, '请选择样本类型') }}</div>
+                  <div class='col-lg-2 mb-3'><label for='if-seeding-density'>铺板密度</label>{{ _self.smartlabDictionarySelect('if-seeding-density', 'if_seeding_density', smartlabAssayPackArr.payload.sample.seeding_density, smartlabAssayPresetCatalogArr.if.seeding_densities, '请选择密度') }}</div>
+                  <div class='col-lg-3 mb-3'><label for='if-treatment-condition'>处理条件</label>{{ _self.smartlabDictionarySelect('if-treatment-condition', 'if_treatment_condition', smartlabAssayPackArr.payload.sample.treatment_condition, smartlabAssayPresetCatalogArr.if.treatment_conditions, '请选择处理') }}</div>
+                  <div class='col-lg-3 mb-3'><label for='if-fixation-method'>固定方式</label>{{ _self.smartlabDictionarySelect('if-fixation-method', 'if_fixation_method', smartlabAssayPackArr.payload.sample.fixation_method, smartlabAssayPresetCatalogArr.if.fixation_methods, '请选择固定方式') }}</div>
+                </div>
+                <div class='row'>
+                  <div class='col-lg-2 mb-3'><label for='if-blocking-object-id'>封闭液</label><select id='if-blocking-object-id' class='form-control smartlab-object-select' name='if_blocking_object_id' data-targets='if-blocking-buffer:name'><option value='0'>请选择库存对象</option>{% for row in smartlabAssayObjectCatalogArr.reagents|default([]) %}{% if row.reagent_scope in ['if_blocking'] %}<option value='{{ row.id }}' data-code='{{ row.code|e('html_attr') }}' data-name='{{ row.name|e('html_attr') }}' data-vendor='{{ row.vendor|e('html_attr') }}' data-model-hint='{{ row.model_hint|e('html_attr') }}' data-summary='{{ (row.code ~ " · " ~ row.name ~ (row.vendor ? " · " ~ row.vendor : "") ~ (row.model_hint ? " / " ~ row.model_hint : ""))|e('html_attr') }}' {{ smartlabAssayPackArr.payload.staining.blocking_object.id == row.id ? 'selected' }}>{{ row.code }} · {{ row.name }}</option>{% endif %}{% endfor %}</select><input id='if-blocking-buffer' type='hidden' name='if_blocking_buffer' value='{{ smartlabAssayPackArr.payload.staining.blocking_buffer }}' /><div class='smallgray mt-1' data-object-hint='if-blocking-object-id'>从库存对象选择封闭液后自动回填。</div></div>
+                  <div class='col-lg-2 mb-3'><label for='if-permeabilization'>透膜条件</label>{{ _self.smartlabDictionarySelect('if-permeabilization', 'if_permeabilization', smartlabAssayPackArr.payload.staining.permeabilization, smartlabAssayPresetCatalogArr.if.permeabilizations, '请选择透膜') }}</div>
+                  <div class='col-lg-3 mb-3'><label for='if-primary-object-id'>一抗</label><select id='if-primary-object-id' class='form-control smartlab-object-select' name='if_primary_object_id' data-targets='if-primary-antibody:name'><option value='0'>请选择库存对象</option>{% for row in smartlabAssayObjectCatalogArr.antibodies|default([]) %}{% if row.application_scope in ['if'] and row.antibody_role|default('primary') != 'secondary' %}<option value='{{ row.id }}' data-code='{{ row.code|e('html_attr') }}' data-name='{{ row.name|e('html_attr') }}' data-target-name='{{ row.target_name|e('html_attr') }}' data-host-species='{{ row.host_species|e('html_attr') }}' data-dilution-hint='{{ row.dilution_hint|e('html_attr') }}' data-summary='{{ (row.code ~ " · " ~ row.name ~ (row.target_name ? " · " ~ row.target_name : "") ~ (row.host_species ? " · " ~ row.host_species : "") ~ (row.dilution_hint ? " · " ~ row.dilution_hint : ""))|e('html_attr') }}' {{ smartlabAssayPackArr.payload.staining.primary_object.id == row.id ? 'selected' }}>{{ row.code }} · {{ row.name }}{% if row.target_name %} · {{ row.target_name }}{% endif %}{% if row.dilution_hint %} · {{ row.dilution_hint }}{% endif %}</option>{% endif %}{% endfor %}</select><input id='if-primary-antibody' type='hidden' name='if_primary_antibody' value='{{ smartlabAssayPackArr.payload.staining.primary_antibody }}' /><div class='smallgray mt-1' data-object-hint='if-primary-object-id'>选择抗体后自动回填名称；靶标和稀释比例显示在下拉项中。</div></div>
+                  <div class='col-lg-3 mb-3'><label for='if-secondary-object-id'>二抗</label><select id='if-secondary-object-id' class='form-control smartlab-object-select' name='if_secondary_object_id' data-targets='if-secondary-antibody:name'><option value='0'>请选择库存对象</option>{% for row in smartlabAssayObjectCatalogArr.antibodies|default([]) %}{% if row.application_scope in ['if'] and row.antibody_role|default('primary') != 'primary' %}<option value='{{ row.id }}' data-code='{{ row.code|e('html_attr') }}' data-name='{{ row.name|e('html_attr') }}' data-target-name='{{ row.target_name|e('html_attr') }}' data-host-species='{{ row.host_species|e('html_attr') }}' data-dilution-hint='{{ row.dilution_hint|e('html_attr') }}' data-summary='{{ (row.code ~ " · " ~ row.name ~ (row.host_species ? " · " ~ row.host_species : "") ~ (row.dilution_hint ? " · " ~ row.dilution_hint : ""))|e('html_attr') }}' {{ smartlabAssayPackArr.payload.staining.secondary_object.id == row.id ? 'selected' }}>{{ row.code }} · {{ row.name }}{% if row.dilution_hint %} · {{ row.dilution_hint }}{% endif %}</option>{% endif %}{% endfor %}</select><input id='if-secondary-antibody' type='hidden' name='if_secondary_antibody' value='{{ smartlabAssayPackArr.payload.staining.secondary_antibody }}' /><div class='smallgray mt-1' data-object-hint='if-secondary-object-id'>选择二抗后自动回填名称和库存关联。</div></div>
+                  <div class='col-lg-2 mb-3'><label for='if-dapi'>DAPI</label>{{ _self.smartlabDictionarySelect('if-dapi', 'if_dapi', smartlabAssayPackArr.payload.staining.dapi, smartlabAssayPresetCatalogArr.if.dapi, '请选择核染') }}</div>
+                </div>
+                <div class='row'>
+                  <div class='col-lg-3 mb-3'><label for='if-dark-incubation'>避光时间</label>{{ _self.smartlabDictionarySelect('if-dark-incubation', 'if_dark_incubation', smartlabAssayPackArr.payload.staining.dark_incubation, smartlabAssayPresetCatalogArr.if.dark_incubations, '请选择避光条件') }}</div>
+                  <div class='col-lg-3 mb-3'><label for='if-microscope-object-id'>显微镜</label><select id='if-microscope-object-id' class='form-control smartlab-object-select' name='if_microscope_object_id' data-targets='if-microscope:name'><option value='0'>请选择设备对象</option>{% for row in smartlabAssayObjectCatalogArr.reagents|default([]) %}{% if row.reagent_scope in ['if_microscope'] %}<option value='{{ row.id }}' data-code='{{ row.code|e('html_attr') }}' data-name='{{ row.name|e('html_attr') }}' data-vendor='{{ row.vendor|e('html_attr') }}' data-model-hint='{{ row.model_hint|e('html_attr') }}' data-summary='{{ (row.code ~ " · " ~ row.name ~ (row.vendor ? " · " ~ row.vendor : "") ~ (row.model_hint ? " / " ~ row.model_hint : ""))|e('html_attr') }}' {{ smartlabAssayPackArr.payload.imaging.microscope_object.id == row.id ? 'selected' }}>{{ row.code }} · {{ row.name }}{% if row.model_hint %} · {{ row.model_hint }}{% endif %}</option>{% endif %}{% endfor %}</select><input id='if-microscope' type='hidden' name='if_microscope' value='{{ smartlabAssayPackArr.payload.imaging.microscope }}' /><div class='smallgray mt-1' data-object-hint='if-microscope-object-id'>从设备/对象字典选择显微镜。</div></div>
+                  <div class='col-lg-2 mb-3'><label for='if-objective'>物镜倍数</label>{{ _self.smartlabDictionarySelect('if-objective', 'if_objective', smartlabAssayPackArr.payload.imaging.objective, smartlabAssayPresetCatalogArr.if.objectives, '请选择物镜') }}</div>
+                  <div class='col-lg-2 mb-3'><label for='if-excitation'>激发波长</label>{{ _self.smartlabDictionarySelect('if-excitation', 'if_excitation', smartlabAssayPackArr.payload.imaging.excitation, smartlabAssayPresetCatalogArr.if.excitations, '请选择通道') }}</div>
+                  <div class='col-lg-2 mb-3'><label for='if-exposure'>曝光参数</label>{{ _self.smartlabDictionarySelect('if-exposure', 'if_exposure', smartlabAssayPackArr.payload.imaging.exposure, smartlabAssayPresetCatalogArr.if.exposures, '请选择曝光') }}</div>
+                </div>
+                <div class='row'>
+                  <div class='col-lg-2 mb-3'><label for='if-batch'>拍摄批次</label>{{ _self.smartlabDictionarySelect('if-batch', 'if_batch', smartlabAssayPackArr.payload.imaging.batch, smartlabAssayPresetCatalogArr.if.batches, '请选择批次') }}</div>
+                </div>
+                {% if not smartlabIsStudentView and smartlabWorkflow.has_raw_data|default(false) %}
+                <div class='row'>
+                  <div class='col-lg-2 mb-3'><label for='if-field-count'>视野数</label>{{ _self.smartlabDictionarySelect('if-field-count', 'if_field_count', smartlabAssayPackArr.payload.analysis.field_count, smartlabAssayPresetCatalogArr.if.field_counts, '请选择视野数') }}</div>
+                  <div class='col-lg-2 mb-3'><label for='if-positive-ratio'>阳性比例</label>{{ _self.smartlabDictionarySelect('if-positive-ratio', 'if_positive_ratio', smartlabAssayPackArr.payload.analysis.positive_ratio, smartlabAssayPresetCatalogArr.if.positive_ratios, '请选择/自动回填') }}</div>
+                  <div class='col-lg-2 mb-3'><label for='if-mean-intensity'>平均荧光强度</label>{{ _self.smartlabDictionarySelect('if-mean-intensity', 'if_mean_intensity', smartlabAssayPackArr.payload.analysis.mean_intensity, smartlabAssayPresetCatalogArr.if.mean_intensities, '请选择/自动回填') }}</div>
+                  <div class='col-lg-2 mb-3'><label for='if-colocalization'>共定位系数</label>{{ _self.smartlabDictionarySelect('if-colocalization', 'if_colocalization', smartlabAssayPackArr.payload.analysis.colocalization, smartlabAssayPresetCatalogArr.if.colocalizations, '请选择/自动回填') }}</div>
+                  <div class='col-lg-2 mb-3'><label for='if-conclusion'>结论</label>{{ _self.smartlabDictionarySelect('if-conclusion', 'if_conclusion', smartlabAssayPackArr.payload.analysis.conclusion, smartlabAssayPresetCatalogArr.if.conclusions, '请选择结论') }}</div>
+                </div>
+                <div class='mt-2 mb-3'>
+                  <div class='smallgray text-uppercase mb-2'>结构化结果表</div>
+                  <div class='table-responsive'>
+                    <table class='table table-sm table-bordered bg-white'>
+                      <thead>
+                        <tr>
+                          <th>Field</th>
+                          <th>Cell Count</th>
+                          <th>Positive Ratio</th>
+                          <th>Mean Intensity</th>
+                          <th>Colocalization</th>
+                          <th>Note</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for row in smartlabAssayPackArr.payload.results %}
+                          <tr>
+                            <td>{{ _self.smartlabDictionarySelect('if-result-field-' ~ loop.index, 'if_result_field_label[]', row.label, smartlabAssayPresetCatalogArr.if.field_labels, '请选择视野', 'form-control form-control-sm') }}</td>
+                            <td>{{ _self.smartlabDictionarySelect('if-result-cell-' ~ loop.index, 'if_result_cell_count[]', row.cell_count, smartlabAssayPresetCatalogArr.if.cell_counts, '请选择/自动回填', 'form-control form-control-sm') }}</td>
+                            <td>{{ _self.smartlabDictionarySelect('if-result-positive-' ~ loop.index, 'if_result_positive_ratio[]', row.positive_ratio, smartlabAssayPresetCatalogArr.if.positive_ratios, '请选择/自动回填', 'form-control form-control-sm') }}</td>
+                            <td>{{ _self.smartlabDictionarySelect('if-result-intensity-' ~ loop.index, 'if_result_mean_intensity[]', row.mean_intensity, smartlabAssayPresetCatalogArr.if.mean_intensities, '请选择/自动回填', 'form-control form-control-sm') }}</td>
+                            <td>{{ _self.smartlabDictionarySelect('if-result-coloc-' ~ loop.index, 'if_result_colocalization[]', row.colocalization, smartlabAssayPresetCatalogArr.if.colocalizations, '请选择/自动回填', 'form-control form-control-sm') }}</td>
+                            <td>{{ _self.smartlabDictionarySelect('if-result-note-' ~ loop.index, 'if_result_note[]', row.note, smartlabAssayPresetCatalogArr.if.result_notes, '请选择备注', 'form-control form-control-sm') }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                  <div class='mb-3'>
+                    <div class='smallgray text-uppercase mb-2'>IF Image Analysis</div>
+                    <div class='smallgray mb-3'>本地图像算法服务：<span class='font-weight-bold' data-smartlab-imagej-status>checking...</span></div>
+                    <div class='row'>
+                      <div class='col-lg-3 mb-3'>
+                        <label class='btn btn-outline-secondary btn-sm mb-2' for='if-analysis-file'>导入 IF 图像</label>
+                        <input id='if-analysis-file' class='d-none' type='file' accept='.png,.jpg,.jpeg,.webp,.bmp' />
+                        <div id='smartlab-if-analysis-status' class='smallgray'>导入单张 IF 图像后，会生成可拖拽 ROI 框，并按所选 signal / nuclear channel 回填基础指标。</div>
+                      </div>
+                      <div class='col-lg-3 mb-3'>
+                        <label for='if-analysis-field-label'>Field label</label>
+                        <input id='if-analysis-field-label' class='form-control' value='Field 1' />
+                      </div>
+                      <div class='col-lg-3 mb-3'>
+                        <label for='if-analysis-threshold'>Signal threshold</label>
+                        <input id='if-analysis-threshold' class='form-control' type='number' min='1' max='255' value='160' />
+                      </div>
+                      <div class='col-lg-3 mb-3'>
+                        <label for='if-analysis-nuclear-threshold'>Nuclear threshold</label>
+                        <input id='if-analysis-nuclear-threshold' class='form-control' type='number' min='1' max='255' value='120' />
+                      </div>
+                    </div>
+                    <div class='row'>
+                      <div class='col-lg-3 mb-3'>
+                        <label for='if-analysis-signal-channel'>Signal channel</label>
+                        <select id='if-analysis-signal-channel' class='form-control'>
+                          <option value='green' selected>Green</option>
+                          <option value='red'>Red</option>
+                          <option value='blue'>Blue</option>
+                          <option value='rg_max'>Red / Green max</option>
+                          <option value='rgb_mean'>RGB mean</option>
+                        </select>
+                      </div>
+                      <div class='col-lg-3 mb-3'>
+                        <label for='if-analysis-nuclear-channel'>Nuclear channel</label>
+                        <select id='if-analysis-nuclear-channel' class='form-control'>
+                          <option value='blue' selected>Blue</option>
+                          <option value='green'>Green</option>
+                          <option value='red'>Red</option>
+                          <option value='rgb_mean'>RGB mean</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class='row'>
+                      <div class='col-lg-4 mb-3'>
+                        <label for='if-analysis-roi-select'>当前 ROI</label>
+                        <select id='if-analysis-roi-select' class='form-control'>
+                          <option value='0'>Field 1</option>
+                        </select>
+                      </div>
+                      <div class='col-lg-8 mb-3 d-flex align-items-end flex-wrap'>
+                        <button id='if-analysis-add-roi' class='btn btn-outline-primary btn-sm mr-2 mb-2' type='button'>新增 ROI</button>
+                        <button id='if-analysis-delete-roi' class='btn btn-outline-secondary btn-sm mr-2 mb-2' type='button'>删除当前 ROI</button>
+                        <div id='smartlab-if-roi-summary' class='smallgray mb-2'>当前 1 个 ROI。</div>
+                      </div>
+                    </div>
+                    <div class='row'>
+                      <div class='col-lg-8 mb-3'>
+                        <div id='smartlab-if-preview-empty' class='smallgray mb-2'>这里会显示 IF 掩膜预览，可直接拖动 ROI 框。</div>
+                        <canvas id='smartlab-if-preview' class='w-100 border rounded bg-white d-none'></canvas>
+                        <div id='smartlab-if-preview-meta' class='smallgray mt-2'></div>
+                      </div>
+                      <div class='col-lg-4 mb-3'>
+                        <div class='smallgray'>当前支持按 RGB 通道选择 signal / nuclear 来源；仍然是阈值驱动的 ROI 分析，不替代正式细胞分割或多通道共聚焦分析。</div>
+                        <div class='d-flex flex-wrap mt-3'>
+                          <button id='if-analysis-export' class='btn btn-outline-secondary btn-sm mr-2 mb-2' type='button'>导出标注图</button>
+                          <button id='if-analysis-apply-note' class='btn btn-outline-primary btn-sm mb-2' type='button'>写入图像标注</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class='row'>
+                    <div class='col-lg-4 mb-3'><label for='if-raw-image-ref'>原图附件</label>{{ _self.smartlabUploadSelect('if-raw-image-ref', 'if_raw_image_ref', smartlabAssayPackArr.payload.image.raw_image_ref, Entity.entityData.uploads, '请选择原图附件') }}</div>
+                    <div class='col-lg-4 mb-3'><label for='if-merged-image-ref'>Merge 图附件</label>{{ _self.smartlabUploadSelect('if-merged-image-ref', 'if_merged_image_ref', smartlabAssayPackArr.payload.image.merged_image_ref, Entity.entityData.uploads, '请选择 Merge 图附件') }}</div>
+                    <div class='col-lg-4 mb-3'><label for='if-annotation-note'>图像标注</label>{{ _self.smartlabDictionarySelect('if-annotation-note', 'if_annotation_note', smartlabAssayPackArr.payload.image.annotation_note, smartlabAssayPresetCatalogArr.if.image_notes, '请选择图像状态') }}</div>
+                  </div>
+                  <div class='row'>
+                    <div class='col-lg-3 mb-3'><label for='if-negative-control-ok'>阴性对照合格</label><select id='if-negative-control-ok' class='form-control' name='if_negative_control_ok'><option value='yes' {{ smartlabAssayPackArr.payload.qc.negative_control_ok == 'yes' ? 'selected' }}>是</option><option value='no' {{ smartlabAssayPackArr.payload.qc.negative_control_ok == 'no' ? 'selected' }}>否</option></select></div>
+                    <div class='col-lg-3 mb-3'><label for='if-background-ok'>背景可接受</label><select id='if-background-ok' class='form-control' name='if_background_ok'><option value='yes' {{ smartlabAssayPackArr.payload.qc.background_ok == 'yes' ? 'selected' }}>是</option><option value='no' {{ smartlabAssayPackArr.payload.qc.background_ok == 'no' ? 'selected' }}>否</option></select></div>
+                    <div class='col-lg-3 mb-3'><label for='if-exposure-consistent'>曝光一致</label><select id='if-exposure-consistent' class='form-control' name='if_exposure_consistent'><option value='yes' {{ smartlabAssayPackArr.payload.qc.exposure_consistent == 'yes' ? 'selected' }}>是</option><option value='no' {{ smartlabAssayPackArr.payload.qc.exposure_consistent == 'no' ? 'selected' }}>否</option></select></div>
+                    <div class='col-lg-3 mb-3'><label for='if-qc-notes'>质控备注</label>{{ _self.smartlabDictionarySelect('if-qc-notes', 'if_qc_notes', smartlabAssayPackArr.payload.qc.notes, smartlabAssayPresetCatalogArr.if.qc_notes, '请选择质控备注') }}</div>
+                  </div>
+                {% elseif not smartlabIsStudentView %}
+                  <div class='alert alert-info mt-3 mb-3 py-2'>IF 的图像分析、附件回填和质控会在上传原始数据后开放。</div>
+                {% endif %}
+              {% elseif smartlabAssayPackArr.pack_key == 'ihc' %}
+                <div class='row'>
+                  <div class='col-lg-3 mb-3'><label for='ihc-tissue-id'>组织编号</label>{{ _self.smartlabDictionarySelect('ihc-tissue-id', 'ihc_tissue_id', smartlabAssayPackArr.payload.sample.tissue_id, smartlabAssayPresetCatalogArr.ihc.tissue_ids, '请选择组织来源') }}</div>
+                  <div class='col-lg-3 mb-3'><label for='ihc-fixative-object-id'>固定液</label><select id='ihc-fixative-object-id' class='form-control smartlab-object-select' name='ihc_fixative_object_id' data-targets='ihc-fixative:name'><option value='0'>请选择库存对象</option>{% for row in smartlabAssayObjectCatalogArr.reagents|default([]) %}{% if row.reagent_scope in ['ihc_fixative'] %}<option value='{{ row.id }}' data-code='{{ row.code|e('html_attr') }}' data-name='{{ row.name|e('html_attr') }}' data-vendor='{{ row.vendor|e('html_attr') }}' data-model-hint='{{ row.model_hint|e('html_attr') }}' data-summary='{{ (row.code ~ " · " ~ row.name ~ (row.vendor ? " · " ~ row.vendor : "") ~ (row.model_hint ? " / " ~ row.model_hint : ""))|e('html_attr') }}' {{ smartlabAssayPackArr.payload.sample.fixative_object.id == row.id ? 'selected' }}>{{ row.code }} · {{ row.name }}</option>{% endif %}{% endfor %}</select><input id='ihc-fixative' type='hidden' name='ihc_fixative' value='{{ smartlabAssayPackArr.payload.sample.fixative }}' /><div class='smallgray mt-1' data-object-hint='ihc-fixative-object-id'>从库存对象选择固定液。</div></div>
+                  <div class='col-lg-3 mb-3'><label for='ihc-embedding-batch'>包埋批次</label>{{ _self.smartlabDictionarySelect('ihc-embedding-batch', 'ihc_embedding_batch', smartlabAssayPackArr.payload.sample.embedding_batch, smartlabAssayPresetCatalogArr.ihc.embedding_batches, '请选择包埋批次') }}</div>
+                  <div class='col-lg-3 mb-3'><label for='ihc-section-thickness'>切片厚度</label>{{ _self.smartlabDictionarySelect('ihc-section-thickness', 'ihc_section_thickness', smartlabAssayPackArr.payload.sample.section_thickness, smartlabAssayPresetCatalogArr.ihc.section_thicknesses, '请选择厚度') }}</div>
+                </div>
+                <div class='row'>
+                  <div class='col-lg-2 mb-3'><label for='ihc-antigen-retrieval-object-id'>抗原修复</label><select id='ihc-antigen-retrieval-object-id' class='form-control smartlab-object-select' name='ihc_antigen_retrieval_object_id' data-targets='ihc-antigen-retrieval:name'><option value='0'>请选择库存对象</option>{% for row in smartlabAssayObjectCatalogArr.reagents|default([]) %}{% if row.reagent_scope in ['ihc_antigen_retrieval'] %}<option value='{{ row.id }}' data-code='{{ row.code|e('html_attr') }}' data-name='{{ row.name|e('html_attr') }}' data-vendor='{{ row.vendor|e('html_attr') }}' data-model-hint='{{ row.model_hint|e('html_attr') }}' data-summary='{{ (row.code ~ " · " ~ row.name ~ (row.vendor ? " · " ~ row.vendor : "") ~ (row.model_hint ? " / " ~ row.model_hint : ""))|e('html_attr') }}' {{ smartlabAssayPackArr.payload.staining.antigen_retrieval_object.id == row.id ? 'selected' }}>{{ row.code }} · {{ row.name }}</option>{% endif %}{% endfor %}</select><input id='ihc-antigen-retrieval' type='hidden' name='ihc_antigen_retrieval' value='{{ smartlabAssayPackArr.payload.staining.antigen_retrieval }}' /><div class='smallgray mt-1' data-object-hint='ihc-antigen-retrieval-object-id'>选择后保存修复液/修复方案对象。</div></div>
+                  <div class='col-lg-2 mb-3'><label for='ihc-blocking'>封闭</label>{{ _self.smartlabDictionarySelect('ihc-blocking', 'ihc_blocking', smartlabAssayPackArr.payload.staining.blocking, smartlabAssayPresetCatalogArr.ihc.blocking_buffers, '请选择封闭') }}</div>
+                  <div class='col-lg-3 mb-3'><label for='ihc-primary-object-id'>一抗</label><select id='ihc-primary-object-id' class='form-control smartlab-object-select' name='ihc_primary_object_id' data-targets='ihc-primary-antibody:name'><option value='0'>请选择库存对象</option>{% for row in smartlabAssayObjectCatalogArr.antibodies|default([]) %}{% if row.application_scope in ['ihc'] and row.antibody_role|default('primary') != 'secondary' %}<option value='{{ row.id }}' data-code='{{ row.code|e('html_attr') }}' data-name='{{ row.name|e('html_attr') }}' data-target-name='{{ row.target_name|e('html_attr') }}' data-host-species='{{ row.host_species|e('html_attr') }}' data-dilution-hint='{{ row.dilution_hint|e('html_attr') }}' data-summary='{{ (row.code ~ " · " ~ row.name ~ (row.target_name ? " · " ~ row.target_name : "") ~ (row.host_species ? " · " ~ row.host_species : "") ~ (row.dilution_hint ? " · " ~ row.dilution_hint : ""))|e('html_attr') }}' {{ smartlabAssayPackArr.payload.staining.primary_object.id == row.id ? 'selected' }}>{{ row.code }} · {{ row.name }}{% if row.target_name %} · {{ row.target_name }}{% endif %}{% if row.dilution_hint %} · {{ row.dilution_hint }}{% endif %}</option>{% endif %}{% endfor %}</select><input id='ihc-primary-antibody' type='hidden' name='ihc_primary_antibody' value='{{ smartlabAssayPackArr.payload.staining.primary_antibody }}' /><div class='smallgray mt-1' data-object-hint='ihc-primary-object-id'>选择抗体后自动回填名称；靶标和稀释比例显示在下拉项中。</div></div>
+                  <div class='col-lg-3 mb-3'><label for='ihc-secondary-object-id'>二抗</label><select id='ihc-secondary-object-id' class='form-control smartlab-object-select' name='ihc_secondary_object_id' data-targets='ihc-secondary-antibody:name'><option value='0'>请选择库存对象</option>{% for row in smartlabAssayObjectCatalogArr.antibodies|default([]) %}{% if row.application_scope in ['ihc'] and row.antibody_role|default('primary') != 'primary' %}<option value='{{ row.id }}' data-code='{{ row.code|e('html_attr') }}' data-name='{{ row.name|e('html_attr') }}' data-target-name='{{ row.target_name|e('html_attr') }}' data-host-species='{{ row.host_species|e('html_attr') }}' data-dilution-hint='{{ row.dilution_hint|e('html_attr') }}' data-summary='{{ (row.code ~ " · " ~ row.name ~ (row.host_species ? " · " ~ row.host_species : "") ~ (row.dilution_hint ? " · " ~ row.dilution_hint : ""))|e('html_attr') }}' {{ smartlabAssayPackArr.payload.staining.secondary_object.id == row.id ? 'selected' }}>{{ row.code }} · {{ row.name }}{% if row.dilution_hint %} · {{ row.dilution_hint }}{% endif %}</option>{% endif %}{% endfor %}</select><input id='ihc-secondary-antibody' type='hidden' name='ihc_secondary_antibody' value='{{ smartlabAssayPackArr.payload.staining.secondary_antibody }}' /><div class='smallgray mt-1' data-object-hint='ihc-secondary-object-id'>选择二抗后自动回填名称和库存关联。</div></div>
+                  <div class='col-lg-2 mb-3'><label for='ihc-dab-time'>DAB 时间</label>{{ _self.smartlabDictionarySelect('ihc-dab-time', 'ihc_dab_time', smartlabAssayPackArr.payload.staining.dab_time, smartlabAssayPresetCatalogArr.ihc.dab_times, '请选择显色时间') }}</div>
+                </div>
+                <div class='row'>
+                  <div class='col-lg-3 mb-3'><label for='ihc-counterstain-object-id'>复染</label><select id='ihc-counterstain-object-id' class='form-control smartlab-object-select' name='ihc_counterstain_object_id' data-targets='ihc-counterstain:name'><option value='0'>请选择库存对象</option>{% for row in smartlabAssayObjectCatalogArr.reagents|default([]) %}{% if row.reagent_scope in ['ihc_counterstain'] %}<option value='{{ row.id }}' data-code='{{ row.code|e('html_attr') }}' data-name='{{ row.name|e('html_attr') }}' data-vendor='{{ row.vendor|e('html_attr') }}' data-model-hint='{{ row.model_hint|e('html_attr') }}' data-summary='{{ (row.code ~ " · " ~ row.name ~ (row.vendor ? " · " ~ row.vendor : "") ~ (row.model_hint ? " / " ~ row.model_hint : ""))|e('html_attr') }}' {{ smartlabAssayPackArr.payload.staining.counterstain_object.id == row.id ? 'selected' }}>{{ row.code }} · {{ row.name }}</option>{% endif %}{% endfor %}</select><input id='ihc-counterstain' type='hidden' name='ihc_counterstain' value='{{ smartlabAssayPackArr.payload.staining.counterstain }}' /><div class='smallgray mt-1' data-object-hint='ihc-counterstain-object-id'>从库存对象选择复染试剂。</div></div>
+                  {% if not smartlabIsStudentView and smartlabWorkflow.has_raw_data|default(false) %}
+                  <div class='col-lg-3 mb-3'><label for='ihc-localization'>定位描述</label>{{ _self.smartlabDictionarySelect('ihc-localization', 'ihc_localization', smartlabAssayPackArr.payload.analysis.localization, smartlabAssayPresetCatalogArr.ihc.localizations, '请选择定位') }}</div>
+                  <div class='col-lg-2 mb-3'><label for='ihc-positive-area'>阳性面积</label>{{ _self.smartlabDictionarySelect('ihc-positive-area', 'ihc_positive_area', smartlabAssayPackArr.payload.analysis.positive_area, smartlabAssayPresetCatalogArr.ihc.positive_areas, '请选择面积') }}</div>
+                  <div class='col-lg-2 mb-3'><label for='ihc-staining-intensity'>染色强度</label>{{ _self.smartlabDictionarySelect('ihc-staining-intensity', 'ihc_staining_intensity', smartlabAssayPackArr.payload.analysis.staining_intensity, smartlabAssayPresetCatalogArr.ihc.staining_intensities, '请选择强度') }}</div>
+                  <div class='col-lg-2 mb-3'><label for='ihc-h-score'>H-score</label>{{ _self.smartlabDictionarySelect('ihc-h-score', 'ihc_h_score', smartlabAssayPackArr.payload.analysis.h_score, smartlabAssayPresetCatalogArr.ihc.h_scores, '请选择区间') }}</div>
+                  {% endif %}
+                </div>
+                {% if not smartlabIsStudentView and smartlabWorkflow.has_raw_data|default(false) %}
+                <div class='row'>
+                  <div class='col-lg-4 mb-3'><label for='ihc-conclusion'>结论</label>{{ _self.smartlabDictionarySelect('ihc-conclusion', 'ihc_conclusion', smartlabAssayPackArr.payload.analysis.conclusion, smartlabAssayPresetCatalogArr.ihc.conclusions, '请选择结论') }}</div>
+                  <div class='col-lg-3 mb-3'><label for='ihc-low-magnification-ref'>低倍图附件</label>{{ _self.smartlabUploadSelect('ihc-low-magnification-ref', 'ihc_low_magnification_ref', smartlabAssayPackArr.payload.image.low_magnification_ref, Entity.entityData.uploads, '请选择低倍图附件') }}</div>
+                  <div class='col-lg-3 mb-3'><label for='ihc-high-magnification-ref'>高倍图附件</label>{{ _self.smartlabUploadSelect('ihc-high-magnification-ref', 'ihc_high_magnification_ref', smartlabAssayPackArr.payload.image.high_magnification_ref, Entity.entityData.uploads, '请选择高倍图附件') }}</div>
+                  <div class='col-lg-2 mb-3'><label for='ihc-zoomed-region-ref'>局部放大</label>{{ _self.smartlabUploadSelect('ihc-zoomed-region-ref', 'ihc_zoomed_region_ref', smartlabAssayPackArr.payload.image.zoomed_region_ref, Entity.entityData.uploads, '请选择局部图附件') }}</div>
+                </div>
+                <input id='ihc-analysis-images-json' type='hidden' name='ihc_analysis_images_json' value='{{ smartlabAssayPackArr.payload.image.analysis_images|json_encode|e('html_attr') }}' />
+                <div class='mt-2 mb-3'>
+                  <div class='smallgray text-uppercase mb-2'>结构化评分表</div>
+                  <div class='table-responsive'>
+                    <table class='table table-sm table-bordered bg-white'>
+                      <thead>
+                        <tr>
+                          <th>Image</th>
+                          <th>Positive Ratio</th>
+                          <th>Intensity</th>
+                          <th>H-score</th>
+                          <th>IRS</th>
+                          <th>Note</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for row in smartlabAssayPackArr.payload.results %}
+                          <tr>
+                            <td>{{ _self.smartlabDictionarySelect('ihc-result-region-' ~ loop.index, 'ihc_result_region_label[]', row.label, smartlabAssayPresetCatalogArr.ihc.region_labels, '请选择图像/区域', 'form-control form-control-sm') }}</td>
+                            <td>{{ _self.smartlabDictionarySelect('ihc-result-positive-' ~ loop.index, 'ihc_result_positive_ratio[]', row.positive_ratio, smartlabAssayPresetCatalogArr.ihc.positive_areas, '请选择/自动回填', 'form-control form-control-sm') }}</td>
+                            <td>{{ _self.smartlabDictionarySelect('ihc-result-intensity-' ~ loop.index, 'ihc_result_intensity_score[]', row.intensity_score, smartlabAssayPresetCatalogArr.ihc.staining_intensities, '请选择/自动回填', 'form-control form-control-sm') }}</td>
+                            <td>{{ _self.smartlabDictionarySelect('ihc-result-hscore-' ~ loop.index, 'ihc_result_h_score[]', row.h_score, smartlabAssayPresetCatalogArr.ihc.h_scores, '请选择/自动回填', 'form-control form-control-sm') }}</td>
+                            <td>{{ _self.smartlabDictionarySelect('ihc-result-irs-' ~ loop.index, 'ihc_result_irs_score[]', row.irs_score, smartlabAssayPresetCatalogArr.ihc.irs_scores, '请选择/自动回填', 'form-control form-control-sm') }}</td>
+                            <td>{{ _self.smartlabDictionarySelect('ihc-result-note-' ~ loop.index, 'ihc_result_note[]', row.note, smartlabAssayPresetCatalogArr.ihc.result_notes, '请选择备注', 'form-control form-control-sm') }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                  <div class='mb-3'>
+                    <div class='smallgray text-uppercase mb-2'>IHC Image Analysis</div>
+                    <div class='smallgray mb-3'>本地图像算法服务：<span class='font-weight-bold' data-smartlab-imagej-status>checking...</span></div>
+                    <div class='row'>
+                      <div class='col-lg-3 mb-3'>
+                        <label class='d-block'>添加/选择 IHC 图像</label>
+                        <label class='btn btn-outline-secondary btn-sm mb-2' for='ihc-analysis-file'>从本地上传</label>
+                        <input id='ihc-analysis-file' class='d-none' type='file' accept='.png,.jpg,.jpeg,.webp,.bmp' multiple />
+                        <div id='smartlab-ihc-analysis-status' class='smallgray'>导入 IHC 图像后，会生成可拖拽 ROI 框，并按 ROI 内 DAB/Hematoxylin 或 brown stain 强度估算阳性面积和 H-score。</div>
+                      </div>
+                      <div class='col-lg-5 mb-3'>
+                        <label for='ihc-analysis-upload-select'>从实验附件选择</label>
+                        <select id='ihc-analysis-upload-select' class='form-control'>
+                          <option value=''>选择已有附件</option>
+                          {% for upload in Entity.entityData.uploads|default([]) %}
+                            {% if upload.real_name matches '/\.(bmp|jpg|jpeg|png|gif|tif|tiff|webp|svg|heic)$/i' %}
+                              <option value='{{ upload.id }}' data-upload-name='{{ upload.real_name|e('html_attr') }}'>{{ upload.real_name }}</option>
+                            {% endif %}
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class='col-lg-2 mb-3 d-flex align-items-end'>
+                        <button id='ihc-analysis-import-upload' class='btn btn-outline-primary btn-sm mb-2' type='button'>导入附件图</button>
+                      </div>
+                      <div class='col-lg-4 mb-3'>
+                        <label for='ihc-analysis-region-label'>Region label</label>
+                        <input id='ihc-analysis-region-label' class='form-control' value='Whole region' />
+                      </div>
+                      <div class='col-lg-2 mb-3'>
+                        <label for='ihc-analysis-mode'>分析模式</label>
+                        <select id='ihc-analysis-mode' class='form-control'>
+                          <option value='deconv' selected>DAB / H</option>
+                          <option value='brown'>Brown heuristic</option>
+                        </select>
+                      </div>
+                      <div class='col-lg-3 mb-3'>
+                        <label for='ihc-analysis-threshold'>Brown threshold</label>
+                        <input id='ihc-analysis-threshold' class='form-control' type='number' min='1' max='255' value='32' />
+                      </div>
+                      <div class='col-lg-3 mb-3'>
+                        <label for='ihc-analysis-he-threshold'>Hematoxylin threshold</label>
+                        <input id='ihc-analysis-he-threshold' class='form-control' type='number' min='1' max='255' value='24' />
+                      </div>
+                    </div>
+                    <div class='row'>
+                      <div class='col-lg-4 mb-3'>
+                        <label for='ihc-analysis-roi-select'>当前 ROI</label>
+                        <select id='ihc-analysis-roi-select' class='form-control'>
+                          <option value='0'>Whole region</option>
+                        </select>
+                      </div>
+                      <div class='col-lg-8 mb-3 d-flex align-items-end flex-wrap'>
+                        <button id='ihc-analysis-add-roi' class='btn btn-outline-primary btn-sm mr-2 mb-2' type='button'>新增 ROI</button>
+                        <button id='ihc-analysis-delete-roi' class='btn btn-outline-secondary btn-sm mr-2 mb-2' type='button'>删除当前 ROI</button>
+                        <button id='ihc-analysis-apply-roi-template' class='btn btn-outline-primary btn-sm mr-2 mb-2' type='button'>将当前 ROI 应用到全部图像</button>
+                        <div id='smartlab-ihc-roi-summary' class='smallgray mb-2'>当前 1 个 ROI。</div>
+                      </div>
+                    </div>
+                    <div class='row'>
+                      <div class='col-lg-3 mb-3'>
+                        <label for='ihc-analysis-view-mode'>View mode</label>
+                        <select id='ihc-analysis-view-mode' class='form-control'>
+                          <option value='original' selected>Original</option>
+                          <option value='grayscale'>Grayscale</option>
+                          <option value='dab'>DAB map</option>
+                          <option value='hematoxylin'>Hematoxylin map</option>
+                        </select>
+                      </div>
+                      <div class='col-lg-3 mb-3'>
+                        <label for='ihc-analysis-brightness'>Brightness</label>
+                        <input id='ihc-analysis-brightness' class='form-control' type='range' min='-100' max='100' value='0' />
+                      </div>
+                      <div class='col-lg-3 mb-3'>
+                        <label for='ihc-analysis-contrast'>Contrast</label>
+                        <input id='ihc-analysis-contrast' class='form-control' type='range' min='20' max='300' value='100' />
+                      </div>
+                      <div class='col-lg-3 mb-3 d-flex align-items-end flex-wrap'>
+                        <div class='form-check mr-3 mb-2'>
+                          <input id='ihc-analysis-invert-view' class='form-check-input' type='checkbox' />
+                          <label class='form-check-label' for='ihc-analysis-invert-view'>Invert view</label>
+                        </div>
+                        <button id='ihc-analysis-reset-view' class='btn btn-outline-secondary btn-sm mb-2' type='button'>Reset view</button>
+                      </div>
+                    </div>
+                    <div class='row'>
+                      <div class='col-lg-4 mb-3'>
+                        <label for='ihc-analysis-image-select'>当前图像</label>
+                        <select id='ihc-analysis-image-select' class='form-control'>
+                          <option value='0'>Image 1</option>
+                        </select>
+                      </div>
+                      <div class='col-lg-4 mb-3'>
+                        <label for='ihc-analysis-compare-select'>对比图像</label>
+                        <select id='ihc-analysis-compare-select' class='form-control'>
+                          <option value=''>不对比</option>
+                        </select>
+                      </div>
+                      <div class='col-lg-4 mb-3 d-flex align-items-end'>
+                        <div id='smartlab-ihc-image-summary' class='smallgray'>当前 0 张图像。</div>
+                      </div>
+                    </div>
+                    <div class='row'>
+                      <div class='col-lg-8 mb-3'>
+                        <div class='row'>
+                          <div class='col-md-6 mb-3'>
+                            <div id='smartlab-ihc-original-preview-empty' class='smallgray mb-2'>这里会显示 IHC 原图预览。</div>
+                            <canvas id='smartlab-ihc-original-preview' class='w-100 border rounded bg-white d-none'></canvas>
+                            <div id='smartlab-ihc-original-preview-meta' class='smallgray mt-2'></div>
+                          </div>
+                          <div class='col-md-6 mb-3'>
+                            <div id='smartlab-ihc-preview-empty' class='smallgray mb-2'>这里会显示 IHC 阳性区域覆盖层，可直接拖动 ROI 框。</div>
+                            <canvas id='smartlab-ihc-preview' class='w-100 border rounded bg-white d-none'></canvas>
+                            <div id='smartlab-ihc-preview-meta' class='smallgray mt-2'></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class='col-lg-4 mb-3'>
+                        <div class='smallgray'>当前支持两种模式：快速 brown stain 估算，以及 DAB / Hematoxylin 分离式初版。</div>
+                        <div class='mt-3 mb-3'>
+                          <div id='smartlab-ihc-compare-preview-empty' class='smallgray mb-2'>选择对比图像后，这里会显示对比预览。</div>
+                          <canvas id='smartlab-ihc-compare-preview' class='w-100 border rounded bg-white d-none'></canvas>
+                          <div id='smartlab-ihc-compare-preview-meta' class='smallgray mt-2'></div>
+                        </div>
+                        <div class='d-flex flex-wrap mt-3'>
+                          <button id='ihc-analysis-run-imagej' class='btn btn-primary btn-sm mr-2 mb-2' type='button'>运行本地图像算法</button>
+                          <button id='ihc-analysis-export' class='btn btn-outline-secondary btn-sm mr-2 mb-2' type='button'>导出标注图</button>
+                          <button id='ihc-analysis-apply-note' class='btn btn-outline-primary btn-sm mb-2' type='button'>写入图像标注</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class='row'>
+                    <div class='col-lg-3 mb-3'><label for='ihc-background-ok'>背景可接受</label><select id='ihc-background-ok' class='form-control' name='ihc_background_ok'><option value='yes' {{ smartlabAssayPackArr.payload.qc.background_ok == 'yes' ? 'selected' }}>是</option><option value='no' {{ smartlabAssayPackArr.payload.qc.background_ok == 'no' ? 'selected' }}>否</option></select></div>
+                    <div class='col-lg-3 mb-3'><label for='ihc-positive-control-ok'>阳性对照合格</label><select id='ihc-positive-control-ok' class='form-control' name='ihc_positive_control_ok'><option value='yes' {{ smartlabAssayPackArr.payload.qc.positive_control_ok == 'yes' ? 'selected' }}>是</option><option value='no' {{ smartlabAssayPackArr.payload.qc.positive_control_ok == 'no' ? 'selected' }}>否</option></select></div>
+                    <div class='col-lg-3 mb-3'><label for='ihc-scoring-complete'>评分完整</label><select id='ihc-scoring-complete' class='form-control' name='ihc_scoring_complete'><option value='yes' {{ smartlabAssayPackArr.payload.qc.scoring_complete == 'yes' ? 'selected' }}>是</option><option value='no' {{ smartlabAssayPackArr.payload.qc.scoring_complete == 'no' ? 'selected' }}>否</option></select></div>
+                    <div class='col-lg-3 mb-3'><label for='ihc-qc-notes'>质控备注</label>{{ _self.smartlabDictionarySelect('ihc-qc-notes', 'ihc_qc_notes', smartlabAssayPackArr.payload.qc.notes, smartlabAssayPresetCatalogArr.ihc.qc_notes, '请选择质控备注') }}</div>
+                  </div>
+                {% elseif not smartlabIsStudentView %}
+                  <div class='alert alert-info mt-3 mb-3 py-2'>IHC 的图像分析、附件回填和质控会在上传原始数据后开放。</div>
+                {% endif %}
+              {% elseif smartlabAssayPackArr.pack_key == 'elisa' %}
+                <div class='row'>
+                  <div class='col-lg-3 mb-3'><label for='elisa-sample-origin'>样本来源</label>{{ _self.smartlabDictionarySelect('elisa-sample-origin', 'elisa_sample_origin', smartlabAssayPackArr.payload.sample.sample_origin, smartlabAssayPresetCatalogArr.elisa.sample_origins, '请选择样本来源') }}</div>
+                  <div class='col-lg-3 mb-3'><label for='elisa-sample-type'>样本类型</label>{{ _self.smartlabDictionarySelect('elisa-sample-type', 'elisa_sample_type', smartlabAssayPackArr.payload.sample.sample_type, smartlabAssayPresetCatalogArr.elisa.sample_types, '请选择样本类型') }}</div>
+                  <div class='col-lg-3 mb-3'><label for='elisa-dilution-factor'>稀释倍数</label>{{ _self.smartlabDictionarySelect('elisa-dilution-factor', 'elisa_dilution_factor', smartlabAssayPackArr.payload.sample.dilution_factor, smartlabAssayPresetCatalogArr.elisa.dilution_factors, '请选择稀释倍数') }}</div>
+                  <div class='col-lg-3 mb-3'><label for='elisa-batch-id'>板次/批次</label>{{ _self.smartlabDictionarySelect('elisa-batch-id', 'elisa_batch_id', smartlabAssayPackArr.payload.sample.batch_id, smartlabAssayPresetCatalogArr.elisa.batch_ids, '请选择板次') }}</div>
+                </div>
+                <div class='row'>
+                  <div class='col-lg-3 mb-3'><label for='elisa-target-name'>检测指标</label>{{ _self.smartlabDictionarySelect('elisa-target-name', 'elisa_target_name', smartlabAssayPackArr.payload.reagent.target_name, smartlabAssayPresetCatalogArr.elisa.targets, '请选择检测指标') }}</div>
+                  <div class='col-lg-3 mb-3'><label for='elisa-kit-object-id'>试剂盒</label><select id='elisa-kit-object-id' class='form-control smartlab-object-select' name='elisa_kit_object_id' data-targets='elisa-kit-name:name,elisa-target-name:modelHint'><option value='0'>请选择库存对象</option>{% for row in smartlabAssayObjectCatalogArr.reagents|default([]) %}{% if row.reagent_scope in ['elisa_kit'] %}<option value='{{ row.id }}' data-code='{{ row.code|e('html_attr') }}' data-name='{{ row.name|e('html_attr') }}' data-vendor='{{ row.vendor|e('html_attr') }}' data-model-hint='{{ row.model_hint|e('html_attr') }}' data-summary='{{ (row.code ~ " · " ~ row.name ~ (row.vendor ? " · " ~ row.vendor : "") ~ (row.model_hint ? " / " ~ row.model_hint : ""))|e('html_attr') }}' {{ smartlabAssayPackArr.payload.reagent.kit_object.id == row.id ? 'selected' }}>{{ row.code }} · {{ row.name }}{% if row.model_hint %} · {{ row.model_hint }}{% endif %}</option>{% endif %}{% endfor %}</select><input id='elisa-kit-name' type='hidden' name='elisa_kit_name' value='{{ smartlabAssayPackArr.payload.reagent.kit_name }}' /><div class='smallgray mt-1' data-object-hint='elisa-kit-object-id'>选择试剂盒后自动回填名称；型号/检测指标显示在下拉项中。</div></div>
+                </div>
+                <div class='row'>
+                  <div class='col-lg-3 mb-3'><label for='elisa-capture-object-id'>包被抗体</label><select id='elisa-capture-object-id' class='form-control smartlab-object-select' name='elisa_capture_object_id' data-targets='elisa-capture-antibody:name'><option value='0'>请选择库存对象</option>{% for row in smartlabAssayObjectCatalogArr.antibodies|default([]) %}{% if row.application_scope in ['elisa'] %}<option value='{{ row.id }}' data-code='{{ row.code|e('html_attr') }}' data-name='{{ row.name|e('html_attr') }}' data-target-name='{{ row.target_name|e('html_attr') }}' data-host-species='{{ row.host_species|e('html_attr') }}' data-dilution-hint='{{ row.dilution_hint|e('html_attr') }}' data-summary='{{ (row.code ~ " · " ~ row.name ~ (row.target_name ? " · " ~ row.target_name : "") ~ (row.host_species ? " · " ~ row.host_species : "") ~ (row.dilution_hint ? " · " ~ row.dilution_hint : ""))|e('html_attr') }}' {{ smartlabAssayPackArr.payload.reagent.capture_object.id == row.id ? 'selected' }}>{{ row.code }} · {{ row.name }}{% if row.target_name %} · {{ row.target_name }}{% endif %}{% if row.dilution_hint %} · {{ row.dilution_hint }}{% endif %}</option>{% endif %}{% endfor %}</select><input id='elisa-capture-antibody' type='hidden' name='elisa_capture_antibody' value='{{ smartlabAssayPackArr.payload.reagent.capture_antibody }}' /><div class='smallgray mt-1' data-object-hint='elisa-capture-object-id'>选择包被抗体后自动保存对象关联。</div></div>
+                  <div class='col-lg-3 mb-3'><label for='elisa-detection-object-id'>检测抗体</label><select id='elisa-detection-object-id' class='form-control smartlab-object-select' name='elisa_detection_object_id' data-targets='elisa-detection-antibody:name'><option value='0'>请选择库存对象</option>{% for row in smartlabAssayObjectCatalogArr.antibodies|default([]) %}{% if row.application_scope in ['elisa'] %}<option value='{{ row.id }}' data-code='{{ row.code|e('html_attr') }}' data-name='{{ row.name|e('html_attr') }}' data-target-name='{{ row.target_name|e('html_attr') }}' data-host-species='{{ row.host_species|e('html_attr') }}' data-dilution-hint='{{ row.dilution_hint|e('html_attr') }}' data-summary='{{ (row.code ~ " · " ~ row.name ~ (row.target_name ? " · " ~ row.target_name : "") ~ (row.host_species ? " · " ~ row.host_species : "") ~ (row.dilution_hint ? " · " ~ row.dilution_hint : ""))|e('html_attr') }}' {{ smartlabAssayPackArr.payload.reagent.detection_object.id == row.id ? 'selected' }}>{{ row.code }} · {{ row.name }}{% if row.target_name %} · {{ row.target_name }}{% endif %}{% if row.dilution_hint %} · {{ row.dilution_hint }}{% endif %}</option>{% endif %}{% endfor %}</select><input id='elisa-detection-antibody' type='hidden' name='elisa_detection_antibody' value='{{ smartlabAssayPackArr.payload.reagent.detection_antibody }}' /><div class='smallgray mt-1' data-object-hint='elisa-detection-object-id'>选择检测抗体后自动保存对象关联。</div></div>
+                  <div class='col-lg-3 mb-3'><label for='elisa-substrate-object-id'>底物</label><select id='elisa-substrate-object-id' class='form-control smartlab-object-select' name='elisa_substrate_object_id' data-targets='elisa-substrate-name:name'><option value='0'>请选择库存对象</option>{% for row in smartlabAssayObjectCatalogArr.reagents|default([]) %}{% if row.reagent_scope in ['elisa_substrate'] %}<option value='{{ row.id }}' data-code='{{ row.code|e('html_attr') }}' data-name='{{ row.name|e('html_attr') }}' data-vendor='{{ row.vendor|e('html_attr') }}' data-model-hint='{{ row.model_hint|e('html_attr') }}' data-summary='{{ (row.code ~ " · " ~ row.name ~ (row.vendor ? " · " ~ row.vendor : "") ~ (row.model_hint ? " / " ~ row.model_hint : ""))|e('html_attr') }}' {{ smartlabAssayPackArr.payload.reagent.substrate_object.id == row.id ? 'selected' }}>{{ row.code }} · {{ row.name }}</option>{% endif %}{% endfor %}</select><input id='elisa-substrate-name' type='hidden' name='elisa_substrate_name' value='{{ smartlabAssayPackArr.payload.reagent.substrate_name }}' /><div class='smallgray mt-1' data-object-hint='elisa-substrate-object-id'>从库存对象选择底物。</div></div>
+                  <div class='col-lg-3 mb-3'><label for='elisa-reader-object-id'>读板仪型号</label><select id='elisa-reader-object-id' class='form-control smartlab-object-select' name='elisa_reader_object_id' data-targets='elisa-reader-model:name'><option value='0'>请选择设备对象</option>{% for row in smartlabAssayObjectCatalogArr.reagents|default([]) %}{% if row.reagent_scope in ['elisa_reader'] %}<option value='{{ row.id }}' data-code='{{ row.code|e('html_attr') }}' data-name='{{ row.name|e('html_attr') }}' data-vendor='{{ row.vendor|e('html_attr') }}' data-model-hint='{{ row.model_hint|e('html_attr') }}' data-summary='{{ (row.code ~ " · " ~ row.name ~ (row.vendor ? " · " ~ row.vendor : "") ~ (row.model_hint ? " / " ~ row.model_hint : ""))|e('html_attr') }}' {{ smartlabAssayPackArr.payload.run.reader_object.id == row.id ? 'selected' }}>{{ row.code }} · {{ row.name }}{% if row.model_hint %} · {{ row.model_hint }}{% endif %}</option>{% endif %}{% endfor %}</select><input id='elisa-reader-model' type='hidden' name='elisa_reader_model' value='{{ smartlabAssayPackArr.payload.run.reader_model }}' /><div class='smallgray mt-1' data-object-hint='elisa-reader-object-id'>从设备/对象字典选择读板仪。</div></div>
+                  <div class='col-lg-3 mb-3'><label for='elisa-wavelength-nm'>检测波长</label>{{ _self.smartlabDictionarySelect('elisa-wavelength-nm', 'elisa_wavelength_nm', smartlabAssayPackArr.payload.run.wavelength_nm, smartlabAssayPresetCatalogArr.elisa.wavelengths, '请选择波长') }}</div>
+                </div>
+                <div class='row'>
+                  <div class='col-lg-4 mb-3'><label for='elisa-plate-layout'>孔板布局</label>{{ _self.smartlabDictionarySelect('elisa-plate-layout', 'elisa_plate_layout', smartlabAssayPackArr.payload.run.plate_layout, smartlabAssayPresetCatalogArr.elisa.plate_layouts, '请选择布局') }}</div>
+                  <div class='col-lg-4 mb-3'><label for='elisa-incubation-condition'>孵育条件</label>{{ _self.smartlabDictionarySelect('elisa-incubation-condition', 'elisa_incubation_condition', smartlabAssayPackArr.payload.run.incubation_condition, smartlabAssayPresetCatalogArr.elisa.incubation_conditions, '请选择孵育条件') }}</div>
+                  <div class='col-lg-4 mb-3'><label for='elisa-wash-cycles'>洗板次数</label>{{ _self.smartlabDictionarySelect('elisa-wash-cycles', 'elisa_wash_cycles', smartlabAssayPackArr.payload.run.wash_cycles, smartlabAssayPresetCatalogArr.elisa.wash_cycles, '请选择洗板次数') }}</div>
+                </div>
+                {% if not smartlabIsStudentView %}
+                  <div class='row'>
+                    <div class='col-lg-3 mb-3'><label for='elisa-standard-curve-r2'>标准曲线 R²</label>{{ _self.smartlabDictionarySelect('elisa-standard-curve-r2', 'elisa_standard_curve_r2', smartlabAssayPackArr.payload.analysis.standard_curve_r2, smartlabAssayPresetCatalogArr.elisa.standard_curve_r2, '请选择 R2 状态') }}</div>
+                    <div class='col-lg-3 mb-3'><label for='elisa-blank-od450'>Blank OD450</label>{{ _self.smartlabDictionarySelect('elisa-blank-od450', 'elisa_blank_od450', smartlabAssayPackArr.payload.analysis.blank_od450, smartlabAssayPresetCatalogArr.elisa.blank_od450, '请选择空白孔状态') }}</div>
+                    <div class='col-lg-3 mb-3'><label for='elisa-cv-threshold'>CV 阈值</label>{{ _self.smartlabDictionarySelect('elisa-cv-threshold', 'elisa_cv_threshold', smartlabAssayPackArr.payload.analysis.cv_threshold, smartlabAssayPresetCatalogArr.elisa.cv_thresholds, '请选择阈值') }}</div>
+                    <div class='col-lg-3 mb-3'><label for='elisa-conclusion'>结论</label>{{ _self.smartlabDictionarySelect('elisa-conclusion', 'elisa_conclusion', smartlabAssayPackArr.payload.analysis.conclusion, smartlabAssayPresetCatalogArr.elisa.conclusions, '请选择结论') }}</div>
+                  </div>
+                  <div class='mt-2 mb-3'>
+                    <div class='d-flex justify-content-between align-items-center flex-wrap mb-2'>
+                      <div class='smallgray text-uppercase mb-0'>结构化结果表</div>
+                      <div class='d-flex align-items-center flex-wrap'>
+                        <label class='btn btn-outline-secondary btn-sm mb-0 mr-2' for='elisa-import-file'>导入 ELISA 文件</label>
+                        <input id='elisa-import-file' class='d-none' type='file' accept='.csv,.xlsx,.xls,.ods' data-smartlab-import='elisa' />
+                        <span class='smallgray'>支持读板仪结果表，以及 sample, od450, concentration, cv_percent 等通用表头</span>
+                      </div>
+                    </div>
+                    <div id='smartlab-elisa-import-status' class='smallgray mb-2'>可直接导入读板仪导出的 CSV / Excel，系统会优先识别常见 OD 与浓度列名。</div>
+                    <div class='table-responsive'>
+                      <table class='table table-sm table-bordered bg-white'>
+                        <thead>
+                          <tr>
+                            <th>Sample</th>
+                            <th>Group</th>
+                            <th>OD450</th>
+                            <th>Concentration</th>
+                            <th>CV %</th>
+                            <th>Note</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for row in smartlabAssayPackArr.payload.results %}
+                            <tr>
+                              <td>{{ _self.smartlabSampleSelect('elisa-result-sample-' ~ loop.index, 'elisa_result_sample_label[]', row.label, smartlabSamplesArr, '请选择样本', 'form-control form-control-sm') }}</td>
+                              <td>{{ _self.smartlabDictionarySelect('elisa-result-group-' ~ loop.index, 'elisa_result_group_label[]', row.group_label, smartlabAssayPresetCatalogArr.qpcr.treatment_groups, '请选择分组', 'form-control form-control-sm') }}</td>
+                              <td><input class='form-control form-control-sm' name='elisa_result_od450[]' value='{{ row.od450 }}' /></td>
+                              <td><input class='form-control form-control-sm' name='elisa_result_concentration[]' value='{{ row.concentration }}' /></td>
+                              <td><input class='form-control form-control-sm' name='elisa_result_cv_percent[]' value='{{ row.cv_percent }}' /></td>
+                              <td>{{ _self.smartlabDictionarySelect('elisa-result-note-' ~ loop.index, 'elisa_result_note[]', row.note, smartlabAssayPresetCatalogArr.elisa.result_notes, '请选择备注', 'form-control form-control-sm') }}</td>
+                            </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <div class='row'>
+                    <div class='col-lg-3 mb-3'><label for='elisa-blank-control-ok'>空白孔合格</label><select id='elisa-blank-control-ok' class='form-control' name='elisa_blank_control_ok'><option value='yes' {{ smartlabAssayPackArr.payload.qc.blank_control_ok == 'yes' ? 'selected' }}>是</option><option value='no' {{ smartlabAssayPackArr.payload.qc.blank_control_ok == 'no' ? 'selected' }}>否</option></select></div>
+                    <div class='col-lg-3 mb-3'><label for='elisa-standard-curve-ok'>标准曲线合格</label><select id='elisa-standard-curve-ok' class='form-control' name='elisa_standard_curve_ok'><option value='yes' {{ smartlabAssayPackArr.payload.qc.standard_curve_ok == 'yes' ? 'selected' }}>是</option><option value='no' {{ smartlabAssayPackArr.payload.qc.standard_curve_ok == 'no' ? 'selected' }}>否</option></select></div>
+                    <div class='col-lg-3 mb-3'><label for='elisa-replicate-cv-ok'>重复 CV 合格</label><select id='elisa-replicate-cv-ok' class='form-control' name='elisa_replicate_cv_ok'><option value='yes' {{ smartlabAssayPackArr.payload.qc.replicate_cv_ok == 'yes' ? 'selected' }}>是</option><option value='no' {{ smartlabAssayPackArr.payload.qc.replicate_cv_ok == 'no' ? 'selected' }}>否</option></select></div>
+                    <div class='col-lg-3 mb-3'><label for='elisa-qc-notes'>质控备注</label>{{ _self.smartlabDictionarySelect('elisa-qc-notes', 'elisa_qc_notes', smartlabAssayPackArr.payload.qc.notes, smartlabAssayPresetCatalogArr.elisa.qc_notes, '请选择质控备注') }}</div>
+                  </div>
+                {% endif %}
+              {% endif %}
+
+              {% if not smartlabIsStudentView %}
+                <div class='row'>
+                  <div class='col-lg-6 mb-3'>
+                    <div class='smallgray text-uppercase mb-2'>试剂与仪器记录</div>
+                    <div class='border rounded bg-white p-3 small'>
+                      {% if smartlabAssayPackArr.pack_key in ['', 'qpcr'] %}
+                        <div>引物编号：{{ smartlabAssayPackArr.payload.primer.primer_code ?: '未填写' }}</div>
+                        <div>试剂盒：{{ smartlabAssayPackArr.payload.setup.kit_name ?: '未填写' }}</div>
+                        <div>仪器型号：{{ smartlabAssayPackArr.payload.setup.instrument_model ?: '未填写' }}</div>
+                      {% elseif smartlabAssayPackArr.pack_key == 'western_blot' %}
+                        <div>一抗：{{ smartlabAssayPackArr.payload.reagent.primary_antibody ?: '未填写' }}</div>
+                        <div>二抗：{{ smartlabAssayPackArr.payload.reagent.secondary_antibody ?: '未填写' }}</div>
+                        <div>显色试剂：{{ smartlabAssayPackArr.payload.reagent.detection_reagent ?: '未填写' }}</div>
+                        <div>膜类型：{{ smartlabAssayPackArr.payload.run.membrane_type ?: '未填写' }}</div>
+                      {% elseif smartlabAssayPackArr.pack_key == 'if' %}
+                        <div>一抗：{{ smartlabAssayPackArr.payload.staining.primary_antibody ?: '未填写' }}</div>
+                        <div>二抗：{{ smartlabAssayPackArr.payload.staining.secondary_antibody ?: '未填写' }}</div>
+                        <div>封闭液：{{ smartlabAssayPackArr.payload.staining.blocking_buffer ?: '未填写' }}</div>
+                        <div>显微镜：{{ smartlabAssayPackArr.payload.imaging.microscope ?: '未填写' }}</div>
+                      {% elseif smartlabAssayPackArr.pack_key == 'ihc' %}
+                        <div>一抗：{{ smartlabAssayPackArr.payload.staining.primary_antibody ?: '未填写' }}</div>
+                        <div>二抗：{{ smartlabAssayPackArr.payload.staining.secondary_antibody ?: '未填写' }}</div>
+                        <div>固定液：{{ smartlabAssayPackArr.payload.sample.fixative ?: '未填写' }}</div>
+                        <div>抗原修复：{{ smartlabAssayPackArr.payload.staining.antigen_retrieval ?: '未填写' }}</div>
+                        <div>复染：{{ smartlabAssayPackArr.payload.staining.counterstain ?: '未填写' }}</div>
+                      {% elseif smartlabAssayPackArr.pack_key == 'elisa' %}
+                        <div>试剂盒：{{ smartlabAssayPackArr.payload.reagent.kit_name ?: '未填写' }}</div>
+                        <div>包被抗体：{{ smartlabAssayPackArr.payload.reagent.capture_antibody ?: '未填写' }}</div>
+                        <div>检测抗体：{{ smartlabAssayPackArr.payload.reagent.detection_antibody ?: '未填写' }}</div>
+                        <div>底物：{{ smartlabAssayPackArr.payload.reagent.substrate_name ?: '未填写' }}</div>
+                        <div>读板仪：{{ smartlabAssayPackArr.payload.run.reader_model ?: '未填写' }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class='col-lg-6 mb-3'>
+                    <div class='smallgray text-uppercase mb-2'>质控提示</div>
+                    <ul class='mb-0 pl-3'>
+                      {% for item in smartlabAssayPackArr.qc_feedback %}
+                        <li>{{ item }}</li>
+                      {% else %}
+                        <li>保存后这里会出现当前记录的质控反馈。</li>
+                      {% endfor %}
+                    </ul>
+                  </div>
+                  <div class='col-lg-12 mb-3'>
+                    <div class='smallgray text-uppercase mb-2'>实验后摘要</div>
+                    <div class='border rounded bg-white p-3 small'>
+                      {{ smartlabAssayPackArr.auto_summary ?: '保存后这里会自动生成“本次实验结论/是否成功/下步建议”摘要。' }}
+                    </div>
+                  </div>
+                </div>
+
+                <div class='mb-3'>
+                  <div class='smallgray text-uppercase mb-2'>Analysis</div>
+                  <div class='row'>
+                    {% for card in smartlabAssayPackArr.analysis_cards|default([]) %}
+                      <div class='col-lg-4 mb-3'>
+                        <div class='border rounded bg-white p-3 h-100'>
+                          <div class='smallgray text-uppercase'>{{ card.label }}</div>
+                          <div class='mt-2 font-weight-bold
+                            {{ card.tone == 'success' ? 'text-success' : '' }}
+                            {{ card.tone == 'warning' ? 'text-warning' : '' }}'>
+                            {{ card.value }}
+                          </div>
+                        </div>
+                      </div>
+                    {% else %}
+                      <div class='col-12'>
+                        <div class='smallgray'>保存后这里会生成当前记录的分析摘要。</div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% endif %}
+
+              {% if not smartlabIsStudentView and smartlabAssayPackArr.pack_key in ['', 'qpcr'] and smartlabAssayPackArr.analysis_rows|default([]) %}
+                <div class='mb-3'>
+                  <div class='smallgray text-uppercase mb-2'>qPCR Aggregation</div>
+                  <div class='table-responsive'>
+                    <table class='table table-sm table-bordered bg-white'>
+                      <thead>
+                        <tr>
+                          <th>Sample</th>
+                          <th>有效结果数</th>
+                          <th>Mean Ct</th>
+                          <th>Mean Fold Change</th>
+                          <th>判读</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for row in smartlabAssayPackArr.analysis_rows %}
+                          <tr>
+                            <td>{{ row.sample_label }}</td>
+                            <td>{{ row.rows }}</td>
+                            <td>{{ row.mean_ct ?: '未形成' }}</td>
+                            <td>{{ row.mean_fold ?: '未形成' }}</td>
+                            <td>{{ row.direction }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class='mb-3'>
+                  <div class='smallgray text-uppercase mb-2'>qPCR Fold Change Bars</div>
+                  {% for bar in smartlabAssayPackArr.analysis_bars|default([]) %}
+                    <div class='mb-2'>
+                      <div class='d-flex justify-content-between small mb-1'>
+                        <span>{{ bar.label }}</span>
+                        <span>{{ bar.value }}</span>
+                      </div>
+                      <div class='progress' style='height: 0.7rem;'>
+                        <div class='progress-bar {{ bar.tone == 'success' ? 'bg-success' : (bar.tone == 'warning' ? 'bg-warning' : 'bg-secondary') }}' role='progressbar' style='width: {{ bar.percent }}%;'></div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+
+                {% if smartlabAssayPackArr.analysis_group_rows|default([]) %}
+                  <div class='mb-3'>
+                    <div class='smallgray text-uppercase mb-2'>qPCR Group Aggregation</div>
+                    <div class='table-responsive'>
+                      <table class='table table-sm table-bordered bg-white'>
+                        <thead>
+                          <tr>
+                            <th>Group</th>
+                            <th>样本数</th>
+                            <th>Mean Fold Change</th>
+                            <th>判读</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for row in smartlabAssayPackArr.analysis_group_rows %}
+                            <tr>
+                              <td>{{ row.group_label }}</td>
+                              <td>{{ row.sample_count }}</td>
+                              <td>{{ row.mean_fold ?: '未形成' }}</td>
+                              <td>{{ row.direction }}</td>
+                            </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div class='mb-3'>
+                    <div class='smallgray text-uppercase mb-2'>qPCR Group Fold Change Bars</div>
+                    {% for bar in smartlabAssayPackArr.analysis_group_bars|default([]) %}
+                      <div class='mb-2'>
+                        <div class='d-flex justify-content-between small mb-1'>
+                          <span>{{ bar.label }}</span>
+                          <span>{{ bar.value }}</span>
+                        </div>
+                        <div class='progress' style='height: 0.7rem;'>
+                          <div class='progress-bar {{ bar.tone == 'success' ? 'bg-success' : (bar.tone == 'warning' ? 'bg-warning' : 'bg-secondary') }}' role='progressbar' style='width: {{ bar.percent }}%;'></div>
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              {% endif %}
+
+              {% if not smartlabIsStudentView and smartlabAssayPackArr.pack_key == 'western_blot' and smartlabAssayPackArr.analysis_rows|default([]) %}
+                <div class='mb-3'>
+                  <div class='smallgray text-uppercase mb-2'>Western Blot Aggregation</div>
+                  <div class='table-responsive'>
+                    <table class='table table-sm table-bordered bg-white'>
+                      <thead>
+                        <tr>
+                          <th>Sample</th>
+                          <th>Target Signal</th>
+                          <th>Normalized Signal</th>
+                          <th>Trend</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for row in smartlabAssayPackArr.analysis_rows %}
+                          <tr>
+                            <td>{{ row.label }}</td>
+                            <td>{{ row.metric_a }}</td>
+                            <td>{{ row.metric_b }}</td>
+                            <td>{{ row.direction }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class='mb-3'>
+                  <div class='smallgray text-uppercase mb-2'>Western Blot Signal Bars</div>
+                  {% for bar in smartlabAssayPackArr.analysis_bars|default([]) %}
+                    <div class='mb-2'>
+                      <div class='d-flex justify-content-between small mb-1'>
+                        <span>{{ bar.label }}</span>
+                        <span>{{ bar.value }}</span>
+                      </div>
+                      <div class='progress' style='height: 0.7rem;'>
+                        <div class='progress-bar {{ bar.tone == 'success' ? 'bg-success' : (bar.tone == 'warning' ? 'bg-warning' : 'bg-secondary') }}' role='progressbar' style='width: {{ bar.percent }}%;'></div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+
+              {% if not smartlabIsStudentView and smartlabAssayPackArr.pack_key == 'if' and smartlabAssayPackArr.analysis_rows|default([]) %}
+                <div class='mb-3'>
+                  <div class='smallgray text-uppercase mb-2'>IF Aggregation</div>
+                  <div class='table-responsive'>
+                    <table class='table table-sm table-bordered bg-white'>
+                      <thead>
+                        <tr>
+                          <th>Field</th>
+                          <th>Positive Ratio</th>
+                          <th>Mean Intensity</th>
+                          <th>Colocalization</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for row in smartlabAssayPackArr.analysis_rows %}
+                          <tr>
+                            <td>{{ row.label }}</td>
+                            <td>{{ row.metric_a }}</td>
+                            <td>{{ row.metric_b }}</td>
+                            <td>{{ row.direction }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class='mb-3'>
+                  <div class='smallgray text-uppercase mb-2'>IF Positive Ratio Bars</div>
+                  {% for bar in smartlabAssayPackArr.analysis_bars|default([]) %}
+                    <div class='mb-2'>
+                      <div class='d-flex justify-content-between small mb-1'>
+                        <span>{{ bar.label }}</span>
+                        <span>{{ bar.value }}</span>
+                      </div>
+                      <div class='progress' style='height: 0.7rem;'>
+                        <div class='progress-bar {{ bar.tone == 'success' ? 'bg-success' : (bar.tone == 'warning' ? 'bg-warning' : 'bg-secondary') }}' role='progressbar' style='width: {{ bar.percent }}%;'></div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+
+              {% if not smartlabIsStudentView and smartlabAssayPackArr.pack_key == 'ihc' and smartlabAssayPackArr.analysis_rows|default([]) %}
+                <div class='mb-3'>
+                  <div class='smallgray text-uppercase mb-2'>IHC Aggregation</div>
+                  <div class='table-responsive'>
+                    <table class='table table-sm table-bordered bg-white'>
+                      <thead>
+                        <tr>
+                          <th>Image</th>
+                          <th>H-score</th>
+                          <th>IRS</th>
+                          <th>判读</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for row in smartlabAssayPackArr.analysis_rows %}
+                          <tr>
+                            <td>{{ row.label }}</td>
+                            <td>{{ row.metric_a }}</td>
+                            <td>{{ row.metric_b }}</td>
+                            <td>{{ row.direction }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class='mb-3'>
+                  <div class='smallgray text-uppercase mb-2'>IHC Score Bars</div>
+                  {% for bar in smartlabAssayPackArr.analysis_bars|default([]) %}
+                    <div class='mb-2'>
+                      <div class='d-flex justify-content-between small mb-1'>
+                        <span>{{ bar.label }}</span>
+                        <span>{{ bar.value }}</span>
+                      </div>
+                      <div class='progress' style='height: 0.7rem;'>
+                        <div class='progress-bar {{ bar.tone == 'success' ? 'bg-success' : (bar.tone == 'warning' ? 'bg-warning' : 'bg-secondary') }}' role='progressbar' style='width: {{ bar.percent }}%;'></div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+
+              {% if not smartlabIsStudentView and smartlabAssayPackArr.pack_key == 'elisa' and smartlabAssayPackArr.analysis_rows|default([]) %}
+                <div class='mb-3'>
+                  <div class='smallgray text-uppercase mb-2'>ELISA Aggregation</div>
+                  <div class='table-responsive'>
+                    <table class='table table-sm table-bordered bg-white'>
+                      <thead>
+                        <tr>
+                          <th>Sample</th>
+                          <th>OD450</th>
+                          <th>Concentration</th>
+                          <th>CV %</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for row in smartlabAssayPackArr.analysis_rows %}
+                          <tr>
+                            <td>{{ row.label }}</td>
+                            <td>{{ row.metric_a }}</td>
+                            <td>{{ row.metric_b }}</td>
+                            <td>{{ row.direction }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class='mb-3'>
+                  <div class='smallgray text-uppercase mb-2'>ELISA Concentration Bars</div>
+                  {% for bar in smartlabAssayPackArr.analysis_bars|default([]) %}
+                    <div class='mb-2'>
+                      <div class='d-flex justify-content-between small mb-1'>
+                        <span>{{ bar.label }}</span>
+                        <span>{{ bar.value }}</span>
+                      </div>
+                      <div class='progress' style='height: 0.7rem;'>
+                        <div class='progress-bar {{ bar.tone == 'success' ? 'bg-success' : (bar.tone == 'warning' ? 'bg-warning' : 'bg-secondary') }}' role='progressbar' style='width: {{ bar.percent }}%;'></div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+
+              {% if smartlabExperimentEditable %}
+                <button class='btn btn-primary' type='submit' data-smartlab-save-next>保存并进入下一步</button>
+              {% else %}
+                <div class='smallgray mt-3'>当前账号以只读方式查看结构化实验记录、试剂仪器信息和分析结果。</div>
+              {% endif %}
+              {% if not smartlabExperimentEditable %}
+                </fieldset>
+              {% endif %}
+            </form>
+
+            <datalist id='qpcr-target-gene-list'>
+              {% for item in smartlabAssayPresetCatalogArr.qpcr.target_genes|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='qpcr-reference-gene-list'>
+              {% for item in smartlabAssayPresetCatalogArr.qpcr.reference_genes|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='qpcr-kit-name-list'>
+              {% for item in smartlabAssayPresetCatalogArr.qpcr.kit_names|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='qpcr-instrument-model-list'>
+              {% for item in smartlabAssayPresetCatalogArr.qpcr.instrument_models|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='wb-primary-antibody-list'>
+              {% for item in smartlabAssayPresetCatalogArr.western_blot.primary_antibodies|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='wb-secondary-antibody-list'>
+              {% for item in smartlabAssayPresetCatalogArr.western_blot.secondary_antibodies|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='wb-detection-reagent-list'>
+              {% for item in smartlabAssayPresetCatalogArr.western_blot.detection_reagents|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='wb-membrane-type-list'>
+              {% for item in smartlabAssayPresetCatalogArr.western_blot.membrane_types|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='if-blocking-buffer-list'>
+              {% for item in smartlabAssayPresetCatalogArr.if.blocking_buffers|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='if-primary-antibody-list'>
+              {% for item in smartlabAssayPresetCatalogArr.if.primary_antibodies|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='if-secondary-antibody-list'>
+              {% for item in smartlabAssayPresetCatalogArr.if.secondary_antibodies|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='if-dapi-list'>
+              {% for item in smartlabAssayPresetCatalogArr.if.dapi|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='if-microscope-list'>
+              {% for item in smartlabAssayPresetCatalogArr.if.microscopes|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='ihc-fixative-list'>
+              {% for item in smartlabAssayPresetCatalogArr.ihc.fixatives|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='ihc-antigen-retrieval-list'>
+              {% for item in smartlabAssayPresetCatalogArr.ihc.antigen_retrievals|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='ihc-primary-antibody-list'>
+              {% for item in smartlabAssayPresetCatalogArr.ihc.primary_antibodies|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='ihc-secondary-antibody-list'>
+              {% for item in smartlabAssayPresetCatalogArr.ihc.secondary_antibodies|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='ihc-counterstain-list'>
+              {% for item in smartlabAssayPresetCatalogArr.ihc.counterstains|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='elisa-kit-name-list'>
+              {% for item in smartlabAssayPresetCatalogArr.elisa.kit_names|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='elisa-target-list'>
+              {% for item in smartlabAssayPresetCatalogArr.elisa.targets|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='elisa-capture-antibody-list'>
+              {% for item in smartlabAssayPresetCatalogArr.elisa.capture_antibodies|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='elisa-detection-antibody-list'>
+              {% for item in smartlabAssayPresetCatalogArr.elisa.detection_antibodies|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='elisa-substrate-list'>
+              {% for item in smartlabAssayPresetCatalogArr.elisa.substrates|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+            <datalist id='elisa-reader-list'>
+              {% for item in smartlabAssayPresetCatalogArr.elisa.readers|default([]) %}
+                <option value='{{ item }}'></option>
+              {% endfor %}
+            </datalist>
+
+            <script defer src='/assets/smartlab-usage.js?v={{ v }}-usage-1'></script>
+            <script defer src='/assets/smartlab-wb-workflow-sync.js?v={{ v }}-wb-workflow-1'></script>
+            {# <script>
+              document.addEventListener('DOMContentLoaded', function () {
+                const sampleSelect = document.getElementById('assay-linked-sample-id');
+                const lotSelect = document.getElementById('assay-linked-lot-id');
+                const sampleHint = document.getElementById('assay-linked-sample-hint');
+                const lotHint = document.getElementById('assay-linked-lot-hint');
+                const sampleSourceInput = document.getElementById('assay-sample-source');
+                const qpcrSampleOriginInput = document.getElementById('qpcr-sample-origin');
+                const wbSampleOriginInput = document.getElementById('wb-sample-origin');
+                const ifSampleOriginInput = document.getElementById('if-sample-origin');
+                const ihcTissueIdInput = document.getElementById('ihc-tissue-id');
+                const qpcrReferenceGeneInput = document.getElementById('qpcr-reference-gene');
+                const qpcrPrimerCodeInput = document.getElementById('qpcr-primer-code');
+                const qpcrAmpliconBpInput = document.getElementById('qpcr-amplicon-bp');
+                const qpcrAnnealingInput = document.getElementById('qpcr-annealing-temperature');
+                const qpcrKitNameInput = document.getElementById('qpcr-kit-name');
+                const qpcrTargetGeneInput = document.getElementById('qpcr-target-gene');
+                const qpcrInstrumentModelInput = document.getElementById('qpcr-instrument-model');
+                const wbDetectionReagentInput = document.getElementById('wb-detection-reagent');
+                const wbPrimaryInput = document.getElementById('wb-primary-antibody');
+                const wbPrimaryDilutionInput = document.getElementById('wb-primary-dilution');
+                const wbSecondaryInput = document.getElementById('wb-secondary-antibody');
+                const wbSecondaryDilutionInput = document.getElementById('wb-secondary-dilution');
+                const wbMembraneInput = document.getElementById('wb-membrane-type');
+                const ifPrimaryInput = document.getElementById('if-primary-antibody');
+                const ifSecondaryInput = document.getElementById('if-secondary-antibody');
+                const ifBlockingInput = document.getElementById('if-blocking-buffer');
+                const ifMicroscopeInput = document.getElementById('if-microscope');
+                const ihcPrimaryInput = document.getElementById('ihc-primary-antibody');
+                const ihcSecondaryInput = document.getElementById('ihc-secondary-antibody');
+	                const ihcFixativeInput = document.getElementById('ihc-fixative');
+	                const ihcAntigenRetrievalInput = document.getElementById('ihc-antigen-retrieval');
+	                const ihcCounterstainInput = document.getElementById('ihc-counterstain');
+	                const usageSourceSelect = document.getElementById('smartlab-usage-source');
+	                const usageLotSelect = document.getElementById('smartlab-usage-lot');
+	                const usageFilterInput = document.getElementById('smartlab-usage-filter');
+	                const usageInventoryEmpty = document.getElementById('smartlab-usage-inventory-empty');
+	                const usageMaterialInput = document.getElementById('smartlab-usage-material');
+	                const usageBrandInput = document.getElementById('smartlab-usage-brand');
+	                const usageCatalogInput = document.getElementById('smartlab-usage-catalog');
+	                const usageLotNoInput = document.getElementById('smartlab-usage-lot-no');
+	                const usageLocationInput = document.getElementById('smartlab-usage-location');
+	                const usageUnitInput = document.getElementById('smartlab-usage-unit');
+                const setIfBlank = function (input, value) {
+                  if (!input || input.value.trim() !== '' || value.trim() === '') {
+                    return;
+                  }
+                  input.value = value;
+                };
+                const setFieldValue = function (input, value) {
+                  if (!input || value.trim() === '') {
+                    return;
+                  }
+                  if (input.tagName === 'SELECT') {
+                    const exists = Array.prototype.some.call(input.options, function (option) {
+                      return option.value === value;
+                    });
+                    if (!exists) {
+                      const option = document.createElement('option');
+                      option.value = value;
+                      option.textContent = value + '（对象回填）';
+                      input.appendChild(option);
+                    }
+                  }
+                  input.value = value;
+                };
+                const updateObjectSelect = function (select) {
+                  const option = select.options[select.selectedIndex];
+                  const hint = document.querySelector('[data-object-hint="' + select.id + '"]');
+                  if (!option || option.value === '0') {
+                    if (hint) {
+                      hint.textContent = '请从助理端库存或对象字典选择；需补充说明可在下方试剂与仪器记录中填写。';
+                    }
+                    return;
+                  }
+                  const targetSpec = (select.dataset.targets || '').split(',');
+                  targetSpec.forEach(function (pair) {
+                    const parts = pair.split(':');
+                    if (parts.length !== 2) {
+                      return;
+                    }
+                    const field = document.getElementById(parts[0]);
+                    const value = option.dataset[parts[1]] || '';
+                    setFieldValue(field, value);
+                  });
+                  if (hint) {
+                    hint.textContent = option.dataset.summary || option.textContent.trim();
+                  }
+                };
+
+                const updateSampleLink = function () {
+                  if (!sampleSelect || !sampleHint) {
+                    return;
+                  }
+                  const option = sampleSelect.options[sampleSelect.selectedIndex];
+                  if (!option || option.value === '0') {
+                    sampleHint.textContent = '选择后会显示样本类型、项目和数量提示，并可回填来源字段。';
+                    return;
+                  }
+                  const code = option.dataset.sampleCode || '';
+                  const name = option.dataset.sampleName || '';
+                  const type = option.dataset.sampleType || '';
+                  const project = option.dataset.sampleProject || '';
+                  const quantity = option.dataset.sampleQuantity || '';
+                  const unit = option.dataset.sampleUnit || '';
+
+                  const parts = [];
+                  if (code || name) {
+                    parts.push([code, name].filter(Boolean).join(' · '));
+                  }
+                  if (type) {
+                    parts.push(type);
+                  }
+                  if (project) {
+                    parts.push('项目 ' + project);
+                  }
+                  if (quantity) {
+                    parts.push('当前 ' + quantity + (unit ? ' ' + unit : ''));
+                  }
+                  sampleHint.textContent = parts.join(' · ');
+
+                  const sampleSummary = [code, name, type].filter(Boolean).join(' · ');
+                  setIfBlank(sampleSourceInput, sampleSummary);
+                  setIfBlank(qpcrSampleOriginInput, sampleSummary);
+                  setIfBlank(wbSampleOriginInput, sampleSummary);
+                  setIfBlank(ifSampleOriginInput, sampleSummary);
+                  setIfBlank(ihcTissueIdInput, code || name);
+                };
+
+	                const updateLotLink = function () {
+                  if (!lotSelect || !lotHint) {
+                    return;
+                  }
+                  const option = lotSelect.options[lotSelect.selectedIndex];
+                  if (!option || option.value === '0') {
+                    lotHint.textContent = '选择后会显示库存物料和到期日提示，便于录入试剂信息。';
+                    return;
+                  }
+                  const materialCode = option.dataset.materialCode || '';
+                  const materialName = option.dataset.materialName || '';
+                  const lotNo = option.dataset.lotNo || '';
+                  const quantity = option.dataset.lotQuantity || '';
+                  const unit = option.dataset.lotUnit || '';
+                  const expires = option.dataset.lotExpires || '';
+
+                  const parts = [];
+                  if (materialCode || materialName) {
+                    parts.push([materialCode, materialName].filter(Boolean).join(' · '));
+                  }
+                  if (lotNo) {
+                    parts.push('批号 ' + lotNo);
+                  }
+                  if (quantity) {
+                    parts.push('库存 ' + quantity + (unit ? ' ' + unit : ''));
+                  }
+                  if (expires) {
+                    parts.push('到期 ' + expires);
+                  }
+                  lotHint.textContent = parts.join(' · ');
+
+                  const materialSummary = [materialCode, materialName].filter(Boolean).join(' · ');
+                  setIfBlank(qpcrKitNameInput, materialSummary);
+	                  setIfBlank(wbDetectionReagentInput, materialSummary + (lotNo ? ' / ' + lotNo : ''));
+	                };
+	                const setReadonly = function (input, readonly) {
+	                  if (input) {
+	                    input.readOnly = readonly;
+	                  }
+	                };
+	                const updateUsageReadonly = function () {
+	                  const readonly = !usageSourceSelect || usageSourceSelect.value !== 'manual';
+	                  [usageMaterialInput, usageBrandInput, usageCatalogInput, usageLotNoInput, usageLocationInput, usageUnitInput].forEach(function (input) {
+	                    setReadonly(input, readonly);
+	                  });
+	                };
+	                const updateUsageFromInventory = function () {
+	                  if (!usageLotSelect) {
+	                    return;
+	                  }
+	                  const selected = Array.prototype.filter.call(usageLotSelect.options, function (option) {
+	                    return option.selected && option.value !== '';
+	                  });
+	                  const option = selected[0];
+	                  if (!option) {
+	                    return;
+	                  }
+	                  if (usageMaterialInput) {
+	                    usageMaterialInput.value = option.dataset.materialLabel || option.textContent.trim();
+	                  }
+	                  if (usageBrandInput) {
+	                    usageBrandInput.value = option.dataset.brand || '';
+	                  }
+	                  if (usageCatalogInput) {
+	                    usageCatalogInput.value = option.dataset.catalogNo || '';
+	                  }
+	                  if (usageLotNoInput) {
+	                    usageLotNoInput.value = option.dataset.lotNo || '';
+	                  }
+	                  if (usageLocationInput) {
+	                    usageLocationInput.value = option.dataset.locationLabel || '';
+	                  }
+	                  if (usageUnitInput) {
+	                    usageUnitInput.value = option.dataset.unit || '';
+	                  }
+	                };
+	                const filterUsageInventory = function () {
+	                  if (!usageLotSelect || !usageFilterInput) {
+	                    return;
+	                  }
+	                  const query = usageFilterInput.value.trim().toLowerCase();
+	                  let visible = 0;
+	                  Array.prototype.forEach.call(usageLotSelect.options, function (option) {
+	                    if (option.disabled) {
+	                      return;
+	                    }
+	                    const matched = query === '' || (option.dataset.search || '').indexOf(query) !== -1;
+	                    option.hidden = !matched;
+	                    if (matched) {
+	                      visible++;
+	                    }
+	                  });
+	                  if (usageInventoryEmpty) {
+	                    usageInventoryEmpty.classList.toggle('d-none', visible > 0);
+	                  }
+	                };
+
+                if (sampleSelect) {
+                  sampleSelect.addEventListener('change', updateSampleLink);
+                  updateSampleLink();
+                }
+                if (lotSelect) {
+                  lotSelect.addEventListener('change', updateLotLink);
+                  updateLotLink();
+                }
+	                document.querySelectorAll('.smartlab-object-select').forEach(function (select) {
+	                  select.addEventListener('change', function () {
+	                    updateObjectSelect(select);
+	                  });
+	                  updateObjectSelect(select);
+	                });
+	                if (usageSourceSelect) {
+	                  usageSourceSelect.addEventListener('change', updateUsageReadonly);
+	                  updateUsageReadonly();
+	                }
+	                if (usageLotSelect) {
+	                  usageLotSelect.addEventListener('change', updateUsageFromInventory);
+	                  updateUsageFromInventory();
+	                }
+	                if (usageFilterInput) {
+	                  usageFilterInput.addEventListener('input', filterUsageInventory);
+	                  filterUsageInventory();
+	                }
+              });
+            </script> #}
+          </div>
+        </div>
+
+		        <div id='experiment-materials' class='row d-none' aria-hidden='true'>
+		          <div class='col-lg-6 mb-3'>
+		            <div class='smallgray text-uppercase mb-2'>关联样本</div>
+            <div class='list-group list-group-flush'>
+              {% for sample in smartlabSamplesArr|default([]) %}
+                <div class='list-group-item px-0'>
+                  <div class='font-weight-bold'>
+                    <a href='samples.php?id={{ sample.sample_id }}'>{{ sample.code }} · {{ sample.name }}</a>
+                  </div>
+                  <div class='smallgray'>
+                    {{ sample.sample_type }} ·
+                    {{
+                      sample.status == 'active' ? '在用'
+                      : sample.status == 'consumed' ? '已消耗'
+                      : sample.status == 'archived' ? '已归档'
+                      : sample.status == 'destroyed' ? '已销毁'
+                      : sample.status
+                    }}
+                    {% if sample.quantity is not null %}
+                      · 当前 {{ sample.quantity }} {{ sample.unit ?: '' }}
+                    {% endif %}
+                  </div>
+                  <div class='smallgray'>
+                    事件 {{ sample.event_type }} · {{ sample.occurred_at|date('Y-m-d H:i') }}
+                    {% if sample.project_code %}
+                      · <a href='projects.php?id={{ sample.project_id }}'>{{ sample.project_code }} · {{ sample.project_name }}</a>
+                    {% endif %}
+                  </div>
+                  {% if sample.note %}
+                    <div class='smallgray mt-1'>{{ sample.note }}</div>
+                  {% endif %}
+                </div>
+              {% else %}
+                <div class='smallgray'>当前实验还没有关联样本对象。</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class='col-lg-6 mb-3'>
+            {% if smartlabExperimentEditable %}
+              <form method='post' action='experiments.php?mode=view&id={{ Entity.id }}'>
+                {{ App.Session.get('csrf')|csrf }}
+                <input type='hidden' name='smartlab_action' value='link_sample' />
+                <div class='smallgray text-uppercase mb-2'>写入样本事件</div>
+                <div class='form-group'>
+                  <label for='smartlab-sample-link'>选择样本</label>
+                  <select id='smartlab-sample-link' class='form-control' name='sample_id'>
+                    {% for sample in smartlabAvailableSamplesArr|default([]) %}
+                      <option value='{{ sample.id }}'>{{ sample.code }} · {{ sample.name }}{% if sample.project_code %} · {{ sample.project_code }}{% endif %}</option>
+                    {% else %}
+                      <option value=''>暂无可关联样本</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class='form-group'>
+                  <label for='smartlab-sample-event-type'>事件类型</label>
+                  <select id='smartlab-sample-event-type' class='form-control' name='sample_event_type'>
+                    <option value='used_in_experiment'>实验使用</option>
+                    <option value='aliquoted'>实验分装</option>
+                    <option value='consumed'>实验消耗</option>
+                  </select>
+                </div>
+                <div class='form-group'>
+                  <label for='smartlab-sample-note'>事件说明</label>
+                  <textarea id='smartlab-sample-note' class='form-control' name='sample_note' rows='3' placeholder='填写样本在本次实验中的用途、处理动作或异常说明。'></textarea>
+                </div>
+                <button class='btn btn-primary' type='submit' {% if not smartlabAvailableSamplesArr|default([]) %}disabled{% endif %}>关联样本并记录事件</button>
+              </form>
+            {% else %}
+              <div class='smallgray text-uppercase mb-2'>样本事件登记</div>
+              <p class='smallgray mb-0'>助理端和导师端查看样本关联结果，不在实验页补写样本事件。</p>
+            {% endif %}
+          </div>
+	        </div>
+
+        <hr>
+
+        <div class='row'>
+          {% if not smartlabIsStudentView %}
+            <div class='col-lg-6 mb-3'>
+              <div class='smallgray text-uppercase mb-2'>本次使用记录</div>
+              {% set usageTypeLabels = {
+                'reagent': '试剂',
+                'antibody': '抗体',
+                'primer': '引物',
+                'kit': '试剂盒',
+                'consumable': '耗材',
+                'sample': '样本',
+                'instrument': '仪器',
+                'other': '其他'
+              } %}
+              <div class='list-group list-group-flush'>
+                {% for lot in smartlabLotsArr|default([]) %}
+                  <div class='list-group-item px-0'>
+                    <div class='d-flex justify-content-between align-items-start flex-wrap'>
+                      <div class='font-weight-bold mr-2'>
+                        {{ lot.material_label ?: ((lot.material_code ? lot.material_code ~ ' · ' : '') ~ lot.material_name) }}
+                      </div>
+                      <span class='smallgray'>{{ lot.usage_source == 'inventory' ? '从库存带入' : '手动填写' }}</span>
+                    </div>
+                    <div class='smallgray'>
+                      {{ usageTypeLabels[lot.usage_type]|default('其他') }}
+                      {% if lot.quantity %} · 本次用量 {{ lot.quantity }} {{ lot.unit ?: '' }}{% endif %}
+                      {% if lot.purpose %} · 用途 {{ lot.purpose }}{% endif %}
+                    </div>
+                    <div class='smallgray'>
+                      {{ lot.occurred_at|date('Y-m-d H:i') }}
+                      {% if lot.material_brand %}
+                        · 品牌/厂家 {{ lot.material_brand }}
+                      {% endif %}
+                      {% if lot.catalog_no %}
+                        · 货号 {{ lot.catalog_no }}
+                      {% endif %}
+                      {% if lot.lot_no %}
+                        · 批号 {{ lot.lot_no }}
+                      {% endif %}
+                      {% if lot.location_label %}
+                        · 位置 {{ lot.location_label }}
+                      {% endif %}
+                      {% if lot.item_id %}
+                        · <a href='database.php?mode=view&id={{ lot.item_id }}'>{{ lot.item_title ?: '库存来源' }}</a>
+                      {% endif %}
+                    </div>
+                    {% if lot.note %}
+                      <div class='smallgray mt-1'>备注：{{ lot.note }}</div>
+                    {% endif %}
+                  </div>
+                {% else %}
+                  <div class='smallgray'>当前实验还没有本次使用记录。</div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+
+          <div class='{{ smartlabIsStudentView ? 'col-lg-12' : 'col-lg-6' }} mb-3'>
+            <div class='smallgray text-uppercase mb-2'>自动材料清单</div>
+            <div class='list-group list-group-flush'>
+              {% for item in smartlabAssayPackArr.workflow.required_materials|default([]) %}
+                <div class='list-group-item px-0 py-2'>
+                  <div class='d-flex justify-content-between align-items-start'>
+                    <span class='font-weight-bold'>{{ item.label }}</span>
+                    <span class='smallgray text-right'>
+                      {{ item.value ?: '待补齐' }}
+                      {% if item.inventory_label %}
+                        <br><span class='badge badge-light'>{{ item.inventory_label }}</span>
+                      {% endif %}
+                    </span>
+                  </div>
+                </div>
+              {% else %}
+                <div class='smallgray'>保存结构化记录后会按样本、试剂、抗体和仪器字段自动汇总。</div>
+              {% endfor %}
+            </div>
+            <div class='smallgray mt-2'>本清单由上方样本批次、一抗、二抗等字段自动生成，不再手动选择耗材。</div>
+          </div>
+        </div>
+	      </div>
+	    </div>
+	  {% endif %}
+
+  {% if Entity.entityType.value == 'items' %}
+    <div class='card border-0 shadow-sm my-3'>
+      <div class='card-body'>
+        <div class='smallgray text-uppercase mb-1'>Resource context</div>
+        <h3 class='mb-3'>{{ smartlabCanManageProjects ? '项目与库存上下文' : '资源上下文与库存总览' }}</h3>
+
+        <div class='mb-3'>
+          <div class='smallgray text-uppercase mb-2'>所属项目</div>
+          <div class='d-flex flex-wrap'>
+            {% for project in smartlabProjectsArr|default([]) %}
+              {% if smartlabCanManageProjects %}
+                <form method='post' action='database.php?mode=view&id={{ Entity.id }}' class='mr-2 mb-2'>
+                  {{ App.Session.get('csrf')|csrf }}
+                  <input type='hidden' name='smartlab_action' value='unlink_project' />
+                  <input type='hidden' name='link_id' value='{{ project.link_id }}' />
+                  <button type='submit' class='btn btn-outline-secondary btn-sm'>{{ project.code }} · {{ project.name }} <span class='ml-1'>移除</span></button>
+                </form>
+              {% else %}
+                <span class='badge badge-light mr-2 mb-2'>{{ project.code }} · {{ project.name }}</span>
+              {% endif %}
+            {% else %}
+              <span class='smallgray'>当前资源尚未挂到项目。</span>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class='row'>
+          {% if smartlabCanManageProjects %}
+          <div class='col-lg-6 mb-3'>
+            <form method='post' action='database.php?mode=view&id={{ Entity.id }}'>
+              {{ App.Session.get('csrf')|csrf }}
+              <input type='hidden' name='smartlab_action' value='link_project' />
+              <label class='smallgray text-uppercase' for='smartlab-item-project-link'>加入项目</label>
+              <div class='input-group'>
+                <select id='smartlab-item-project-link' class='form-control' name='project_id'>
+                  {% for project in smartlabAvailableProjectsArr|default([]) %}
+                    <option value='{{ project.id }}'>{{ project.code }} · {{ project.name }}</option>
+                  {% else %}
+                    <option value=''>暂无可加入项目</option>
+                  {% endfor %}
+                </select>
+                <div class='input-group-append'>
+                  <button class='btn btn-primary' type='submit' {% if not smartlabAvailableProjectsArr|default([]) %}disabled{% endif %}>加入项目</button>
+                </div>
+              </div>
+            </form>
+          </div>
+          {% endif %}
+          <div class='col-lg-6 mb-3'>
+            <div class='smallgray text-uppercase mb-2'>库存摘要</div>
+            <div class='d-flex flex-wrap'>
+              <span class='badge badge-light mr-2 mb-2'>库存位置 {{ smartlabItemStorageSummary.container_count ?: 0 }}</span>
+              <span class='badge badge-light mr-2 mb-2'>总量 {{ smartlabItemStorageSummary.total_qty ?: 0 }}</span>
+              <span class='badge {{ smartlabItemStorageSummary.has_low_stock ? 'badge-warning' : 'badge-dark' }} mr-2 mb-2'>
+                {{ smartlabItemStorageSummary.has_low_stock ? '低库存预警' : '库存正常' }}
+              </span>
+            </div>
+            <div class='smallgray'>{{ smartlabCanManageProjects ? '资源详情页现在开始承担项目归属和库存风险判断，而不只是静态资料页。' : '当前账号查看资源所属项目与库存风险，不在这里调整项目归属。' }}</div>
+          </div>
+        </div>
+
+        <div>
+          <div class='smallgray text-uppercase mb-2'>关联实验</div>
+          <div class='list-group list-group-flush'>
+            {% for experiment in smartlabItemExperimentsArr|default([]) %}
+              <div class='list-group-item px-0'>
+                <div class='font-weight-bold'>
+                  <a href='experiments.php?mode=view&id={{ experiment.id }}'>#{{ experiment.id }} · {{ experiment.title ?: '未命名实验' }}</a>
+                </div>
+                <div class='smallgray'>
+                  开始时间 {{ experiment.date|date('Y-m-d') }} · 最后更新 {{ experiment.modified_at|date('Y-m-d H:i') }}
+                </div>
+                <div class='smallgray'>
+                  {% if experiment.project_code %}
+                    <a href='projects.php?id={{ experiment.project_id }}'>{{ experiment.project_code }} · {{ experiment.project_name }}</a>
+                  {% else %}
+                    尚未进入项目上下文
+                  {% endif %}
+                </div>
+              </div>
+            {% else %}
+              <div class='smallgray'>当前资源还没有回连到实验记录。</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {# TAGS #}
+  <div class='d-flex mb-2 align-items-center'>
+    {% if Entity.entityData.tags|length > 0 %}
+      <div class='edit-mode-label'>
+        <i class='fas fa-tags mr-1'></i>{{ 'Tags'|trans }}
+      </div>
+      <span class='tags mathjax-ignore d-flex-inline flex-wrap'>
+        {% for tag in Entity.Tags.readAll() %}
+        <a class='tag btn {{- tag.is_favorite ? ' favorite' }}' href='?mode=show&amp;tags%5B%5D={{ tag.tag|url_encode }}' aria-label='{{ tag.tag }}'>{{ tag.tag }}</a>
+        {% endfor %}
+      </span>
+    {% endif %}
+  </div>
+
+  <hr>
+
+  {# SHOW EVENTS #}
+  {% if Entity.entityData.type == 'items' and Entity.entityData.is_bookable == 1 %}
+    {% if Entity.entityData.events_start %}
+      <div class='d-flex align-content-center'>
+        <div>
+          <i class='far fa-fw fa-calendar-alt'></i>
+          {% set splitItemids = Entity.entityData.events_start_itemid|split('|') %}
+          {% for event in Entity.entityData.events_start|split('|') %}
+            <a href='scheduler.php?items[]={{ splitItemids[loop.index - 1] }}&amp;start={{ event|url_encode }}' class='mx-1 btn btn-neutral relative-moment'  title='{{ event|date('Y-m-d H:i:s') }}' aria-label='{{ event|date('Y-m-d H:i:s') }}'></a>
+          {% endfor %}
+        </div>
+      </div>
+      <hr>
+    {% endif %}
+  {% endif %}
+
+  {# SHOW NEXT STEP #}
+  {% set next_step = Entity.entityData.next_step %}
+  {% if next_step|length > 0 %}
+      {% set nextStepsArr = next_step|split('|') %}
+      {% set next = nextStepsArr|first %}
+      <p>
+      <span class='next-step-text'>{{ 'Next step'|trans }}:</span> <span class='color-strong'>{{ next }}</span>
+      </p>
+  {% endif %}
+
+  {# BODY (show only if not empty) #}
+  {% set body = Entity.entityData.body_html %}
+  {% if body != '' %}
+      <div {% if Entity.entityData.hide_main_text %}hidden='hidden'{% endif %}>
+        <h3 data-action='toggle-next' data-opened-icon='fa-caret-down' data-closed-icon='fa-caret-right' class='d-inline togglable-section-title' tabindex='0' role='button' aria-expanded='true' aria-controls='body_view'><i class='fas fa-caret-down fa-fw mr-2'></i>{{ 'Main text'|trans }}</h3>
+        <div id='body_view' class='pt-2 ml-3 overflow-auto' data-save-hidden='body_view'>{{ body|raw }}</div>
+        <hr>
+      </div>
+  {% endif %}
+
+</section>
+
+<section id='extraFieldsSection'>
+{# METADATA view #}
+{% if Entity.entityData.metadata %}
+  <h3 title='{{ 'Toggle visibility'|trans }}' data-action='toggle-next' data-opened-icon='fa-caret-down' data-closed-icon='fa-caret-right' class='d-inline togglable-section-title' tabindex='0' role='button' aria-expanded='true' aria-controls='extraFieldsDiv'><i class='fas fa-caret-down fa-fw mr-2'></i>{{ 'Extra fields'|trans }}</h3>
+  <div class='mt-2 col-md-8' id='extraFieldsDiv' data-save-hidden='extraFieldsDiv'>
+    {{ Entity.entityData.metadata|formatMetadata }}
+  </div>
+  <hr>
+{% endif %}
+</section>
+
+{% if Entity.entityData.uploads or mode == 'edit' or Entity.entityType.value == 'experiments' %}
+  {% include 'uploads.html' %}
+{% endif %}
+
+{% include 'steps-view.html' %}
+
+{# we only show this section in view mode if there are at least one link #}
+{% if Entity.entityData.experiments_links or Entity.entityData.items_links or Entity.entityData.compounds_links or Entity.entityData.related_experiments_links or Entity.entityData.related_items_links %}
+  {% include 'links.html' %}
+{% endif %}
+
+{# same for storage #}
+{% if Entity.entityData.containers %}
+  {% include 'storage-view-edit.html' %}
+{% endif %}
+
+{# PERMISSIONS #}
+<h3 title='{{ 'Toggle visibility'|trans }}' data-action='toggle-next' data-opened-icon='fa-caret-down' data-closed-icon='fa-caret-right' class='d-inline togglable-section-title' tabindex='0' role='button' aria-expanded='true' aria-controls='permissionsDiv'><i class='fas fa-caret-down fa-fw mr-2'></i>{{ 'Permissions'|trans }}</h3>
+<div class='mt-2 ml-3' id='permissionsDiv' data-save-hidden='permissionsDiv'>
+  {% include('edit-permissions.html') %}
+  {% include 'view-edit-target-permissions.html' %}
+</div>
+<hr>
+
+
+{% if App.Session.get('is_auth') and not App.Session.has('is_anon') %}
+  <h3 title='{{ 'Toggle visibility'|trans }}' data-action='toggle-next' data-opened-icon='fa-caret-down' data-closed-icon='fa-caret-right' class='d-inline togglable-section-title' tabindex='0' role='button' aria-expanded='true' aria-controls='commentsDiv'><i class='fas fa-caret-down fa-fw mr-2'></i>{{ 'Comments'|trans }} (<span id='commentsCount'>{{ Entity.entityData.comments|length }}</span>)</h3>
+  <div class='mt-2' id='commentsDiv' data-count-for='commentsCount' data-save-hidden='commentsDiv'>
+      {% for comment in Entity.entityData.comments %}
+        <div class='box countable'>
+          <div class='comment-header text-muted p-2'>
+            {{ comment.fullname }} {{ 'commented'|trans }}
+            <span title='{{ comment.created_at }}' class='relative-moment'></span>
+            {% if comment.created_at != comment.modified_at %}
+              ({{ 'edited'|trans }} <span title='{{ comment.modified_at }}' class='relative-moment'></span>)
+            {% endif %}
+            {% if comment.userid == Entity.Users.userData.userid and comment.immutable == 0 %}
+              <button type='button' class='btn float-right lh-normal border-0 m-0 p-2 my-n2 hl-hover-gray' data-action='destroy-comment' data-id='{{ comment.id }}' title='{{ 'Delete'|trans }}' aria-label='{{ 'Delete'|trans }}'>
+                <i class='fas fa-fw fa-trash-alt fa-lg'></i>
+              </button>
+            {% endif %}
+          </div>
+          {# the comment itself is only editable by the owner #}
+          <p class='comment m-2 p-2 {{ comment.userid == Entity.Users.userData.userid and comment.immutable == 0 ? "editable hl-hover" }}' data-id='{{ comment.id }}'>{{ comment.comment|nl2br }}</p>
+        </div>
+      {% endfor %}
+
+      {# CREATE COMMENT INPUT #}
+      <div class='input-group my-1 rounded'>
+        <textarea id='commentsCreateArea' class='form-control p-2 brr-none' autocomplete='off' placeholder='{{ 'Add a comment'|trans }}' aria-label='Comment area'></textarea>
+        <div class='input-group-append'>
+          <button class='btn btn-primary' aria-label='{{ 'Add a comment'|trans }}' type='button' data-action='create-comment'><i class='fas fa-paper-plane text-white'></i></button>
+        </div>
+      </div>
+    </div>
+{% endif %}
+{# STATIC INFO #}
+<hr>
+<div class='d-flex flex-column align-items-end'>
+  {# SHOW LAST MOD #}
+  <div>{{ 'Last modified on %s'|trans|format(Entity.entityData.modified_at) }}</div>
+  {# eLabID: add an if because templates don't have one #}
+  {% if Entity.entityData.elabid %}
+    <div class='elabid'>LabSmart ID: {{ Entity.entityData.elabid }}</div>
+  {% endif %}
+</div>
+
+{% if Entity.entityData.state == enum('Elabftw\\Enums\\State').Deleted.value %}
+  <div class='entity-deleted-overlay'>
+    <p>{{ 'This entry has been deleted.'|trans }}</p>
+    <button data-action='restore' type='button' class='btn btn-primary mb-2' data-id='{{ Entity.entityData.id }}'>{{ 'Restore entry'|trans }}</button>
+    {% include 'back-to-previous.html' with {'type': 'btn'} %}
+  </div>
+{% endif %}
+
+<div id='info'
+    data-page='view'
+    data-type='{{ Entity.entityType.value }}'
+    data-id='{{ Entity.id }}'
+    data-team='{{ App.Users.userData.team }}'
+>
+</div>
+
+{% if Entity.entityType.value == 'experiments' %}
+  {# smartlab-usage-record.js merged into smartlab-usage.js (loaded above) #}
+  <script defer src='/assets/smartlab-image-analysis.js?v={{ v }}-wb-paired-signals-20260612-2'></script>
+  <script defer src='/assets/smartlab-step-router.js?v={{ v }}-step-router-4'></script>
+{% endif %}
+
+{% endblock body %}

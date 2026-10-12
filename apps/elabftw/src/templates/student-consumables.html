@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class='row mb-4'>
+  <div class='col-12'>
+    <div class='d-flex justify-content-between align-items-start flex-wrap'>
+      <div class='mr-3 mb-3'>
+        <div class='smallgray text-uppercase'>LabSmart Student</div>
+        <h2 class='mb-2'>我的耗材</h2>
+        <p class='mb-0'>这里只显示你本人从库存领用或申请过的物料，方便回看，不影响课题组库存数量。</p>
+      </div>
+      <div class='d-flex flex-wrap'>
+        <a href='student-inventory.php' class='btn btn-outline-secondary btn-sm mr-2 mb-2'>课题组库存</a>
+        <a href='dashboard.php' class='btn btn-outline-secondary btn-sm mb-2'>返回工作台</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class='row mb-4'>
+  <div class='col-md-4 col-sm-6 mb-3 mb-md-0'>
+    <div class='card h-100'>
+      <div class='card-body'>
+        <div class='smallgray text-uppercase'>我的耗材</div>
+        <div class='display-4 mb-2'>{{ smartlabMyConsumablesArr|length }}</div>
+        <div class='smallgray'>由最近领用或申请自动汇总</div>
+      </div>
+    </div>
+  </div>
+  <div class='col-md-4 col-sm-6 mb-3 mb-md-0'>
+    <div class='card h-100'>
+      <div class='card-body'>
+        <div class='smallgray text-uppercase'>已申请</div>
+        <div class='display-4 mb-2'>{{ smartlabMyConsumablesArr|filter(item => item.txn_type == 'REQUESTED')|length }}</div>
+        <div class='smallgray'>等待库存负责人处理</div>
+      </div>
+    </div>
+  </div>
+  <div class='col-md-4 col-sm-6'>
+    <div class='card h-100'>
+      <div class='card-body'>
+        <div class='smallgray text-uppercase'>已领用</div>
+        <div class='display-4 mb-2'>{{ smartlabMyConsumablesArr|filter(item => item.txn_type == 'OUTBOUND')|length }}</div>
+        <div class='smallgray'>实际出库记录</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class='card mb-4'>
+  <div class='card-body'>
+    <form action='student-consumables.php' method='get' class='mb-3'>
+      <div class='d-flex justify-content-between align-items-end flex-wrap mb-2'>
+        <label for='student-consumables-search' class='font-weight-bold mb-0'>耗材搜索</label>
+        {% if smartlabMyConsumablesSearch %}
+          <a href='student-consumables.php' class='smallgray'>清除筛选</a>
+        {% endif %}
+      </div>
+      <div class='input-group'>
+        <input id='student-consumables-search' class='form-control' type='search' name='q' value='{{ smartlabMyConsumablesSearch }}' placeholder='按名称、品牌、货号、批号、位置或用途搜索' />
+        <div class='input-group-append'>
+          <button type='submit' class='btn btn-primary'>
+            <i class='fas fa-magnifying-glass mr-1'></i>查询
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <div class='table-responsive'>
+      <table class='table table-hover mb-0'>
+        <thead>
+          <tr>
+            <th>名称</th>
+            <th>类型</th>
+            <th>批号</th>
+            <th>数量</th>
+            <th>位置</th>
+            <th>关联实验</th>
+            <th>状态</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in smartlabMyConsumablesArr %}
+            <tr>
+              <td>
+                <div class='font-weight-bold'>{{ item.material_name }}</div>
+                <div class='smallgray'>
+                  {{ item.material_code }}
+                  {% if item.material_brand %} · {{ item.material_brand }}{% endif %}
+                  {% if item.catalog_no %} · {{ item.catalog_no }}{% endif %}
+                  {% if item.specification %} · {{ item.specification }}{% endif %}
+                </div>
+              </td>
+              <td>
+                <span class='badge badge-light'>
+                  {{ item.txn_type == 'REQUESTED' ? '申请' : '领用' }}
+                </span>
+              </td>
+              <td>{{ item.lot_no ?: '未登记' }}</td>
+              <td>{{ item.quantity is not null ? item.quantity ~ ' ' ~ item.unit : '未登记' }}</td>
+              <td>{{ item.location_label ?: '未登记' }}</td>
+              <td>
+                {% if item.experiment_id %}
+                  <a href='experiments.php?id={{ item.experiment_id }}'>{{ item.experiment_title ?: ('#' ~ item.experiment_id) }}</a>
+                {% else %}
+                  <span class='smallgray'>未关联</span>
+                {% endif %}
+              </td>
+              <td>
+                <span title='{{ item.occurred_at }}' class='relative-moment'></span>
+                {% if item.note %}
+                  <div class='smallgray mt-1'>{{ item.note }}</div>
+                {% endif %}
+              </td>
+              <td>
+                <form method='post' action='student-consumables.php' class='mb-0'>
+                  {{ App.Session.get('csrf')|csrf }}
+                  <input type='hidden' name='smartlab_action' value='hide_my_consumable' />
+                  <input type='hidden' name='transaction_id' value='{{ item.transaction_id }}' />
+                  <button type='submit' class='btn btn-outline-secondary btn-sm'>移除</button>
+                </form>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan='8'>
+                <div class='alert alert-info mb-0'>暂无我的耗材。去“课题组库存”提交领用申请后会自动出现在这里。</div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock body %}

@@ -1,0 +1,72 @@
+{#
+ # SmartLab experiment body template.
+ # Replaces buildExperimentBody() and buildRowsTable() in SmartlabPatentController.
+ #
+ # Variables:
+ #   type, projectCode, instrumentParams, note
+ #   sampleHeaders, sampleColumns
+ #   reagentHeaders, reagentColumns
+ #}
+<h2>SmartLab 实验记录</h2>
+<table><tbody>
+  <tr><th>实验类型</th><td>{{ type|default('-')|e }}</td></tr>
+  <tr><th>课题编号</th><td>{{ projectCode|default('-')|e }}</td></tr>
+  <tr><th>仪器参数</th><td>{{ instrumentParams|default('-')|nl2br }}</td></tr>
+</tbody></table>
+
+<h3>样本信息</h3>
+{% if sampleColumns is not empty and sampleMaxRows > 0 %}
+  <table><thead><tr>
+    {% for header in sampleHeaders %}
+      <th>{{ header|e }}</th>
+    {% endfor %}
+  </tr></thead><tbody>
+    {% for i in 0..(sampleMaxRows - 1) %}
+      {% set hasContent = false %}
+      {% for col in sampleColumns %}
+        {% if (col[i]|default(''))|trim != '' %}
+          {% set hasContent = true %}
+        {% endif %}
+      {% endfor %}
+      {% if hasContent %}
+        <tr>
+          {% for col in sampleColumns %}
+            <td>{{ col[i]|default('-')|e }}</td>
+          {% endfor %}
+        </tr>
+      {% endif %}
+    {% endfor %}
+  </tbody></table>
+{% else %}
+  <p>未填写。</p>
+{% endif %}
+
+<h3>试剂耗材</h3>
+{% if reagentColumns is not empty and reagentMaxRows > 0 %}
+  <table><thead><tr>
+    {% for header in reagentHeaders %}
+      <th>{{ header|e }}</th>
+    {% endfor %}
+  </tr></thead><tbody>
+    {% for i in 0..(reagentMaxRows - 1) %}
+      {% set hasContent = false %}
+      {% for col in reagentColumns %}
+        {% if (col[i]|default(''))|trim != '' %}
+          {% set hasContent = true %}
+        {% endif %}
+      {% endfor %}
+      {% if hasContent %}
+        <tr>
+          {% for col in reagentColumns %}
+            <td>{{ col[i]|default('-')|e }}</td>
+          {% endfor %}
+        </tr>
+      {% endif %}
+    {% endfor %}
+  </tbody></table>
+{% else %}
+  <p>未填写。</p>
+{% endif %}
+
+<h3>备注</h3>
+<p>{{ note|default('无')|nl2br }}</p>

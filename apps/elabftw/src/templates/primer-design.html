@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class='d-flex justify-content-between align-items-start flex-wrap mb-4'>
+  <div class='mr-3 mb-3'>
+    <div class='smallgray text-uppercase'>LabSmart Tools</div>
+    <h2 class='mb-2'>引物设计</h2>
+    <p class='mb-0'>本工具基于开源 Primer3 算法生成候选引物，仅供实验设计参考，正式实验前建议进行特异性验证。</p>
+    <p class='smallgray mt-2 mb-0'>LabSmart Box 默认在本地运行，不会把用户序列上传到云端。</p>
+  </div>
+  <a href='student-tools.php' class='btn btn-outline-secondary btn-sm'>返回科研工具</a>
+</div>
+
+<div class='row'>
+  <div class='col-lg-7 mb-4'>
+    <div class='card border-0 shadow-sm'>
+      <div class='card-body'>
+        <h3 class='h5 mb-3'>输入序列与参数</h3>
+        <form method='post' action='primer-design.php'>
+          {{ App.Session.get('csrf')|csrf }}
+          <input type='hidden' name='smartlab_action' value='design_primers' />
+          <div class='row'>
+            <div class='col-md-8 mb-3'>
+              <label for='primer-design-title'>记录标题</label>
+              <input id='primer-design-title' class='form-control' name='title' value='{{ primerDesignInput.title }}' placeholder='例如 BDNF qPCR 引物设计' />
+            </div>
+            <div class='col-md-4 mb-3'>
+              <label for='primer-design-type'>实验类型</label>
+              <select id='primer-design-type' class='form-control' name='experiment_type'>
+                <option value='qpcr' {{ primerDesignInput.experiment_type == 'qpcr' ? 'selected' }}>qPCR</option>
+                <option value='pcr' {{ primerDesignInput.experiment_type == 'pcr' ? 'selected' }}>普通 PCR</option>
+              </select>
+            </div>
+            <div class='col-12 mb-3'>
+              <label for='primer-design-sequence'>目标 DNA 序列</label>
+              <textarea id='primer-design-sequence' class='form-control font-monospace' name='sequence' rows='9' required placeholder='粘贴目标 DNA 序列，支持换行和 FASTA 文本中的碱基字符'>{{ primerDesignInput.sequence }}</textarea>
+            </div>
+            <div class='col-md-4 mb-3'>
+              <label for='primer-product-range'>产物长度范围</label>
+              <input id='primer-product-range' class='form-control' name='product_size_range' value='{{ primerDesignInput.product_size_range }}' placeholder='80-200' />
+            </div>
+            <div class='col-md-4 mb-3'>
+              <label for='primer-return-count'>返回候选数量</label>
+              <input id='primer-return-count' class='form-control' type='number' min='1' max='20' name='num_return' value='{{ primerDesignInput.num_return }}' />
+            </div>
+            <div class='col-md-4 mb-3'>
+              <label for='primer-linked-experiment'>关联 qPCR 实验</label>
+              <select id='primer-linked-experiment' class='form-control' name='experiment_id'>
+                <option value=''>暂不关联</option>
+                {% for experiment in primerDesignQpcrExperimentsArr %}
+                  <option value='{{ experiment.id }}' {{ primerDesignInput.experiment_id == experiment.id ? 'selected' }}>#{{ experiment.id }} · {{ experiment.title ?: '未命名实验' }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class='row'>
+            <div class='col-md-4 mb-3'><label for='primer-size-min'>引物长度 Min</label><input id='primer-size-min' class='form-control' type='number' name='primer_size_min' value='{{ primerDesignInput.primer_size_min }}' /></div>
+            <div class='col-md-4 mb-3'><label for='primer-size-opt'>引物长度 Opt</label><input id='primer-size-opt' class='form-control' type='number' name='primer_size_opt' value='{{ primerDesignInput.primer_size_opt }}' /></div>
+            <div class='col-md-4 mb-3'><label for='primer-size-max'>引物长度 Max</label><input id='primer-size-max' class='form-control' type='number' name='primer_size_max' value='{{ primerDesignInput.primer_size_max }}' /></div>
+            <div class='col-md-4 mb-3'><label for='primer-tm-min'>Tm Min</label><input id='primer-tm-min' class='form-control' type='number' step='0.1' name='tm_min' value='{{ primerDesignInput.tm_min }}' /></div>
+            <div class='col-md-4 mb-3'><label for='primer-tm-opt'>Tm Opt</label><input id='primer-tm-opt' class='form-control' type='number' step='0.1' name='tm_opt' value='{{ primerDesignInput.tm_opt }}' /></div>
+            <div class='col-md-4 mb-3'><label for='primer-tm-max'>Tm Max</label><input id='primer-tm-max' class='form-control' type='number' step='0.1' name='tm_max' value='{{ primerDesignInput.tm_max }}' /></div>
+            <div class='col-md-6 mb-3'><label for='primer-gc-min'>GC% Min</label><input id='primer-gc-min' class='form-control' type='number' step='0.1' name='gc_min' value='{{ primerDesignInput.gc_min }}' /></div>
+            <div class='col-md-6 mb-3'><label for='primer-gc-max'>GC% Max</label><input id='primer-gc-max' class='form-control' type='number' step='0.1' name='gc_max' value='{{ primerDesignInput.gc_max }}' /></div>
+          </div>
+          <button type='submit' class='btn btn-primary'>生成候选引物</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class='col-lg-5 mb-4'>
+    <div class='card border-0 shadow-sm h-100'>
+      <div class='card-body'>
+        <h3 class='h5 mb-3'>设计记录</h3>
+        <div class='list-group list-group-flush'>
+          {% for record in primerDesignRecordsArr %}
+            <a href='primer-design.php?record_id={{ record.id }}' class='list-group-item px-0'>
+              <div class='font-weight-bold'>{{ record.title }}</div>
+              <div class='smallgray'>{{ record.experiment_type == 'pcr' ? 'PCR' : 'qPCR' }} · {{ record.sequence_length }} bp · {{ record.created_at|date('Y-m-d H:i') }}</div>
+              {% if record.experiment_id %}
+                <div class='smallgray'>关联实验 #{{ record.experiment_id }} · {{ record.experiment_title ?: '未命名实验' }}</div>
+              {% endif %}
+            </a>
+          {% else %}
+            <div class='smallgray'>暂无保存的引物设计记录。</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if primerDesignResult %}
+  <div class='card border-0 shadow-sm mb-4'>
+    <div class='card-body'>
+      <div class='d-flex justify-content-between align-items-start flex-wrap mb-3'>
+        <div class='mr-3'>
+          <h3 class='h5 mb-2'>候选引物结果</h3>
+          <div class='smallgray'>序列长度 {{ primerDesignResult.sequence_length }} bp · 返回 {{ primerDesignResult.pairs|length }} 对候选引物</div>
+        </div>
+        {% if primerDesignResult.pairs %}
+          <form method='post' action='primer-design.php' class='mb-2'>
+            {{ App.Session.get('csrf')|csrf }}
+            <input type='hidden' name='smartlab_action' value='save_record' />
+            <input type='hidden' name='title' value='{{ primerDesignInput.title|e('html_attr') }}' />
+            <input type='hidden' name='sequence' value='{{ primerDesignResult.sequence|e('html_attr') }}' />
+            <input type='hidden' name='experiment_id' value='{{ primerDesignInput.experiment_id }}' />
+            <input type='hidden' name='parameters_json' value='{{ primerDesignResult.parameters|json_encode|e('html_attr') }}' />
+            <input type='hidden' name='results_json' value='{{ primerDesignResult.pairs|json_encode|e('html_attr') }}' />
+            <button type='submit' class='btn btn-outline-primary btn-sm'>保存记录</button>
+          </form>
+        {% endif %}
+      </div>
+      {% include 'primer-design-results-table.html' with {'primerPairsArr': primerDesignResult.pairs} %}
+    </div>
+  </div>
+{% endif %}
+
+{% if primerDesignActiveRecord %}
+  <div class='card border-0 shadow-sm mb-4'>
+    <div class='card-body'>
+      <div class='d-flex justify-content-between align-items-start flex-wrap mb-3'>
+        <div class='mr-3'>
+          <h3 class='h5 mb-2'>已保存记录：{{ primerDesignActiveRecord.title }}</h3>
+          <div class='smallgray'>
+            {{ primerDesignActiveRecord.experiment_type == 'pcr' ? 'PCR' : 'qPCR' }} · {{ primerDesignActiveRecord.sequence_length }} bp · {{ primerDesignActiveRecord.created_at|date('Y-m-d H:i') }}
+            {% if primerDesignActiveRecord.experiment_id %}
+              · 关联实验 <a href='experiments.php?mode=view&amp;id={{ primerDesignActiveRecord.experiment_id }}'>#{{ primerDesignActiveRecord.experiment_id }} {{ primerDesignActiveRecord.experiment_title }}</a>
+            {% endif %}
+          </div>
+        </div>
+        <a class='btn btn-outline-primary btn-sm mb-2' href='primer-design.php?action=export&amp;record_id={{ primerDesignActiveRecord.id }}'>导出 Excel</a>
+      </div>
+      {% include 'primer-design-results-table.html' with {'primerPairsArr': primerDesignActiveRecord.results_arr} %}
+    </div>
+  </div>
+{% endif %}
+
+{% endblock body %}

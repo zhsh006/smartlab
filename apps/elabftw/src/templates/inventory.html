@@ -1,0 +1,676 @@
+{% extends 'base.html' %}
+
+{% block title %}
+<div class='d-flex align-items-center'>
+  <h1 id='pageTitle'>{{ pageTitle }}</h1>
+  <a class='ml-auto' href='/api/v2/reports?scope=inventory&format=csv'>
+    <button class='btn btn-secondary'><i class='fas fa-file-export mr-1'></i>{{ 'Export'|trans }}</button>
+  </a>
+</div>
+<hr>
+{% endblock title %}
+
+{% block body %}
+  {% set smartlabInventoryEditable = smartlabCanManageInventory %}
+  {% set smartlabMaterialCategoryLabels = {
+    'reagent': '试剂',
+    'antibody': '抗体',
+    'primer': '引物',
+    'kit': '试剂盒',
+    'consumable': '耗材',
+    'sample': '样本',
+    'key_material': '关键材料',
+    'other': '其他'
+  } %}
+  {% set smartlabTxnLabels = {
+    'INBOUND': '入库',
+    'OUTBOUND': '领用',
+    'ADJUSTMENT': '盘点调整',
+    'SCRAP': '报废',
+    'REQUESTED': '领用申请'
+  } %}
+
+  <style>
+    .smartlab-inventory-workbench {
+      --inventory-accent: #0f6fff;
+      --inventory-green: #16a34a;
+      --inventory-amber: #d97706;
+      --inventory-red: #dc2626;
+      --inventory-ink: #172033;
+      --inventory-muted: #64748b;
+      --inventory-line: #dfe7f2;
+    }
+    .smartlab-inventory-workbench .inventory-hero {
+      align-items: center;
+      background: #fff;
+      border: 1px solid var(--inventory-line);
+      border-radius: 8px;
+      display: flex;
+      gap: 18px;
+      justify-content: space-between;
+      padding: 20px;
+    }
+    .smartlab-inventory-workbench .inventory-hero h2 {
+      font-size: 24px;
+      font-weight: 800;
+      margin: 0 0 6px;
+    }
+    .smartlab-inventory-workbench .inventory-toolbar {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    .smartlab-inventory-workbench .metric-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .smartlab-inventory-workbench .metric-tile {
+      background: #fff;
+      border: 1px solid var(--inventory-line);
+      border-radius: 8px;
+      min-height: 112px;
+      padding: 16px;
+    }
+    .smartlab-inventory-workbench .metric-label {
+      color: var(--inventory-muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .smartlab-inventory-workbench .metric-value {
+      color: var(--inventory-ink);
+      font-size: 34px;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-top: 10px;
+    }
+    .smartlab-inventory-workbench .inventory-panel {
+      background: #fff;
+      border: 1px solid var(--inventory-line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .smartlab-inventory-workbench .panel-title {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .smartlab-inventory-workbench .panel-title h3 {
+      font-size: 18px;
+      font-weight: 800;
+      margin: 0;
+    }
+    .smartlab-inventory-workbench .type-pills {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-bottom: 14px;
+    }
+    .smartlab-inventory-workbench .type-pill {
+      align-items: center;
+      background: #f8fafc;
+      border: 1px solid #dce6f3;
+      border-radius: 8px;
+      color: #233044;
+      display: flex;
+      gap: 8px;
+      min-height: 42px;
+      padding: 9px 11px;
+      text-align: left;
+    }
+    .smartlab-inventory-workbench .type-pill.active,
+    .smartlab-inventory-workbench .type-pill:hover {
+      background: #edf5ff;
+      border-color: #9ec2ff;
+      color: var(--inventory-accent);
+      text-decoration: none;
+    }
+    .smartlab-inventory-workbench .inventory-filterbar {
+      align-items: center;
+      background: #fff;
+      border: 1px solid var(--inventory-line);
+      border-radius: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: space-between;
+      padding: 12px;
+    }
+    .smartlab-inventory-workbench .segmented-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .smartlab-inventory-workbench .segmented-controls .btn {
+      border-radius: 8px;
+      min-width: 72px;
+    }
+    .smartlab-inventory-workbench .segmented-controls .active {
+      background: var(--inventory-accent);
+      border-color: var(--inventory-accent);
+      color: #fff;
+    }
+    .smartlab-inventory-workbench .risk-list {
+      display: grid;
+      gap: 10px;
+    }
+    .smartlab-inventory-workbench .risk-item {
+      border: 1px solid #e5edf7;
+      border-left: 4px solid var(--inventory-amber);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .smartlab-inventory-workbench .risk-item.danger {
+      border-left-color: var(--inventory-red);
+    }
+    .smartlab-inventory-workbench .status-dot {
+      border-radius: 999px;
+      display: inline-block;
+      height: 9px;
+      margin-right: 6px;
+      width: 9px;
+    }
+    .smartlab-inventory-workbench .status-ok { background: var(--inventory-green); }
+    .smartlab-inventory-workbench .status-warn { background: var(--inventory-amber); }
+    .smartlab-inventory-workbench .status-danger { background: var(--inventory-red); }
+    .smartlab-inventory-workbench .inventory-table {
+      min-width: 1120px;
+    }
+    .smartlab-inventory-workbench .inventory-table th {
+      font-size: 12px;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+    .smartlab-inventory-workbench .inventory-table td {
+      vertical-align: top;
+    }
+    .smartlab-inventory-workbench .material-name {
+      color: #101828;
+      font-weight: 800;
+    }
+    .smartlab-inventory-workbench .material-meta {
+      color: var(--inventory-muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+    .smartlab-inventory-workbench .quantity-badge {
+      border-radius: 8px;
+      display: inline-block;
+      font-size: 14px;
+      font-weight: 800;
+      min-width: 86px;
+      padding: 8px 10px;
+      text-align: center;
+    }
+    .smartlab-inventory-workbench .quantity-ok {
+      background: #ecfdf3;
+      color: var(--inventory-green);
+    }
+    .smartlab-inventory-workbench .quantity-low {
+      background: #fff7ed;
+      color: var(--inventory-amber);
+    }
+    .smartlab-inventory-workbench .transaction-row {
+      background: #f8fafc;
+    }
+    .smartlab-inventory-workbench .transaction-form {
+      border: 1px solid #dfe7f2;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .smartlab-inventory-workbench .empty-state {
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      border-radius: 8px;
+      color: var(--inventory-muted);
+      padding: 18px;
+      text-align: center;
+    }
+    @media (max-width: 1200px) {
+      .smartlab-inventory-workbench .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .smartlab-inventory-workbench .type-pills {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 768px) {
+      .smartlab-inventory-workbench .inventory-hero {
+        align-items: stretch;
+        flex-direction: column;
+      }
+      .smartlab-inventory-workbench .inventory-toolbar {
+        justify-content: flex-start;
+      }
+      .smartlab-inventory-workbench .metric-grid,
+      .smartlab-inventory-workbench .type-pills {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
+  <div class='smartlab-inventory-workbench'>
+    <div class='inventory-hero mb-3'>
+      <div>
+        <div class='smallgray text-uppercase mb-1'>SmartLab Inventory</div>
+        <h2>{{ smartlabIsAssistantView ? '库存与入库工作台' : '库存与耗材总览' }}</h2>
+        <div class='smallgray'>{{ smartlabIsAssistantView ? '试剂、耗材、样本批次统一维护。' : '批次余量、临期风险和实验消耗概况。' }}</div>
+      </div>
+      <div class='inventory-toolbar'>
+        <form method='get' action='inventory.php' class='input-group'>
+          <input class='form-control' name='q' id='storageSearchInput' placeholder='搜索名称、编码、批号、品牌、位置' value='{{ App.Request.query.getString('q') }}' />
+          <div class='input-group-append'>
+            <button class='btn btn-primary' type='submit' data-action='search-storage'><i class='fas fa-magnifying-glass mr-1'></i>搜索</button>
+          </div>
+        </form>
+        {% if smartlabInventoryEditable %}
+          <a href='#quickInboundPanel' class='btn btn-outline-primary'><i class='fas fa-plus mr-1'></i>入库</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class='metric-grid mb-3'>
+      <div class='metric-tile'>
+        <div class='metric-label'>物料主数据</div>
+        <div class='metric-value'>{{ smartlabLotSummary.material_count ?: 0 }}</div>
+        <div class='smallgray mt-2'>试剂、耗材、样本档案</div>
+      </div>
+      <div class='metric-tile'>
+        <div class='metric-label'>库存批次</div>
+        <div class='metric-value'>{{ smartlabLotSummary.lot_count ?: 0 }}</div>
+        <div class='smallgray mt-2'>可追踪 lot 数</div>
+      </div>
+      <div class='metric-tile'>
+        <div class='metric-label'>低库存</div>
+        <div class='metric-value text-warning'>{{ smartlabLotSummary.low_stock_lot_count ?: 0 }}</div>
+        <div class='smallgray mt-2'>数量小于等于 2</div>
+      </div>
+      <div class='metric-tile'>
+        <div class='metric-label'>30 天内到期</div>
+        <div class='metric-value text-danger'>{{ smartlabLotSummary.expiring_lot_count ?: 0 }}</div>
+        <div class='smallgray mt-2'>需要优先处理</div>
+      </div>
+    </div>
+
+    <div class='row mb-3'>
+      <div class='col-xl-8 mb-3 mb-xl-0'>
+        <div class='inventory-panel h-100' id='quickInboundPanel'>
+          <div class='panel-title'>
+            <h3>{{ smartlabInventoryEditable ? '快速入库' : '入库维护' }}</h3>
+            <span class='badge badge-light'>Inbound</span>
+          </div>
+          {% if smartlabInventoryEditable %}
+            <div class='type-pills' aria-label='入库类型'>
+              <button type='button' class='type-pill active' data-inventory-preset='reagent'><i class='fas fa-flask'></i><span>试剂</span></button>
+              <button type='button' class='type-pill' data-inventory-preset='consumable'><i class='fas fa-box'></i><span>耗材</span></button>
+              <button type='button' class='type-pill' data-inventory-preset='sample'><i class='fas fa-vial'></i><span>样本</span></button>
+              <button type='button' class='type-pill' data-inventory-preset='antibody'><i class='fas fa-droplet'></i><span>抗体/引物</span></button>
+            </div>
+            <form method='post' action='inventory.php' id='smartlabInboundForm'>
+              {{ App.Session.get('csrf')|csrf }}
+              <input type='hidden' name='smartlab_action' value='create_lot' />
+              <div class='form-row'>
+                <div class='form-group col-lg-3 col-md-6'>
+                  <label for='material-category'>类型</label>
+                  <select class='form-control' id='material-category' name='material_category'>
+                    {% for key, label in smartlabMaterialCategoryLabels %}
+                      <option value='{{ key }}'>{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class='form-group col-lg-3 col-md-6'>
+                  <label for='material-code'>编码</label>
+                  <input class='form-control' id='material-code' name='material_code' placeholder='MAT-RGT-0001' />
+                </div>
+                <div class='form-group col-lg-6'>
+                  <label for='material-name'>名称</label>
+                  <input class='form-control' id='material-name' name='material_name' placeholder='qPCR Mix / 枪头 / 样本管' />
+                </div>
+              </div>
+              <div class='form-row'>
+                <div class='form-group col-lg-3 col-md-6'>
+                  <label for='lot-no'>批号/样本批次</label>
+                  <input class='form-control' id='lot-no' name='lot_no' placeholder='LOT-202606-A' required />
+                </div>
+                <div class='form-group col-lg-2 col-md-6'>
+                  <label for='lot-qty'>数量</label>
+                  <input class='form-control' id='lot-qty' name='quantity' type='number' step='0.0001' min='0' placeholder='1' />
+                </div>
+                <div class='form-group col-lg-2 col-md-6'>
+                  <label for='material-unit'>单位</label>
+                  <input class='form-control' id='material-unit' name='material_unit' placeholder='盒/管/mL' />
+                </div>
+                <div class='form-group col-lg-2 col-md-6'>
+                  <label for='lot-exp'>有效期</label>
+                  <input class='form-control' id='lot-exp' name='expires_at' type='date' />
+                </div>
+                <div class='form-group col-lg-3'>
+                  <label for='lot-location'>位置</label>
+                  <input class='form-control' id='lot-location' name='location_label' placeholder='4F 冰箱 A-2 / -80 Box 3' />
+                </div>
+              </div>
+              <div class='form-row'>
+                <div class='form-group col-lg-3 col-md-6'>
+                  <label for='material-brand'>品牌/厂家</label>
+                  <input class='form-control' id='material-brand' name='material_brand' placeholder='Takara / Abcam / Corning' />
+                </div>
+                <div class='form-group col-lg-3 col-md-6'>
+                  <label for='material-catalog-no'>货号</label>
+                  <input class='form-control' id='material-catalog-no' name='material_catalog_no' placeholder='RR820A' />
+                </div>
+                <div class='form-group col-lg-3 col-md-6'>
+                  <label for='material-specification'>规格</label>
+                  <input class='form-control' id='material-specification' name='material_specification' placeholder='96 wells / 1000 uL / 100 ug' />
+                </div>
+                <div class='form-group col-lg-3 col-md-6'>
+                  <label for='material-package-size'>包装</label>
+                  <input class='form-control' id='material-package-size' name='material_package_size' placeholder='2 tubes / box' />
+                </div>
+              </div>
+              <div class='form-row align-items-end'>
+                <div class='form-group col-lg-8'>
+                  <label for='lot-item-id'>关联资源</label>
+                  <select class='form-control' id='lot-item-id' name='item_id'>
+                    <option value=''>不绑定现有资源</option>
+                    {% for item in smartlabAvailableItemsArr %}
+                      <option value='{{ item.id }}'>{{ item.custom_id ?: ('#' ~ item.id) }} · {{ item.title }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class='form-group col-lg-4'>
+                  <label for='lot-note'>备注</label>
+                  <input class='form-control' id='lot-note' name='note' placeholder='采购入库 / 分装 / 初始盘点' />
+                </div>
+              </div>
+              <button class='btn btn-primary' type='submit'><i class='fas fa-circle-plus mr-1'></i>保存入库</button>
+            </form>
+          {% else %}
+            <div class='empty-state'>导师端查看库存风险与批次状态。</div>
+          {% endif %}
+        </div>
+      </div>
+      <div class='col-xl-4'>
+        <div class='inventory-panel h-100'>
+          <div class='panel-title'>
+            <h3>风险批次</h3>
+            <span class='badge badge-light'>Risk</span>
+          </div>
+          <div class='risk-list'>
+            {% for lot in smartlabLotsArr|slice(0, 8) %}
+              {% set isLow = lot.quantity is null or lot.quantity <= 2 %}
+              {% set isExpiring = lot.expires_at and lot.expires_at|date('U') <= '+30 days'|date('U') %}
+              {% if isLow or isExpiring %}
+                <div class='risk-item {{ isLow ? 'danger' }}'>
+                  <div class='d-flex justify-content-between align-items-start'>
+                    <div class='mr-2'>
+                      <div class='font-weight-bold'>{{ lot.material_name }}</div>
+                      <div class='smallgray mt-1'>{{ lot.lot_no }} · {{ lot.location_label ?: '未设置位置' }}</div>
+                    </div>
+                    <span class='badge {{ isLow ? 'badge-danger' : 'badge-warning' }}'>{{ isLow ? '低库存' : '临期' }}</span>
+                  </div>
+                  <div class='smallgray mt-2'>余量 {{ lot.quantity ?: 0 }} {{ lot.unit ?: '' }}{% if lot.expires_at %} · {{ lot.expires_at|date('Y-m-d') }} 到期{% endif %}</div>
+                </div>
+              {% endif %}
+            {% else %}
+              <div class='empty-state'>暂无批次记录。</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class='inventory-filterbar mb-3'>
+      <div class='segmented-controls' data-filter-group='category'>
+        <button type='button' class='btn btn-outline-secondary btn-sm active' data-filter-category='all'>全部</button>
+        <button type='button' class='btn btn-outline-secondary btn-sm' data-filter-category='reagent'>试剂</button>
+        <button type='button' class='btn btn-outline-secondary btn-sm' data-filter-category='consumable'>耗材</button>
+        <button type='button' class='btn btn-outline-secondary btn-sm' data-filter-category='sample'>样本</button>
+        <button type='button' class='btn btn-outline-secondary btn-sm' data-filter-category='antibody'>抗体</button>
+      </div>
+      <div class='segmented-controls' data-filter-group='risk'>
+        <button type='button' class='btn btn-outline-secondary btn-sm active' data-filter-risk='all'>全部状态</button>
+        <button type='button' class='btn btn-outline-secondary btn-sm' data-filter-risk='low'>低库存</button>
+        <button type='button' class='btn btn-outline-secondary btn-sm' data-filter-risk='expiring'>临期</button>
+      </div>
+    </div>
+
+    <div class='inventory-panel mb-3'>
+      <div class='panel-title'>
+        <h3>库内批次清单</h3>
+        <span class='badge badge-light'>{{ smartlabLotsArr|length }} 条</span>
+      </div>
+      <div class='table-responsive'>
+        <table class='table table-hover inventory-table mb-0'>
+          <thead>
+            <tr>
+              <th>物料</th>
+              <th>类型</th>
+              <th>批号</th>
+              <th>库存</th>
+              <th>位置</th>
+              <th>有效期</th>
+              <th>最近流水</th>
+              <th class='text-right'>操作</th>
+            </tr>
+          </thead>
+          <tbody id='smartlabInventoryLotsBody'>
+            {% for lot in smartlabLotsArr %}
+              {% set lotCategory = lot.category ?: 'other' %}
+              {% set isLow = lot.quantity is null or lot.quantity <= 2 %}
+              {% set isExpiring = lot.expires_at and lot.expires_at|date('U') <= '+30 days'|date('U') %}
+              <tr class='inventory-lot-row'
+                  data-category='{{ lotCategory }}'
+                  data-low='{{ isLow ? '1' : '0' }}'
+                  data-expiring='{{ isExpiring ? '1' : '0' }}'>
+                <td>
+                  <div class='material-name'>
+                    {% if lot.item_id %}
+                      <a href='database.php?mode=view&id={{ lot.item_id }}'>{{ lot.material_name }}</a>
+                    {% else %}
+                      {{ lot.material_name }}
+                    {% endif %}
+                  </div>
+                  <div class='material-meta'>
+                    {{ lot.material_code }}
+                    {% if lot.brand %} · {{ lot.brand }}{% endif %}
+                    {% if lot.catalog_no %} · {{ lot.catalog_no }}{% endif %}
+                  </div>
+                  {% if lot.specification or lot.package_size %}
+                    <div class='material-meta'>
+                      {% if lot.specification %}{{ lot.specification }}{% endif %}
+                      {% if lot.package_size %}{% if lot.specification %} · {% endif %}{{ lot.package_size }}{% endif %}
+                    </div>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class='badge badge-light'>{{ smartlabMaterialCategoryLabels[lotCategory]|default('其他') }}</span>
+                </td>
+                <td>
+                  <div class='font-weight-bold'>{{ lot.lot_no }}</div>
+                  {% if lot.note %}<div class='material-meta'>{{ lot.note }}</div>{% endif %}
+                </td>
+                <td>
+                  <span class='quantity-badge {{ isLow ? 'quantity-low' : 'quantity-ok' }}'>{{ lot.quantity ?: 0 }} {{ lot.unit ?: '' }}</span>
+                </td>
+                <td>{{ lot.location_label ?: '未设置' }}</td>
+                <td>
+                  {% if lot.expires_at %}
+                    <span class='status-dot {{ isExpiring ? 'status-warn' : 'status-ok' }}'></span>{{ lot.expires_at|date('Y-m-d') }}
+                  {% else %}
+                    <span class='smallgray'>未设置</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if lot.latest_txn_type %}
+                    {{ smartlabTxnLabels[lot.latest_txn_type]|default(lot.latest_txn_type) }}
+                    {% if lot.latest_txn_at %}<div class='material-meta'>{{ lot.latest_txn_at|date('Y-m-d H:i') }}</div>{% endif %}
+                  {% else %}
+                    <span class='smallgray'>无流水</span>
+                  {% endif %}
+                </td>
+                <td class='text-right'>
+                  {% if smartlabInventoryEditable %}
+                    <button class='btn btn-outline-primary btn-sm' type='button' data-toggle='collapse' data-target='#txnLot{{ lot.id }}' aria-expanded='false' aria-controls='txnLot{{ lot.id }}'>
+                      <i class='fas fa-right-left mr-1'></i>出入库
+                    </button>
+                  {% else %}
+                    <span class='smallgray'>查看</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% if smartlabInventoryEditable %}
+                <tr class='transaction-row inventory-lot-row'
+                    data-category='{{ lotCategory }}'
+                    data-low='{{ isLow ? '1' : '0' }}'
+                    data-expiring='{{ isExpiring ? '1' : '0' }}'>
+                  <td colspan='8' class='p-0 border-top-0'>
+                    <div class='collapse' id='txnLot{{ lot.id }}'>
+                      <form method='post' action='inventory.php' class='transaction-form m-3'>
+                        {{ App.Session.get('csrf')|csrf }}
+                        <input type='hidden' name='smartlab_action' value='add_transaction' />
+                        <input type='hidden' name='lot_id' value='{{ lot.id }}' />
+                        <div class='form-row'>
+                          <div class='form-group col-lg-2 col-md-6'>
+                            <label for='txn-type-{{ lot.id }}'>类型</label>
+                            <select class='form-control' id='txn-type-{{ lot.id }}' name='txn_type'>
+                              <option value='INBOUND'>入库</option>
+                              <option value='OUTBOUND'>领用</option>
+                              <option value='ADJUSTMENT'>盘点调整</option>
+                              <option value='SCRAP'>报废</option>
+                            </select>
+                          </div>
+                          <div class='form-group col-lg-2 col-md-6'>
+                            <label for='txn-qty-{{ lot.id }}'>数量</label>
+                            <input class='form-control' id='txn-qty-{{ lot.id }}' name='quantity' type='number' step='0.0001' min='0.0001' required />
+                          </div>
+                          <div class='form-group col-lg-4 col-md-6'>
+                            <label for='txn-exp-{{ lot.id }}'>关联实验</label>
+                            <select class='form-control' id='txn-exp-{{ lot.id }}' name='experiment_id'>
+                              <option value=''>不关联实验</option>
+                              {% for experiment in smartlabAvailableExperimentsArr %}
+                                <option value='{{ experiment.id }}'>#{{ experiment.id }} · {{ experiment.title }}</option>
+                              {% endfor %}
+                            </select>
+                          </div>
+                          <div class='form-group col-lg-4 col-md-6'>
+                            <label for='txn-note-{{ lot.id }}'>备注</label>
+                            <input class='form-control' id='txn-note-{{ lot.id }}' name='note' placeholder='实验领用 / 补货 / 报废原因' />
+                          </div>
+                        </div>
+                        <button class='btn btn-primary btn-sm' type='submit'>登记流水</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% endif %}
+            {% else %}
+              <tr>
+                <td colspan='8'>
+                  <div class='empty-state'>当前团队下还没有 SmartLab 批次记录。</div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class='empty-state mt-3 d-none' id='smartlabInventoryNoFilterResult'>当前筛选下没有批次。</div>
+    </div>
+
+    <div class='row'>
+      <div class='col-lg-5 mb-3'>
+        <div class='inventory-panel h-100'>
+          <div class='panel-title'>
+            <h3>最近出入库流水</h3>
+            <span class='badge badge-light'>Txn</span>
+          </div>
+          <div class='list-group list-group-flush'>
+            {% for txn in smartlabRecentTransactionsArr %}
+              <div class='list-group-item px-0'>
+                <div class='smallgray text-uppercase'>{{ smartlabTxnLabels[txn.txn_type]|default(txn.txn_type) }} · {{ txn.material_code }} / {{ txn.lot_no }}</div>
+                <div class='font-weight-bold mt-1'>{{ txn.material_name }}</div>
+                <div class='smallgray mt-1'>
+                  {{ txn.quantity }} {{ txn.unit ?: '' }}
+                  {% if txn.experiment_id %}
+                    · <a href='experiments.php?mode=view&id={{ txn.experiment_id }}'>{{ txn.experiment_title ?: ('#' ~ txn.experiment_id) }}</a>
+                  {% endif %}
+                  · {{ txn.actor_name ?: '未知操作者' }}
+                </div>
+                {% if txn.note %}
+                  <div class='smallgray mt-1'>{{ txn.note }}</div>
+                {% endif %}
+              </div>
+            {% else %}
+              <div class='empty-state'>当前还没有批次流水。</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <div class='col-lg-7 mb-3'>
+        <div class='inventory-panel h-100'>
+          <div class='panel-title'>
+            <h3>资源库存位置</h3>
+            <span class='badge badge-light'>Location</span>
+          </div>
+          <div class='list-group list-group-flush'>
+            {% for row in smartlabInventoryArr|slice(0, 12) %}
+              <div class='list-group-item px-0'>
+                <div class='d-flex justify-content-between align-items-start flex-wrap'>
+                  <div class='mr-3'>
+                    <div class='font-weight-bold'>
+                      {% if row.custom_id %}<span class='color-medium mr-1'>{{ row.custom_id }}</span>{% endif %}
+                      <a href='database.php?mode=view&id={{ row.item_id }}'>{{ row.item_title }}</a>
+                    </div>
+                    <div class='smallgray mt-1'>{{ row.full_path ?: '未设置位置' }}</div>
+                  </div>
+                  <span class='quantity-badge {{ row.qty_stored <= 2 ? 'quantity-low' : 'quantity-ok' }}'>{{ row.qty_stored }} {{ row.qty_unit }}</span>
+                </div>
+              </div>
+            {% else %}
+              <div class='empty-state'>当前团队下还没有可展示的资源库存位置。</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if containersArr|length > 0 %}
+      <div class='inventory-panel mb-3'>
+        <div class='panel-title'>
+          <h3>搜索结果</h3>
+          <span class='badge badge-light'>eLabFTW</span>
+        </div>
+        <ul class='list-group mt-2'>
+          {% set uniqueById = containersArr|reduce((acc, r) => acc|merge((acc[(r.page ~ ':' ~ r.entity_id ~ ':' ~ r.storage_id)] is defined) ? {} : {(r.page ~ ':' ~ r.entity_id ~ ':' ~ r.storage_id): r}), {}) %}
+          {% for container in uniqueById %}
+            <li class='list-group-item'>
+              {% if container.entity_custom_id %}<span class='mr-1 color-medium'>{{ container.entity_custom_id }}</span>{% endif %}
+              <a href='{{ container.page }}.php?mode=view&id={{ container.entity_id }}'>{{ container.entity_title }}</a>
+              <span class='smallgray ml-2'>{{ container.qty_stored }} {{ container.qty_unit }} · {{ container.full_path }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% elseif App.Request.query.has('q') %}
+      {{ 'No results found'|trans|msg('warning', false) }}
+    {% endif %}
+
+    <div class='inventory-panel mb-5'>
+      {% if App.Config.configArr.inventory_require_edit_rights == 1 %}
+        <p>{{ 'Note: only users who were given permission to edit the inventory locations can modify the locations (add/edit/remove).'|trans }}</p>
+      {% endif %}
+      {% set inventoryDisabled = App.Users.userData.can_manage_inventory_locations == 0 and App.Config.configArr.inventory_require_edit_rights == 1 %}
+      <div class='d-flex align-items-center mb-3'>
+        <h3 class='h5 mb-0'>{{ 'Browse inventory locations'|trans }}</h3>
+        <div class='ml-auto'>
+          <button type='button' {{ inventoryDisabled ? 'disabled' }} class='btn btn-secondary btn-sm' data-parent-id='' data-action='add-storage-children'><i class='fas fa-plus-circle mr-1 color-white'></i>{{ 'Add root element'|trans }}</button>
+        </div>
+      </div>
+      {% include 'storage-list.html' with {'storage_editable': not inventoryDisabled, 'is_entity': false} %}
+    </div>
+  </div>
+
+  <script defer src='/assets/smartlab-inventory.js?v={{ v }}-inventory-1'></script>
+{% endblock body %}

@@ -1,0 +1,14 @@
+:80 {
+  reverse_proxy web:443 {
+    header_up X-Forwarded-Proto https
+    header_up X-Forwarded-Host {host}
+  }
+}
+
+:443 {
+  tls internal
+  reverse_proxy web:443 {
+    header_up X-Forwarded-Proto https
+    header_up X-Forwarded-Host {host}
+  }
+}

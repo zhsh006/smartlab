@@ -1,0 +1,40 @@
+<div class='table-responsive'>
+  <table class='table table-sm table-hover align-middle'>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Forward primer</th>
+        <th>Reverse primer</th>
+        <th>产物长度</th>
+        <th>Tm</th>
+        <th>GC%</th>
+        <th>自互补风险</th>
+        <th>3’端互补风险</th>
+        <th>推荐等级</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for pair in primerPairsArr %}
+        <tr>
+          <td>{{ pair.rank }}</td>
+          <td><code>{{ pair.forward_sequence }}</code></td>
+          <td><code>{{ pair.reverse_sequence }}</code></td>
+          <td>{{ pair.product_size }} bp</td>
+          <td>{{ pair.forward_tm }} / {{ pair.reverse_tm }}</td>
+          <td>{{ pair.forward_gc }} / {{ pair.reverse_gc }}</td>
+          <td>{{ pair.self_complementarity }}</td>
+          <td>{{ pair.end_complementarity }}</td>
+          <td>
+            <span class='badge {{
+              pair.recommendation == '优先推荐' ? 'badge-success'
+              : pair.recommendation == '可用' ? 'badge-primary'
+              : 'badge-warning'
+            }}'>{{ pair.recommendation }}</span>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan='9' class='text-center smallgray'>暂无候选结果。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

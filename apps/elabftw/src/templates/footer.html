@@ -1,0 +1,83 @@
+<footer>
+  <p class='footer-left'>
+    <a title='问题反馈' aria-label='问题反馈' data-action='report-bug' href='#'>
+      <i title='问题反馈' class='fas fa-message fa-lg'></i>
+    </a>
+
+    <span>
+      {%- if App.Config.configArr.privacy_policy -%}
+        <a href='#' data-policy='privacy' data-action='show-policy'>{{ App.Config.configArr.privacy_policy_name }}</a>
+      {%- endif -%}
+      {%- if App.Config.configArr.terms_of_service -%}
+        <a href='#' data-policy='tos' data-action='show-policy'>{{ App.Config.configArr.terms_of_service_name }}</a>
+      {%- endif -%}
+      {%- if App.Config.configArr.a11y_statement -%}
+        <a href='#' data-policy='a11y' data-action='show-policy'>{{ App.Config.configArr.a11y_statement_name }}</a>
+      {%- endif -%}
+      {%- if App.Config.configArr.legal_notice -%}
+        <a href='#' data-policy='legal' data-action='show-policy'>{{ App.Config.configArr.legal_notice_name }}</a>
+      {%- endif -%}
+    </span>
+  </p>
+
+  <p class='footer-right'>
+    LabSmart {% if App.Session.has('is_auth') %}<span class='smallgray'>科研训练智能辅助系统</span>{% endif %}{% if App.demoMode %} | Demo mode{% endif %}
+    <br>
+    医学科研训练智能辅助系统
+    {% if App.devMode -%}
+      <br>{{ 'Page generated in' }} {{ generationTime() }} {{ 'seconds'|trans }}
+      ({{ numberOfQueries() }} SQL)
+      <br>{{ 'Memory usage:'|trans }}
+      {{ memoryUsage()|formatBytes }} ({{ memoryUsage() }} {{ 'bytes'|trans }})
+    {% endif %}
+  </p>
+</footer>
+
+{# Modal for selecting language #}
+<div class='modal fade' id='selectLanguageModal' tabindex='-1' role='dialog' aria-labelledby='selectLanguageModalLabel'>
+  <div class='modal-dialog' role='document'>
+    <div class='modal-content'>
+      <div class='modal-header'>
+        <h5 class='modal-title' id='selectLanguageModalLabel'>{{ 'Select language'|trans }}</h5>
+        <button type='button' class='close' data-dismiss='modal' aria-label='{{ 'Close'|trans }}'>
+          <span aria-hidden='true'>&times;</span>
+        </button>
+      </div>
+      <div id='selectLanguageForm' class='modal-body' data-wait='{{ 'Please wait…'|trans }}'>
+        <label for='langSelect' class='col-form-label'>{{ 'Language'|trans }}</label>
+        <select class='form-control' id='langSelect'>
+          {% for lang, text in langsArr|sort %}
+            <option value='{{ lang }}'
+            {{- App.getLang() == lang ? ' selected' -}}
+            >{{ text }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class='modal-footer'>
+        <button type='button' class='btn btn-ghost' data-dismiss='modal'>{{ 'Cancel'|trans }}</button>
+        <button type='button' data-action='select-lang' data-dismiss='modal' class='btn btn-primary'>{{ 'Save'|trans }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id='user-prefs'
+  data-lang='{{ App.getLang }}'
+  data-jslang='{{ App.getJsLang }}'
+  data-isodate='{{ App.Session.has('is_auth') ? App.Users.userData.use_isodate : '0' }}'
+  data-sc-search='{{ App.Users.userData.sc_search|default('s') }}'
+  data-sc-todolist='{{ App.Users.userData.sc_todo|default('t') }}'
+  data-sc-create='{{ App.Users.userData.sc_create|default('c') }}'
+  data-sc-edit='{{ App.Users.userData.sc_edit|default('e') }}'
+  data-sc-favorite='{{ App.Users.userData.sc_favorite|default('f') }}'
+  data-sc-disabled='{{ App.Users.userData.disable_shortcuts|default('0') }}'
+  ></div>
+
+{# this is read by JS to get info about the state of current user #}
+<script type='application/json' id='core'>
+  {
+    "isAnon": {{ App.Session.has('is_anon') ? 'true' : 'false' }},
+    "isAuth": {{ App.Session.has('is_auth') ? 'true' : 'false' }},
+    "currentTeam": {{ App.Users.userData.team|default(-1) }}
+  }
+</script>

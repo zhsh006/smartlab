@@ -1,0 +1,483 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<div class='d-flex justify-content-between align-items-start mb-3'>
+  <div>
+    <p class='smallgray text-uppercase mb-1'>SmartLab</p>
+    <h2 class='mb-2'>{{ smartlabIsMentorView ? '样本中心' : smartlabIsAssistantView ? '样本工作台' : '我的样本' }}</h2>
+    <p class='mb-0'>{{ smartlabIsMentorView ? '样本现在是系统中的一等对象，不再埋在通用资源或实验正文里。这里开始承载样本详情、事件流和项目关联。' : smartlabIsAssistantView ? '助理端聚焦样本详情、事件流、关联实验和审核协同，不把项目治理放到这里。' : '学生端聚焦样本详情、事件流和关联实验，不把项目管理和审核操作混进来。' }}</p>
+  </div>
+  {% if smartlabIsStudentView %}
+    <button type='button' class='btn btn-primary' data-toggle='collapse' data-target='#createSamplePanel' aria-expanded='false' aria-controls='createSamplePanel'>新增样本</button>
+  {% endif %}
+</div>
+
+{% if smartlabIsStudentView %}
+  <div class='collapse mb-4' id='createSamplePanel'>
+    <div class='card'>
+      <div class='card-body'>
+        <h3 class='h5 mb-3'>新增样本</h3>
+        <form method='post' action='samples.php'>
+          {{ App.Session.get('csrf')|csrf }}
+          <input type='hidden' name='smartlab_action' value='create_sample' />
+          <div class='row'>
+            <div class='col-md-4 mb-3'>
+              <label for='sample-code'>样本编号</label>
+              <input id='sample-code' class='form-control' name='code' required placeholder='例如 S-2026-001' />
+            </div>
+            <div class='col-md-4 mb-3'>
+              <label for='sample-name'>样本名称</label>
+              <input id='sample-name' class='form-control' name='name' required placeholder='例如 A549 处理组' />
+            </div>
+            <div class='col-md-4 mb-3'>
+              <label for='sample-type'>类型</label>
+              <input id='sample-type' class='form-control' name='sample_type' required placeholder='细胞/组织/血清/DNA/RNA' />
+            </div>
+            <div class='col-md-4 mb-3'>
+              <label for='sample-project'>来源课题</label>
+              <select id='sample-project' class='form-control' name='project_id'>
+                <option value=''>未关联课题</option>
+                {% for project in studentProjectsArr %}
+                  <option value='{{ project.id }}'>{{ project.code ?: ('课题 #' ~ project.id) }} · {{ project.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class='col-md-4 mb-3'>
+              <label for='sample-source'>来源</label>
+              <input id='sample-source' class='form-control' name='source' placeholder='来源动物/患者/细胞系/实验' />
+            </div>
+            <div class='col-md-2 mb-3'>
+              <label for='sample-quantity'>数量</label>
+              <input id='sample-quantity' class='form-control' name='quantity' type='number' step='0.0001' min='0' />
+            </div>
+            <div class='col-md-2 mb-3'>
+              <label for='sample-unit'>单位</label>
+              <input id='sample-unit' class='form-control' name='unit' placeholder='管/ul/mg' />
+            </div>
+            <div class='col-md-4 mb-3'>
+              <label for='sample-storage-location'>存放位置</label>
+              <input id='sample-storage-location' class='form-control' name='storage_location' placeholder='-80 冰箱 A 层' />
+            </div>
+            <div class='col-md-4 mb-3'>
+              <label for='sample-freezer-box'>冻存盒</label>
+              <input id='sample-freezer-box' class='form-control' name='freezer_box' placeholder='Box-01' />
+            </div>
+            <div class='col-md-4 mb-3'>
+              <label for='sample-well-position'>孔位</label>
+              <input id='sample-well-position' class='form-control' name='well_position' placeholder='A01' />
+            </div>
+            <div class='col-12 mb-3'>
+              <label for='sample-note'>备注</label>
+              <textarea id='sample-note' class='form-control' name='note' rows='2'></textarea>
+            </div>
+          </div>
+          <button type='submit' class='btn btn-primary'>保存样本</button>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+<div class='row'>
+  <div class='col-lg-5 mb-4'>
+    <div class='card border-0 shadow-sm'>
+      <div class='card-body'>
+        <h3 class='h5 mb-3'>样本列表</h3>
+        <form method='get' action='samples.php' class='border rounded p-3 mb-3 bg-light'>
+          <div class='row'>
+            <div class='col-md-4 mb-2'>
+              <label for='sample-filter-scope'>范围</label>
+              <select id='sample-filter-scope' class='form-control form-control-sm' name='sample_scope'>
+                <option value='all' {{ sampleScopeFilter == 'all' ? 'selected' }}>全部样本</option>
+                <option value='mine' {{ sampleScopeFilter == 'mine' ? 'selected' }}>我创建的样本</option>
+                <option value='my_projects' {{ sampleScopeFilter == 'my_projects' ? 'selected' }}>我的课题样本</option>
+              </select>
+            </div>
+            <div class='col-md-4 mb-2'>
+              <label for='sample-filter-status'>状态</label>
+              <select id='sample-filter-status' class='form-control form-control-sm' name='sample_status'>
+                <option value='' {{ sampleStatusFilter == '' ? 'selected' }}>全部状态</option>
+                <option value='active' {{ sampleStatusFilter == 'active' ? 'selected' }}>在用</option>
+                <option value='reserved' {{ sampleStatusFilter == 'reserved' ? 'selected' }}>留样</option>
+                <option value='consumed' {{ sampleStatusFilter == 'consumed' ? 'selected' }}>已用完</option>
+                <option value='archived' {{ sampleStatusFilter == 'archived' ? 'selected' }}>已归档</option>
+                <option value='discarded' {{ sampleStatusFilter == 'discarded' ? 'selected' }}>已废弃</option>
+              </select>
+            </div>
+            <div class='col-md-4 mb-2'>
+              <label for='sample-filter-project'>课题归属</label>
+              <select id='sample-filter-project' class='form-control form-control-sm' name='sample_project_id'>
+                <option value='' {{ sampleProjectFilter is null ? 'selected' }}>全部课题</option>
+                <option value='0' {{ sampleProjectFilter is not null and sampleProjectFilter == 0 ? 'selected' }}>未关联课题</option>
+                {% for project in studentProjectsArr %}
+                  <option value='{{ project.id }}' {{ sampleProjectFilter == project.id ? 'selected' }}>{{ project.code ?: ('课题 #' ~ project.id) }} · {{ project.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class='d-flex justify-content-between align-items-center flex-wrap'>
+            <div class='smallgray mb-2 mb-md-0'>当前筛选结果 {{ samplesArr|length }} 条。</div>
+            <div>
+              <a href='samples.php' class='btn btn-outline-secondary btn-sm mr-2'>重置</a>
+              <button type='submit' class='btn btn-primary btn-sm'>筛选</button>
+            </div>
+          </div>
+        </form>
+        <div class='list-group'>
+          {% for sample in samplesArr %}
+            <a href='samples.php?id={{ sample.id }}' class='list-group-item list-group-item-action {{ activeSample and activeSample.id == sample.id ? 'active' }}'>
+              <div class='d-flex justify-content-between align-items-start flex-wrap'>
+                <div class='mr-3'>
+                  <div class='small text-uppercase {{ activeSample and activeSample.id == sample.id ? 'text-white-50' : 'smallgray' }}'>{{ sample.code }}</div>
+                  <div class='mt-1 font-weight-bold'>{{ sample.name }}</div>
+                  <div class='small {{ activeSample and activeSample.id == sample.id ? 'text-white-50' : 'smallgray' }}'>
+                    类型 {{ sample.sample_type }} | 状态 {{
+                      sample.status == 'active' ? '在用'
+                      : sample.status == 'reserved' ? '留样'
+                      : sample.status == 'consumed' ? '已用完'
+                      : sample.status == 'archived' ? '已归档'
+                      : sample.status == 'discarded' ? '已废弃'
+                      : sample.status
+                    }}
+                  </div>
+                  {% if sample.project_code %}
+                    <div class='small mt-1 {{ activeSample and activeSample.id == sample.id ? 'text-white-50' : 'smallgray' }}'>{{ sample.project_code }} · {{ sample.project_name }}</div>
+                  {% endif %}
+                </div>
+                <div class='text-nowrap small {{ activeSample and activeSample.id == sample.id ? 'text-white-50' : 'smallgray' }}'>
+                  {{ sample.quantity ?: '-' }} {{ sample.unit ?: '' }}
+                </div>
+              </div>
+            </a>
+          {% else %}
+            <div class='alert alert-info mb-0'>当前团队下还没有 SmartLab 样本。</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class='col-lg-7'>
+    {% if activeSample %}
+      <div class='card border-0 shadow-sm mb-3'>
+        <div class='card-body'>
+          <div class='d-flex justify-content-between align-items-start flex-wrap'>
+            <div class='mr-3'>
+              <div class='smallgray text-uppercase'>{{ activeSample.code }}</div>
+              <h3 class='h4 mt-2 mb-2'>{{ activeSample.name }}</h3>
+              <p class='smallgray mb-0'>
+                类型 {{ activeSample.sample_type }} |
+                状态 {{ activeSample.status_label }}
+              </p>
+            </div>
+            <div class='text-right'>
+              <div class='badge badge-light p-2'>当前数量 {{ activeSample.quantity ?: '-' }} {{ activeSample.unit ?: '' }}</div>
+              {% if smartlabIsStudentView %}
+                <div class='mt-2'>
+                  <button type='button' class='btn btn-outline-primary btn-sm' data-toggle='collapse' data-target='#editSamplePanel' aria-expanded='false' aria-controls='editSamplePanel'>编辑样本</button>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if smartlabIsStudentView %}
+            <div class='collapse mt-4' id='editSamplePanel'>
+              <form method='post' action='samples.php' class='border rounded p-3 bg-light'>
+                {{ App.Session.get('csrf')|csrf }}
+                <input type='hidden' name='smartlab_action' value='update_sample' />
+                <input type='hidden' name='sample_id' value='{{ activeSample.id }}' />
+                <div class='d-flex justify-content-between align-items-center flex-wrap mb-3'>
+                  <h4 class='h6 mb-2'>编辑样本基础信息</h4>
+                  <span class='smallgray mb-2'>修改状态、数量、位置或备注后会自动写入一条“样本更新”事件。</span>
+                </div>
+                <div class='row'>
+                  <div class='col-md-4 mb-3'>
+                    <label for='edit-sample-code'>样本编号</label>
+                    <input id='edit-sample-code' class='form-control' name='code' required value='{{ activeSample.code }}' />
+                  </div>
+                  <div class='col-md-4 mb-3'>
+                    <label for='edit-sample-name'>样本名称</label>
+                    <input id='edit-sample-name' class='form-control' name='name' required value='{{ activeSample.name }}' />
+                  </div>
+                  <div class='col-md-4 mb-3'>
+                    <label for='edit-sample-type'>类型</label>
+                    <input id='edit-sample-type' class='form-control' name='sample_type' required value='{{ activeSample.sample_type }}' />
+                  </div>
+                  <div class='col-md-4 mb-3'>
+                    <label for='edit-sample-status'>状态</label>
+                    <select id='edit-sample-status' class='form-control' name='status'>
+                      <option value='active' {{ activeSample.status == 'active' ? 'selected' }}>在用</option>
+                      <option value='reserved' {{ activeSample.status == 'reserved' ? 'selected' }}>留样</option>
+                      <option value='consumed' {{ activeSample.status == 'consumed' ? 'selected' }}>已用完</option>
+                      <option value='archived' {{ activeSample.status == 'archived' ? 'selected' }}>已归档</option>
+                      <option value='discarded' {{ activeSample.status == 'discarded' ? 'selected' }}>已废弃</option>
+                    </select>
+                  </div>
+                  <div class='col-md-4 mb-3'>
+                    <label for='edit-sample-project'>来源课题</label>
+                    <select id='edit-sample-project' class='form-control' name='project_id'>
+                      <option value=''>未关联课题</option>
+                      {% for project in studentProjectsArr %}
+                        <option value='{{ project.id }}' {{ activeSample.project_id == project.id ? 'selected' }}>{{ project.code ?: ('课题 #' ~ project.id) }} · {{ project.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class='col-md-2 mb-3'>
+                    <label for='edit-sample-quantity'>数量</label>
+                    <input id='edit-sample-quantity' class='form-control' name='quantity' type='number' step='0.0001' min='0' value='{{ activeSample.quantity }}' />
+                  </div>
+                  <div class='col-md-2 mb-3'>
+                    <label for='edit-sample-unit'>单位</label>
+                    <input id='edit-sample-unit' class='form-control' name='unit' value='{{ activeSample.unit }}' />
+                  </div>
+                  <div class='col-md-4 mb-3'>
+                    <label for='edit-sample-source'>来源</label>
+                    <input id='edit-sample-source' class='form-control' name='source' value='{{ activeSample.metadata_arr.source|default('') }}' />
+                  </div>
+                  <div class='col-md-4 mb-3'>
+                    <label for='edit-sample-storage-location'>存放位置</label>
+                    <input id='edit-sample-storage-location' class='form-control' name='storage_location' value='{{ activeSample.metadata_arr.storage_location|default('') }}' />
+                  </div>
+                  <div class='col-md-2 mb-3'>
+                    <label for='edit-sample-freezer-box'>冻存盒</label>
+                    <input id='edit-sample-freezer-box' class='form-control' name='freezer_box' value='{{ activeSample.metadata_arr.freezer_box|default('') }}' />
+                  </div>
+                  <div class='col-md-2 mb-3'>
+                    <label for='edit-sample-well-position'>孔位</label>
+                    <input id='edit-sample-well-position' class='form-control' name='well_position' value='{{ activeSample.metadata_arr.well_position|default('') }}' />
+                  </div>
+                  <div class='col-12 mb-3'>
+                    <label for='edit-sample-note'>备注</label>
+                    <textarea id='edit-sample-note' class='form-control' name='note' rows='2'>{{ activeSample.metadata_arr.note|default('') }}</textarea>
+                  </div>
+                  <div class='col-12 mb-3'>
+                    <label for='edit-sample-change-note'>本次修改说明</label>
+                    <input id='edit-sample-change-note' class='form-control' name='change_note' placeholder='例如 样本已全部用于 WB，状态改为已用完' />
+                  </div>
+                </div>
+                <button type='submit' class='btn btn-primary btn-sm'>保存修改</button>
+              </form>
+            </div>
+          {% endif %}
+
+          <div class='row mt-4'>
+            <div class='col-md-6 mb-3'>
+              <div class='smallgray text-uppercase mb-1'>{{ smartlabIsMentorView ? '所属项目' : '课题归属' }}</div>
+              {% if activeSample.project_code %}
+                <div>
+                  {% if smartlabIsMentorView %}
+                    <a href='projects.php?id={{ activeSample.project_id }}'>{{ activeSample.project_code }} · {{ activeSample.project_name }}</a>
+                  {% else %}
+                    {{ activeSample.project_code }} · {{ activeSample.project_name }}
+                  {% endif %}
+                </div>
+              {% else %}
+                <div class='smallgray'>未分配</div>
+              {% endif %}
+            </div>
+            <div class='col-md-6 mb-3'>
+              <div class='smallgray text-uppercase mb-1'>关联资源</div>
+              {% if activeSample.source_item_id %}
+                <div><a href='database.php?mode=view&id={{ activeSample.source_item_id }}'>{{ activeSample.source_item_title }}</a></div>
+              {% else %}
+                <div class='smallgray'>未绑定</div>
+              {% endif %}
+            </div>
+            <div class='col-md-6 mb-3'>
+              <div class='smallgray text-uppercase mb-1'>创建人</div>
+              <div>{{ activeSample.creator_name ?: '未知' }}</div>
+            </div>
+            <div class='col-md-6 mb-3'>
+              <div class='smallgray text-uppercase mb-1'>更新时间</div>
+              <div>{{ activeSample.updated_at|date('Y-m-d H:i') }}</div>
+            </div>
+          </div>
+
+          {% if activeSample.metadata %}
+            <div class='mt-2'>
+              <div class='smallgray text-uppercase mb-1'>扩展信息</div>
+              <pre class='mb-0 p-3 rounded bg-light border'><code>{{ activeSample.metadata }}</code></pre>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class='card border-0 shadow-sm'>
+        <div class='card-body'>
+          <div class='d-flex justify-content-between align-items-center mb-3'>
+            <h3 class='h5 mb-0'>样本事件流</h3>
+            <span class='badge badge-secondary'>{{ sampleEventsArr|length }} 条事件</span>
+          </div>
+
+          {% if smartlabIsStudentView %}
+            <form method='post' action='samples.php' class='border rounded p-3 mb-3 bg-light'>
+              {{ App.Session.get('csrf')|csrf }}
+              <input type='hidden' name='smartlab_action' value='add_sample_event' />
+              <input type='hidden' name='sample_id' value='{{ activeSample.id }}' />
+              <div class='row'>
+                <div class='col-md-3 mb-2'>
+                  <label for='sample-event-type'>事件类型</label>
+                  <select id='sample-event-type' class='form-control' name='event_type'>
+                    <option value='aliquoted'>分装</option>
+                    <option value='consumed'>消耗</option>
+                    <option value='moved'>转移位置</option>
+                    <option value='archived'>归档</option>
+                    <option value='discarded'>废弃</option>
+                  </select>
+                </div>
+                <div class='col-md-3 mb-2'>
+                  <label for='sample-event-quantity'>数量变化</label>
+                  <input id='sample-event-quantity' class='form-control' type='number' step='0.0001' name='quantity_delta' placeholder='例如 -1' />
+                </div>
+                <div class='col-md-6 mb-2'>
+                  <label for='sample-event-note'>记录说明</label>
+                  <input id='sample-event-note' class='form-control' name='note' placeholder='例如 取用 1 管做 WB' />
+                </div>
+              </div>
+              <button type='submit' class='btn btn-outline-primary btn-sm'>添加样本事件</button>
+            </form>
+          {% endif %}
+
+          {% if sampleEventsArr %}
+            <div class='list-group list-group-flush'>
+              {% for event in sampleEventsArr %}
+                <div class='list-group-item px-0'>
+                  <div class='d-flex justify-content-between align-items-start flex-wrap'>
+                    <div class='mr-3'>
+                      <div class='font-weight-bold'>
+                        {{
+                          event.event_type == 'registered' ? '样本登记'
+                          : event.event_type == 'updated' ? '样本更新'
+                          : event.event_type == 'consumed' ? '样本消耗'
+                          : event.event_type == 'aliquoted' ? '样本分装'
+                          : event.event_type == 'moved' ? '位置转移'
+                          : event.event_type == 'archived' ? '样本归档'
+                          : event.event_type == 'discarded' ? '样本废弃'
+                          : event.event_type
+                        }}
+                      </div>
+                      <div class='smallgray mt-1'>
+                        执行人 {{ event.actor_name ?: '未知' }}
+                        {% if event.experiment_id %}
+                          | 来源实验 <a href='experiments.php?mode=view&id={{ event.experiment_id }}'>{{ event.experiment_title ?: ('#' ~ event.experiment_id) }}</a>
+                        {% endif %}
+                      </div>
+                      {% if event.note %}
+                        <div class='mt-2'>{{ event.note }}</div>
+                      {% endif %}
+                    </div>
+                    <div class='text-right'>
+                      <div class='smallgray'>{{ event.occurred_at|date('Y-m-d H:i') }}</div>
+                      {% if event.quantity_delta is not null %}
+                        <div class='badge badge-light mt-2'>
+                          变化 {{ event.quantity_delta > 0 ? '+' : '' }}{{ event.quantity_delta }} {{ activeSample.unit ?: '' }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class='alert alert-info mb-0'>当前样本还没有记录事件流。</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class='row mt-3'>
+        <div class='col-lg-6 mb-3'>
+          <div class='card border-0 shadow-sm h-100'>
+            <div class='card-body'>
+              <div class='d-flex justify-content-between align-items-center mb-3'>
+                <h3 class='h5 mb-0'>关联实验</h3>
+                <span class='badge badge-light'>{{ sampleExperimentsArr|length }} 个</span>
+              </div>
+
+              <div class='list-group list-group-flush'>
+                {% for experiment in sampleExperimentsArr %}
+                  <div class='list-group-item px-0'>
+                    <div class='font-weight-bold'>
+                      <a href='experiments.php?mode=view&id={{ experiment.id }}'>#{{ experiment.id }} · {{ experiment.title ?: '未命名实验' }}</a>
+                    </div>
+                    <div class='smallgray mt-1'>
+                      {% if smartlabIsMentorView and experiment.project_code %}
+                        <a href='projects.php?id={{ experiment.project_id }}'>{{ experiment.project_code }} · {{ experiment.project_name }}</a>
+                      {% elseif experiment.project_code %}
+                        {{ experiment.project_code }} · {{ experiment.project_name }}
+                      {% else %}
+                        尚未挂到项目
+                      {% endif %}
+                    </div>
+                    <div class='smallgray'>开始时间 {{ experiment.date|date('Y-m-d') }} · 最后更新 {{ experiment.modified_at|date('Y-m-d H:i') }}</div>
+                  </div>
+                {% else %}
+                  <div class='smallgray'>当前样本还没有回连到实验记录。</div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {% if smartlabCanAccessOperations %}
+          <div class='col-lg-6 mb-3'>
+            <div class='card border-0 shadow-sm h-100'>
+              <div class='card-body'>
+                <div class='d-flex justify-content-between align-items-center mb-3'>
+                  <h3 class='h5 mb-0'>{{ smartlabIsMentorView ? '样本审核流' : '审核协同' }}</h3>
+                  <span class='badge badge-light'>{{ sampleReviewsArr|length }} 条</span>
+                </div>
+
+                <div class='list-group list-group-flush'>
+                  {% for review in sampleReviewsArr %}
+                    <div class='list-group-item px-0'>
+                      <div class='font-weight-bold'>
+                        {{ review.project_code ?: '未绑定项目' }}{% if review.project_name %} · {{ review.project_name }}{% endif %}
+                      </div>
+                      <div class='smallgray mt-1'>
+                        状态
+                        {{
+                          review.status == 'submitted' ? '已提交'
+                          : review.status == 'approved' ? '已通过'
+                          : review.status == 'needs_revision' ? '待修改'
+                          : review.status == 'rejected' ? '已拒绝'
+                          : review.status
+                        }}
+                      </div>
+                      <div class='smallgray'>
+                        提交人 {{ review.requester_name ?: '未知' }} · 审核人 {{ review.assignee_name ?: '未分配' }}
+                      </div>
+                      {% if review.decision %}
+                        <div class='smallgray'>
+                          处理结果
+                          {{
+                            review.decision == 'approved' ? '通过'
+                            : review.decision == 'changes_requested' ? '退回修改'
+                            : review.decision == 'rejected' ? '拒绝'
+                            : review.decision
+                          }}
+                        </div>
+                      {% endif %}
+                      {% if review.comment %}
+                        <div class='mt-2 smallgray'>{{ review.comment }}</div>
+                      {% endif %}
+                    </div>
+                  {% else %}
+                    <div class='smallgray'>当前样本还没有 SmartLab 审核流。</div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    {% else %}
+      <div class='card border-0 shadow-sm'>
+        <div class='card-body'>
+          <h3 class='h5 mb-3'>样本详情</h3>
+          <p class='smallgray mb-0'>{{ smartlabIsMentorView ? '从左侧选择一个样本后，这里会显示样本详情、项目归属、事件时间线、关联实验和审核流。' : smartlabIsAssistantView ? '从左侧选择一个样本后，这里会显示样本详情、事件时间线、关联实验和审核协同。' : '从左侧选择一个样本后，这里会显示样本详情、事件时间线和关联实验。' }}</p>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock body %}

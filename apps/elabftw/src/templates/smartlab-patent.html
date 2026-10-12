@@ -1,0 +1,2047 @@
+{% extends 'base.html' %}
+
+{% block body %}
+{% set nav = [
+  {key: 'overview', href: 'smartlab-overview.php', icon: 'house', label: '首页'},
+  {key: 'records', href: 'experiments.php?scope=1', icon: 'clipboard-list', label: '实验记录'},
+  {key: 'upload', href: 'smartlab-upload.php', icon: 'upload', label: '原始记录上传'},
+  {key: 'recognition', href: 'smartlab-recognition.php', icon: 'camera-retro', label: '智能识别'},
+  {key: 'breakpoint', href: 'smartlab-breakpoint.php', icon: 'magnifying-glass-chart', label: '断点识别'},
+  {key: 'jump', href: 'smartlab-jump.php', icon: 'chart-line', label: '跳步识别'},
+  {key: 'templates', href: 'smartlab-templates.php', icon: 'layer-group', label: '模板补全/草稿'},
+  {key: 'knowledge', href: 'database.php', icon: 'book-open', label: '知识库'},
+  {key: 'assistant', href: 'smartlab-templates.php', icon: 'face-smile', label: 'AI助手'},
+  {key: 'algorithms', href: 'smartlab-algorithms.php', icon: 'gear', label: '算法配置'},
+  {key: 'settings', href: 'profile.php', icon: 'gear', label: '系统设置'}
+] %}
+
+<style>
+  .smartlab-demo {
+    --sl-blue: #1769ff;
+    --sl-blue-strong: #0b56d9;
+    --sl-cyan: #13b8d7;
+    --sl-ink: #102033;
+    --sl-soft-blue: #eaf4ff;
+    --sl-border: #dbe6f2;
+    --sl-line: #e7eef7;
+    --sl-text: #132033;
+    --sl-muted: #617087;
+    --sl-green: #16a34a;
+    --sl-orange: #f59e0b;
+    --sl-red: #ef4444;
+    --sl-purple: #7c3aed;
+    color: var(--sl-text);
+    background: transparent;
+    font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Zen Hei", "Droid Sans Fallback", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    margin: 0;
+    min-height: 0;
+  }
+  .smartlab-demo-shell { display: block; min-height: 0; }
+  .smartlab-demo-sidebar,
+  .smartlab-appbar {
+    display: none !important;
+  }
+  .smartlab-demo-sidebar {
+    border-right: 1px solid var(--sl-border);
+    background: rgba(255, 255, 255, .94);
+    padding: 18px 12px;
+  }
+  .smartlab-brand { display: flex; gap: 10px; align-items: center; height: 66px; padding: 0 8px 14px; margin-bottom: 6px; }
+  .smartlab-brand-mark { width: 46px; height: 46px; display: grid; place-items: center; color: #fff; font-size: 20px; background: var(--sl-blue); clip-path: polygon(50% 0, 91% 24%, 91% 76%, 50% 100%, 9% 76%, 9% 24%); box-shadow: 0 8px 20px rgba(15, 111, 255, .18); }
+  .smartlab-brand-mark i { filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .08)); }
+  .smartlab-brand-title { font-size: 25px; font-weight: 800; color: var(--sl-blue-strong); line-height: 1; }
+  .smartlab-brand-subtitle { color: #303b4f; font-size: 13px; margin-top: 7px; white-space: nowrap; }
+  .smartlab-nav-link {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 18px; margin: 6px 0;
+    border-radius: 6px; color: #263245; font-weight: 700; font-size: 17px;
+    border-left: 3px solid transparent;
+  }
+  .smartlab-nav-link i { color: #657287; font-size: 19px; }
+  .smartlab-nav-link:hover { text-decoration: none; background: #f3f8ff; color: var(--sl-blue); }
+  .smartlab-nav-link.active { background: linear-gradient(90deg, #eaf3ff, #f4f8ff); color: var(--sl-blue); border-left-color: var(--sl-blue); }
+  .smartlab-nav-link.active i { color: var(--sl-blue); }
+  .smartlab-collapse { position: sticky; top: calc(100vh - 58px); margin: 28px 8px 0; border: 1px solid var(--sl-border); border-radius: 8px; padding: 11px 18px; color: var(--sl-muted); background:#fff; font-size: 16px; }
+  .smartlab-demo-main { min-width: 0; }
+  .smartlab-appbar { height: 82px; display:flex; justify-content:space-between; align-items:center; padding: 0 28px; background:#fff; border-bottom:1px solid var(--sl-border); }
+  .smartlab-title { font-size: 28px; font-weight: 800; margin: 0; letter-spacing: 0; }
+  .smartlab-title small { display:block; color:var(--sl-muted); font-size:13px; font-weight:600; margin-bottom:5px; }
+  .smartlab-tools { display:flex; align-items:center; gap:24px; font-size:19px; color:#111827; }
+  .smartlab-bell { position:relative; color:#111827; }
+  .smartlab-bell:hover { color: var(--sl-blue); text-decoration:none; }
+  .smartlab-bell span { position:absolute; top:-12px; right:-10px; min-width:18px; height:18px; border-radius:9px; background:#ff2d3d; color:#fff; font-size:11px; display:grid; place-items:center; }
+  .smartlab-avatar { width:34px; height:34px; border-radius:50%; background:radial-gradient(circle at 50% 34%, #fff 0 9px, transparent 10px), radial-gradient(circle at 50% 95%, #fff 0 18px, transparent 19px), linear-gradient(135deg,#dbe7fb,#c8d8f5); display:inline-block; vertical-align:middle; margin-right:8px; }
+  .smartlab-user-menu { position:relative; }
+  .smartlab-user-menu summary { list-style:none; cursor:pointer; display:flex; align-items:center; gap:6px; }
+  .smartlab-user-menu summary::-webkit-details-marker { display:none; }
+  .smartlab-user-panel { position:absolute; right:0; top:42px; width:270px; border:1px solid var(--sl-border); border-radius:8px; background:#fff; box-shadow:0 14px 34px rgba(20,35,60,.14); padding:14px; z-index:10; font-size:14px; }
+  .smartlab-user-panel a { display:block; padding:8px 0; color:var(--sl-blue); font-weight:700; }
+  .smartlab-page { padding: 0; }
+  .smartlab-date { color: var(--sl-muted); display:flex; justify-content:flex-end; align-items:center; gap:8px; margin-bottom: 14px; font-size:14px; }
+  .smartlab-crumb { color: var(--sl-muted); display:flex; align-items:center; gap:8px; margin-bottom:16px; }
+  .sl-grid { display:grid; gap: 14px; }
+  .sl-grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sl-grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sl-grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .sl-grid.cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .sl-grid.layout-2-1 { grid-template-columns: minmax(0, 2fr) minmax(330px, .92fr); }
+  .sl-grid.layout-3-2 { grid-template-columns: minmax(0, 3fr) minmax(330px, 1.05fr); }
+  .sl-grid.layout-1-1-1 { grid-template-columns: minmax(260px, .85fr) minmax(340px, 1fr) minmax(360px, 1.25fr); }
+  .sl-grid.layout-1-1 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sl-grid.sl-template-layout { grid-template-columns: minmax(260px, .7fr) minmax(0, 2.35fr); align-items:start; }
+  .sl-template-main, .sl-template-evidence { min-width:0; }
+  .sl-template-table-wrap { overflow-x:auto; margin:0 -2px; padding:0 2px 4px; }
+  .sl-template-table-wrap .sl-table { min-width:860px; }
+  .sl-card { border: 1px solid rgba(219, 230, 242, .95); border-radius: 8px; background: rgba(255,255,255,.92); padding: 16px; box-shadow: 0 12px 28px rgba(16, 32, 51, 0.055); position: relative; }
+  .sl-card::before { background: linear-gradient(90deg, rgba(23,105,255,.18), rgba(19,184,215,.08), transparent); content:""; height:1px; left:10px; position:absolute; right:10px; top:0; }
+  .sl-card h3 { font-size: 17px; font-weight: 850; margin: 0 0 14px; color: var(--sl-ink); }
+  .sl-card-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
+  .sl-card-head h3 { margin:0; }
+  .sl-metric { display:flex; gap:18px; align-items:center; min-height: 106px; overflow:hidden; }
+  .sl-metric::after { background: radial-gradient(circle, rgba(23,105,255,.09), transparent 62%); content:""; height:90px; position:absolute; right:-34px; top:-28px; width:120px; }
+  .sl-metric-icon { width:58px; height:58px; border-radius: 18px; display:grid; place-items:center; font-size:25px; background: linear-gradient(145deg, #eef6ff, #dff7fb); color: var(--sl-blue); box-shadow: inset 0 0 0 1px rgba(23,105,255,.10); }
+  .sl-metric-value { font-size: 33px; font-weight: 900; line-height: 1; margin: 8px 0; color: var(--sl-ink); }
+  .sl-muted { color: var(--sl-muted); }
+  .sl-badge { display:inline-flex; align-items:center; gap:5px; border-radius: 999px; padding: 4px 9px; font-size: 12px; font-weight: 800; background: #f1f5f9; color: #334155; border:1px solid rgba(148, 163, 184, .18); }
+  .sl-badge.green { background:#eaf8ef; color: var(--sl-green); }
+  .sl-badge.blue { background: var(--sl-soft-blue); color: var(--sl-blue); }
+  .sl-badge.orange { background:#fff7ed; color: var(--sl-orange); }
+  .sl-badge.red { background:#fff1f2; color: var(--sl-red); }
+  .sl-badge.purple { background:#f3efff; color: var(--sl-purple); }
+  .sl-badge.teal { background:#ecfeff; color:#0d9488; }
+  .sl-table { width:100%; border-collapse: collapse; }
+  .sl-table th, .sl-table td { border-bottom:1px solid var(--sl-line); padding: 10px 12px; vertical-align: middle; }
+  .sl-table th { color: #4d596b; background:linear-gradient(180deg,#f8fbff,#f3f7fc); font-weight:800; }
+  .sl-table tbody tr:hover td { background:#f7fbff; }
+  .sl-table th[data-sl-sort] { cursor:pointer; user-select:none; }
+  .sl-table th[data-sl-sort]::after { content:" ↕"; color:#94a3b8; font-size:11px; }
+  .sl-table th.sl-sort-asc::after { content:" ↑"; color:var(--sl-blue); }
+  .sl-table th.sl-sort-desc::after { content:" ↓"; color:var(--sl-blue); }
+  .sl-table tr.alert-row td { background:#fff1f2; color:#dc2626; }
+  .sl-table tr.sl-review-wb-pending td { background:#f7fbff; }
+  .sl-table tr.sl-review-needs-work td { background:#fffaf2; }
+  .sl-editable-cell { background:#fbfdff; cursor:text; }
+  .sl-editable-cell:focus { outline:2px solid #bfdbfe; outline-offset:-2px; background:#fff; }
+  .sl-row-action-note { display:block; max-width:168px; margin-top:4px; font-size:12px; color:var(--sl-muted); line-height:1.35; }
+  .sl-flow { display:flex; align-items:stretch; gap:10px; overflow-x:auto; padding-bottom:4px; }
+  .sl-flow-step { min-width: 106px; border:1px solid #9ec2ff; background:linear-gradient(180deg,#fbfdff 0 68%, #eaf4ff 68%); border-radius:8px; padding:16px 10px; text-align:center; box-shadow: 0 8px 18px rgba(23,105,255,.055); position:relative; }
+  .sl-flow-step::after { background: currentColor; border-radius:99px; bottom:8px; content:""; height:3px; left:18px; opacity:.35; position:absolute; right:18px; }
+  .sl-flow-step.green { border-color:#87d7a2; background:linear-gradient(180deg,#fbfffc 0 68%, #eaf8ef 68%); color:#16a34a; }
+  .sl-flow-step.orange { border-color:#ffc36c; background:linear-gradient(180deg,#fffdf8 0 68%, #fff7ed 68%); color:#f59e0b; }
+  .sl-flow-step.purple { border-color:#b9a5ff; background:linear-gradient(180deg,#fffdff 0 68%, #f3efff 68%); color:#7c3aed; }
+  .sl-flow-step.teal { border-color:#74d7d4; background:linear-gradient(180deg,#fbffff 0 68%, #ecfeff 68%); color:#0d9488; }
+  .sl-flow-arrow { align-self:center; color:#7b8da4; font-size:20px; font-weight:800; }
+  .sl-upload-card { border:1px dashed #b9c8dd; border-radius:8px; padding:16px; display:grid; grid-template-columns: 190px 1fr; gap:14px; }
+  .sl-drop { min-height: 126px; border:1px dashed #9db6d8; border-radius:8px; display:grid; place-items:center; color:var(--sl-blue); background:#fbfdff; text-align:center; width:100%; }
+  .sl-drop:hover { background:#f1f7ff; text-decoration:none; }
+  .sl-file-list { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:12px; }
+  .sl-file { border:1px solid var(--sl-border); border-radius:8px; padding:10px; background:#fff; }
+  .sl-thumb { height:78px; border-radius:6px; background: linear-gradient(135deg,#edf4ff,#f8fafc); border:1px solid #e2e8f0; display:grid; place-items:center; color:#64748b; margin-bottom:8px; overflow:hidden; position:relative; }
+  .sl-thumb.hand { background: linear-gradient(90deg, rgba(255,255,255,.82), rgba(255,255,255,.1)), repeating-linear-gradient(0deg,#fbf4df,#fbf4df 14px,#d8c6a1 15px), repeating-linear-gradient(90deg, transparent, transparent 70px, rgba(110,80,45,.18) 72px); color:#64748b; }
+  .sl-thumb.hand::after { content:"SmartLab\\A原始记录\\A自动解析"; white-space:pre; color:#5d5143; font-size:12px; line-height:1.55; transform:rotate(-2deg); }
+  .sl-thumb.screen { background: linear-gradient(#eef6ff 0 18%, #dce9f9 18% 82%, #b9c9dc 82%); color:#1d4ed8; }
+  .sl-thumb.screen::after { content:"0.523"; padding:8px 26px; border:1px solid #7b95bc; border-radius:2px; background:#d7e5fb; color:#1f2937; font-size:24px; letter-spacing:2px; }
+  .sl-thumb.cells { background: radial-gradient(circle at 20% 30%, #7f64d7 0 7px, transparent 8px), radial-gradient(circle at 65% 45%, #9e8bef 0 8px, transparent 9px), radial-gradient(circle at 50% 75%, #6b55c7 0 6px, transparent 7px), radial-gradient(circle at 80% 20%, #b8a9ff 0 5px, transparent 6px), #e5ddff; }
+  .sl-thumb.gel { background: repeating-linear-gradient(90deg,#1f2937 0 18px,#111827 18px 36px); }
+  .sl-thumb.tube { background: linear-gradient(180deg,#fbfbfb,#dbe7f1); }
+  .sl-thumb.tube::after { content:""; width:86%; height:44%; border-radius:14px 14px 6px 6px; background: repeating-linear-gradient(90deg,#b91c1c 0 16px,#ef4444 16px 28px,#f8fafc 28px 46px); box-shadow:0 18px 0 rgba(220,38,38,.16); }
+  .sl-gel-photo { min-height:240px; border-radius:8px; background: repeating-linear-gradient(90deg, rgba(0,0,0,.16) 0 18px, transparent 18px 32px), radial-gradient(ellipse at 50% 19%, rgba(0,0,0,.35), transparent 18%), radial-gradient(ellipse at 46% 74%, rgba(0,0,0,.28), transparent 18%), linear-gradient(#f0f0ef,#d7d7d5); border:1px solid #d7dce5; }
+  .sl-gel-photo.after { background: repeating-linear-gradient(90deg, rgba(0,0,0,.18) 0 16px, transparent 16px 34px), radial-gradient(ellipse at 24% 19%, rgba(0,0,0,.42), transparent 18%), radial-gradient(ellipse at 67% 21%, rgba(0,0,0,.30), transparent 14%), radial-gradient(ellipse at 18% 76%, rgba(0,0,0,.32), transparent 16%), linear-gradient(#f0f0ef,#d7d7d5); }
+  .sl-chart { height: 150px; display:flex; align-items:end; gap:8px; padding:10px 8px 22px; border:1px solid #e8eef7; border-radius:8px; background:#fbfdff; position:relative; }
+  .sl-chart span { flex:1; min-width: 12px; border-radius: 5px 5px 0 0; background: var(--sl-blue); opacity: .82; position:relative; }
+  .sl-chart span::after { content: attr(data-label); position:absolute; bottom:-20px; left:50%; transform:translateX(-50%); font-size:11px; color:#64748b; }
+  .sl-region { border:2px dashed #22c55e; border-radius:8px; background:rgba(248,255,249,.92); padding:16px; min-height:116px; position:relative; overflow:hidden; }
+  .sl-region::after { background:linear-gradient(90deg, transparent, rgba(34,197,94,.16), transparent); content:""; height:100%; left:-80%; position:absolute; top:0; transform:skewX(-18deg); width:45%; }
+  .sl-region.orange { border-color:#f59e0b; background:#fffaf0; }
+  .sl-region.purple { border-color:#8b5cf6; background:#f8f5ff; }
+  .sl-reco-image { min-height: 220px; border-radius:8px; border:1px solid var(--sl-border); padding:14px; background: linear-gradient(rgba(255,255,255,.55), rgba(255,255,255,.55)), repeating-linear-gradient(0deg,#f7edd7,#f7edd7 24px,#dbcaa9 25px), repeating-linear-gradient(90deg, transparent, transparent 38px, rgba(110,80,45,.12) 39px); }
+  .sl-result-image { width:100%; max-height:260px; object-fit:contain; border:1px solid var(--sl-border); border-radius:8px; background:#fff; }
+  .sl-image-link { display:block; color:inherit; cursor:zoom-in; }
+  .sl-image-link:hover { text-decoration:none; }
+  .sl-image-link:hover .sl-result-image { border-color:var(--sl-blue); box-shadow:0 0 0 3px rgba(15,111,255,.10); }
+  .sl-image-action { display:inline-flex; align-items:center; gap:5px; margin-top:8px; color:var(--sl-blue); font-size:12px; font-weight:700; }
+  .sl-preview-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:12px; }
+  .sl-preview-card { border:1px solid var(--sl-border); border-radius:8px; padding:10px; background:#fff; min-width:0; }
+  .sl-preview-card b { display:block; margin-top:8px; word-break:break-all; font-size:13px; }
+  .sl-attachment-list { display:grid; gap:8px; }
+  .sl-attachment-list a { display:flex; justify-content:space-between; gap:12px; border:1px solid var(--sl-border); border-radius:6px; padding:8px 10px; background:#fff; }
+  .sl-step-card { border:1px solid var(--sl-border); border-radius:8px; padding:16px; text-align:center; background:#fff; }
+  .sl-step-card .num { font-size:22px; color:var(--sl-blue); font-weight:750; }
+  .sl-footer-actions { position: sticky; bottom: 0; background: rgba(255,255,255,.96); border:1px solid var(--sl-border); border-radius:8px; padding:12px; display:flex; justify-content:flex-end; gap:12px; margin-top:14px; box-shadow: 0 -8px 24px rgba(20,35,60,.04); }
+  .sl-side-list { display:grid; gap:10px; }
+  .sl-alert-card { border:1px solid var(--sl-border); border-radius:8px; padding:14px; background:#fff; }
+  .sl-alert-card.red { border-color:#fecaca; background:#fff8f8; }
+  .sl-alert-card.orange { border-color:#fed7aa; background:#fffaf2; }
+  .sl-mini-stat { display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--sl-line); }
+  .sl-action-link { color:var(--sl-blue); font-weight:700; }
+  .sl-field { border:1px solid #dce4ef; border-radius:5px; padding:7px 10px; background:#fff; min-height:36px; }
+  .sl-bottom-bar { position:sticky; bottom:0; display:flex; justify-content:flex-end; gap:14px; padding:14px 18px; margin-top:14px; background:rgba(255,255,255,.96); border:1px solid var(--sl-border); border-radius:8px; }
+  .sl-donut { width:118px; height:118px; border-radius:50%; margin:auto; background:conic-gradient(#2f7cff 0 25%,#22c55e 25% 50%,#fbbf24 50% 75%,#a78bfa 75%); display:grid; place-items:center; }
+  .sl-donut > div { width:72px; height:72px; border-radius:50%; background:#fff; display:grid; place-items:center; text-align:center; }
+  .sl-warning-line { color:#ef4444; background:#fff1f2; }
+  .sl-callout { border:1px solid var(--sl-border); border-radius:8px; padding:14px; background:rgba(255,255,255,.92); box-shadow: 0 8px 18px rgba(16,32,51,.035); }
+  .sl-callout.red { border-color:#fecaca; background:#fff8f8; }
+  .sl-callout.orange { border-color:#fed7aa; background:#fffaf2; }
+  .sl-callout.blue { border-color:#bfdbfe; background:#f7fbff; }
+  .sl-service-icon { width:32px; height:32px; border-radius:8px; display:inline-grid; place-items:center; background:#edf5ff; color:var(--sl-blue); margin-right:10px; }
+  .sl-workflow { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .sl-workflow-node { min-width:140px; border:1px solid #9ec2ff; border-radius:8px; padding:12px; background:#fbfdff; text-align:center; color:#0f62fe; font-weight:700; }
+  .sl-workflow-node.green { border-color:#86d49f; color:#16a34a; }
+  .sl-workflow-node.orange { border-color:#ffc36c; color:#f59e0b; }
+  .sl-workflow-node.purple { border-color:#b9a5ff; color:#7c3aed; }
+  .sl-workflow-node.teal { border-color:#74d7d4; color:#0d9488; }
+  .sl-inline-tabs { display:flex; gap:14px; align-items:center; color:#4b5563; font-size:13px; margin:12px 0; }
+  .sl-inline-tabs span { cursor:pointer; padding-bottom:4px; }
+  .sl-inline-tabs span.active { color:var(--sl-blue); border-bottom:2px solid var(--sl-blue); }
+  .sl-toast { position:fixed; right:24px; bottom:24px; z-index:1000; max-width:360px; border:1px solid #bfdbfe; background:#fff; color:#1e3a8a; border-radius:8px; padding:12px 14px; box-shadow:0 14px 34px rgba(20,35,60,.16); }
+  .sl-toast.error { border-color:#fecaca; color:#991b1b; }
+  .sl-audit-page .smartlab-crumb { display:none; }
+  .sl-audit-page .sl-workflow-heading { display:none !important; }
+  .sl-audit-page .sl-module-nav { margin-bottom:10px !important; }
+  .sl-audit-page .sl-review-context { margin-bottom:10px !important; }
+  .sl-audit-page .smartlab-date { display:none; }
+  .sl-audit-page .sl-preview-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .sl-audit-page .sl-card { padding:14px; }
+  .sl-jump-metrics { grid-template-columns: 1fr !important; }
+  .sl-jump-metrics .sl-table th,
+  .sl-jump-metrics .sl-table td { padding:8px 10px; font-size:13px; }
+  .sl-selected-row td:first-child { border-left:3px solid var(--sl-blue); }
+  .sl-selected-row .sl-action-link { color:var(--sl-blue-strong); }
+  .sl-selected-row .sl-action-link b,
+  .sl-selected-row .sl-action-link { font-weight:800; }
+  .sl-table-pager { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; padding-top:10px; color:var(--sl-muted); font-size:13px; }
+  .sl-table-pager button { border:1px solid var(--sl-border); background:#fff; color:var(--sl-blue); border-radius:6px; padding:4px 9px; }
+  .sl-table-pager button:disabled { color:#94a3b8; background:#f8fafc; }
+  .sl-page-size { border:1px solid var(--sl-border); border-radius:6px; padding:4px 8px; background:#fff; color:#334155; }
+  .sl-console { min-height:86px; border:1px solid #dbe6f5; border-radius:8px; background:#0f172a; color:#dbeafe; padding:12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; white-space:pre-line; }
+  .sl-progress-line { height:6px; border-radius:999px; background:#e5edf8; overflow:hidden; }
+  .sl-progress-line span { display:block; height:100%; width:0; background:#0f6fff; transition:width .3s ease; }
+  .sl-review-context { display:grid; grid-template-columns: 1.2fr 1fr 1.2fr .8fr 1.2fr; gap:12px; align-items:center; }
+  .sl-context-item { min-width:0; padding:0 12px; border-left:1px solid var(--sl-line); }
+  .sl-context-item:first-child { border-left:0; padding-left:0; }
+  .sl-context-item b { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sl-facet-list { display:grid; gap:10px; }
+  .sl-facet-row { display:block; border:1px solid var(--sl-line); border-radius:8px; padding:10px 12px; background:#fbfdff; color:inherit; }
+  .sl-facet-row:hover { text-decoration:none; border-color:#bfdbfe; background:#f7fbff; }
+  .sl-facet-main { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+  .sl-facet-name { min-width:0; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sl-facet-meta { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  [data-sl-remove-row] { cursor:pointer; }
+  .sl-patent-hero {
+    background:
+      linear-gradient(135deg, rgba(16, 32, 51, .97), rgba(18, 68, 112, .93) 58%, rgba(18, 122, 127, .88)),
+      linear-gradient(90deg, rgba(255,255,255,.08) 0 1px, transparent 1px 46px),
+      linear-gradient(0deg, rgba(255,255,255,.06) 0 1px, transparent 1px 46px);
+    border: 1px solid rgba(148, 204, 255, .34);
+    border-radius: 8px;
+    box-shadow: 0 20px 44px rgba(16, 32, 51, .18);
+    color: #fff;
+    display: grid;
+    gap: 24px;
+    grid-template-columns: minmax(0, 1.55fr) minmax(340px, .9fr);
+    min-height: 252px;
+    overflow: hidden;
+    padding: 24px;
+    position: relative;
+  }
+  .sl-patent-hero::before {
+    background:
+      linear-gradient(90deg, transparent, rgba(19,184,215,.22), transparent),
+      radial-gradient(circle at center, rgba(255,255,255,.18), transparent 64%);
+    content:"";
+    height:180%;
+    position:absolute;
+    right:-18%;
+    top:-40%;
+    transform:rotate(-16deg);
+    width:42%;
+  }
+  .sl-hero-kicker { color:#98f1ff; font-size:12px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+  .sl-patent-hero h2 { color:#fff; font-size:34px; font-weight:900; line-height:1.18; margin:10px 0 10px; }
+  .sl-patent-hero p { color:#d9ecff; font-size:14px; line-height:1.7; margin:0; max-width:760px; }
+  .sl-hero-pipeline { display:grid; gap:8px; grid-template-columns: repeat(6, minmax(0, 1fr)); margin-top:22px; position:relative; z-index:1; }
+  .sl-hero-node { background:rgba(255,255,255,.09); border:1px solid rgba(194,231,255,.22); border-radius:8px; min-height:74px; padding:10px; }
+  .sl-hero-node b { color:#fff; display:block; font-size:13px; margin-top:8px; }
+  .sl-hero-node span { color:#99def8; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:11px; }
+  .sl-hero-panel { align-self:stretch; background:rgba(255,255,255,.10); border:1px solid rgba(194,231,255,.24); border-radius:8px; backdrop-filter: blur(10px); padding:16px; position:relative; z-index:1; }
+  .sl-hero-score { align-items:end; display:flex; gap:14px; margin:10px 0 14px; }
+  .sl-hero-score strong { color:#fff; font-size:46px; line-height:1; }
+  .sl-hero-score span { color:#a7f3d0; font-weight:800; padding-bottom:6px; }
+  .sl-hero-signal { display:grid; gap:10px; }
+  .sl-hero-signal div { align-items:center; display:grid; gap:10px; grid-template-columns: 96px 1fr 42px; }
+  .sl-hero-signal label { color:#cfe7ff; font-size:12px; margin:0; }
+  .sl-signal-bar { background:rgba(255,255,255,.16); border-radius:99px; height:7px; overflow:hidden; }
+  .sl-signal-bar i { background:linear-gradient(90deg,#2dd4bf,#60a5fa,#fbbf24); display:block; height:100%; }
+  .sl-patent-hero.sl-compact { grid-template-columns:minmax(0, 1fr) minmax(280px, .52fr); min-height:156px; padding:18px 20px; }
+  .sl-patent-hero.sl-compact h2 { font-size:25px; margin:6px 0 8px; }
+  .sl-patent-hero.sl-compact p { max-width:860px; }
+  .sl-compact-stack { display:grid; gap:8px; }
+  .sl-compact-stack .sl-mini-line { align-items:center; display:grid; gap:9px; grid-template-columns: 22px 1fr auto; color:#dbeafe; font-size:13px; }
+  .sl-mini-line i { color:#8ef0ff; text-align:center; }
+  .sl-module-nav .btn { border-radius:999px; font-weight:800; }
+  .sl-review-context {
+    background: linear-gradient(90deg, rgba(255,255,255,.94), rgba(247,251,255,.90));
+  }
+  .sl-review-context .sl-context-item b {
+    color: var(--sl-ink);
+  }
+  .sl-preview-card {
+    overflow:hidden;
+  }
+  .sl-result-image {
+    box-shadow: inset 0 0 0 1px rgba(16,32,51,.04);
+  }
+  .sl-alert-card.red,
+  .sl-callout.red {
+    box-shadow: 0 10px 24px rgba(239, 68, 68, .08);
+  }
+  @media (max-width: 1100px) {
+    .smartlab-demo-shell { grid-template-columns: 1fr; }
+    .smartlab-demo-sidebar { min-height: auto; }
+    .smartlab-appbar { height:auto; padding:18px; align-items:flex-start; gap:14px; }
+    .sl-grid.cols-4, .sl-grid.cols-5, .sl-grid.layout-2-1, .sl-grid.layout-3-2, .sl-grid.layout-1-1, .sl-grid.layout-1-1-1, .sl-grid.sl-template-layout { grid-template-columns: 1fr; }
+    .sl-patent-hero { grid-template-columns: 1fr; }
+    .sl-hero-pipeline { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .sl-template-evidence { grid-column:auto !important; }
+    .sl-review-context { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sl-file-list, .sl-grid.cols-3, .sl-grid.cols-2 { grid-template-columns: 1fr; }
+    .sl-upload-card { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 700px) {
+    .sl-review-context { grid-template-columns: 1fr; }
+    .sl-context-item { border-left:0; border-top:1px solid var(--sl-line); padding:10px 0 0; }
+    .sl-context-item:first-child { border-top:0; padding-top:0; }
+    .sl-patent-hero { padding:18px; }
+    .sl-patent-hero h2 { font-size:26px; }
+    .sl-hero-pipeline { grid-template-columns: 1fr 1fr; }
+    .sl-hero-signal div { grid-template-columns: 76px 1fr 34px; }
+  }
+</style>
+
+<div class='smartlab-demo {{ smartlabPatentView in ['recognition', 'breakpoint', 'jump', 'reasoning'] ? 'sl-audit-page' }}' data-sl-view='{{ smartlabPatentView }}' data-sl-current-assay='{{ smartlabPatentPrimaryResult.assay|default("") }}' data-sl-current-experiment='{{ smartlabPatentPrimaryResult.experiment_id ?: (smartlabPatentRecentExperimentsArr[0].id ?? 0) }}' data-sl-current-title='{{ smartlabPatentPrimaryResult.experiment_code ?: (smartlabPatentPrimaryResult.title ?: (smartlabPatentRecentExperimentsArr[0].experiment_code ?? (smartlabPatentRecentExperimentsArr[0].title ?? ""))) }}'>
+  <form class='d-none' data-sl-workflow-form method='post' action='{{ smartlabPatentView == "overview" ? "smartlab-overview.php" : "smartlab-" ~ smartlabPatentView ~ ".php" }}'>
+    {{ App.Session.get('csrf')|csrf }}
+    <input type='hidden' name='smartlab_action' value='workflow_action'>
+  </form>
+  <div class='smartlab-demo-shell'>
+    <aside class='smartlab-demo-sidebar'>
+      <div class='smartlab-brand'>
+        <div class='smartlab-brand-mark'><i class='fas fa-snowflake'></i></div>
+        <div>
+          <div class='smartlab-brand-title'>SmartLab V3</div>
+          <div class='smartlab-brand-subtitle'>医学科研训练智能辅助系统</div>
+        </div>
+      </div>
+      {% for item in nav|filter(item => item.key not in ['reasoning', 'review']) %}
+        <a class='smartlab-nav-link {{ smartlabPatentView == item.key ? "active" }}' href='{{ item.href }}'>
+          <i class='fas fa-{{ item.icon }} fa-fw'></i><span>{{ item.label }}</span>
+        </a>
+      {% endfor %}
+      <div class='smartlab-collapse'><i class='fas fa-angles-left mr-2'></i> 收起</div>
+    </aside>
+
+    <main class='smartlab-demo-main'>
+      <div class='smartlab-appbar'>
+        <h2 class='smartlab-title'>
+          {% if smartlabPatentView == 'breakpoint' %}<small>断点识别 / 实验事件序列与逻辑断点分析</small>{% endif %}
+          {{ pageTitle }}
+        </h2>
+        <div class='smartlab-tools'>
+          <a class='smartlab-bell' href='smartlab-review.php' title='查看导师审核中心'><i class='far fa-bell'></i><span>{{ smartlabPatentAlertCount }}</span></a>
+          <a href='ucp.php' title='偏好设置'><i class='far fa-circle-question'></i></a>
+          <details class='smartlab-user-menu'>
+            <summary><span class='smartlab-avatar'></span><span>{{ smartlabPatentUserName }}</span> <i class='fas fa-angle-down ml-1'></i></summary>
+            <div class='smartlab-user-panel'>
+              <b>{{ smartlabPatentUserName }}</b>
+              <div class='sl-muted mt-1'>{{ smartlabPatentCurrentUser.email }}</div>
+              <div class='mt-2'><span class='sl-badge blue'>{{ smartlabPatentCurrentUser.smartlab_role }}</span></div>
+              <div class='sl-muted mt-2'>团队：{{ smartlabPatentCurrentUser.team_name ?: '未加入团队' }}</div>
+              <a href='profile.php'><i class='fas fa-user-gear fa-fw mr-1'></i>个人资料</a>
+              <a href='ucp.php'><i class='fas fa-sliders fa-fw mr-1'></i>偏好设置</a>
+              <a href='app/logout.php'><i class='fas fa-right-from-bracket fa-fw mr-1'></i>退出登录</a>
+            </div>
+          </details>
+        </div>
+      </div>
+      <div class='smartlab-page'>
+      <div class='d-flex justify-content-between align-items-start flex-wrap mb-3 sl-workflow-heading'>
+        <div class='mr-3 mb-2'>
+          <div class='smallgray text-uppercase'>SmartLab Workflow</div>
+          <h2 class='mb-1'>{{ pageTitle }}</h2>
+        </div>
+        <a href='dashboard.php' class='btn btn-outline-secondary btn-sm mb-2'>返回首页</a>
+      </div>
+      {% set selectedExperimentId = smartlabPatentPrimaryResult.experiment_id|default(0) ?: smartlabPatentSelectedExperimentId|default(0) %}
+      {% set selectionParam = selectedExperimentId ? '?experiment_id=' ~ selectedExperimentId : '' %}
+      <div class='d-flex flex-wrap mb-3 sl-module-nav'>
+        {% for item in nav|filter(item => item.key in ['upload', 'recognition', 'breakpoint', 'jump', 'templates', 'algorithms']) %}
+          {% set moduleHref = selectedExperimentId and item.key in ['upload', 'recognition', 'breakpoint', 'jump', 'templates'] ? item.href ~ '?experiment_id=' ~ selectedExperimentId : item.href %}
+          <a class='btn btn-sm {{ smartlabPatentView == item.key ? 'btn-primary' : 'btn-outline-primary' }} mr-2 mb-2' href='{{ moduleHref }}'>
+            <i class='fas fa-{{ item.icon }} mr-1'></i>{{ item.label }}
+          </a>
+        {% endfor %}
+      </div>
+      <div class='smartlab-date'><i class='far fa-calendar'></i> {{ smartlabPatentToday }}&nbsp;&nbsp;{{ smartlabPatentWeekday }}</div>
+      {% set evidenceContext = smartlabPatentEvidenceContext|default({}) %}
+      {% set reviewFacets = smartlabPatentReviewFacets|default({}) %}
+      {% set patentWorkflow = smartlabPatentWorkflow|default({}) %}
+
+      {% if smartlabPatentView == 'overview' %}
+        <section class='sl-patent-hero mb-3'>
+          <div>
+            <div class='sl-hero-kicker'>Patent 2.3 · AI Evidence Cockpit</div>
+            <h2>医学科研训练证据链驾驶舱</h2>
+            <p>把学生上传的原始图像、仪器导出表和实验记录组织成可追踪的结构化证据，按“智能识别 → 断点识别 → 跳步识别 → 模板补全 → 导师审核”形成闭环审阅视图。</p>
+            <div class='sl-hero-pipeline'>
+              {% for node in [
+                ['01','原始记录','图像/表格'],
+                ['02','智能识别','OCR/ROI'],
+                ['03','断点识别','连续性'],
+                ['04','跳步识别','缺失步骤'],
+                ['05','模板补全','过程草稿'],
+                ['06','导师审核','证据包']
+              ] %}
+                <div class='sl-hero-node'>
+                  <span>{{ node[0] }}</span>
+                  <b>{{ node[1] }}</b>
+                  <span>{{ node[2] }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class='sl-hero-panel'>
+            <div class='d-flex justify-content-between align-items-center'>
+              <div>
+                <div class='sl-hero-kicker'>Live Evidence Graph</div>
+                <b>今日审阅强度</b>
+              </div>
+              <span class='sl-badge green'>模型服务在线</span>
+            </div>
+            <div class='sl-hero-score'>
+              <strong>{{ smartlabPatentOverview.pending_review_count ?: 0 }}</strong>
+              <span>条待审核证据包</span>
+            </div>
+            <div class='sl-hero-signal'>
+              <div><label>结构化率</label><span class='sl-signal-bar'><i style='width:86%'></i></span><b>86%</b></div>
+              <div><label>异常捕获</label><span class='sl-signal-bar'><i style='width:72%'></i></span><b>72%</b></div>
+              <div><label>闭环完成</label><span class='sl-signal-bar'><i style='width:64%'></i></span><b>64%</b></div>
+              <div><label>导师确认</label><span class='sl-signal-bar'><i style='width:58%'></i></span><b>58%</b></div>
+            </div>
+          </div>
+        </section>
+        <div class='sl-grid cols-5 mb-3'>
+          {% set todayDelta = (smartlabPatentOverview.today_experiment_count ?: 0) - (smartlabPatentOverview.yesterday_experiment_count ?: 0) %}
+          <a class='sl-card sl-metric' href='experiments.php?scope=1'><div class='sl-metric-icon'><i class='fas fa-flask-vial'></i></div><div><div>今日实验记录</div><div class='sl-metric-value'>{{ smartlabPatentOverview.today_experiment_count ?: 0 }}</div><div class='sl-muted'>较昨日 <span class='{{ todayDelta >= 0 ? "text-danger" : "text-success" }}'>{{ todayDelta >= 0 ? "↑" : "↓" }} {{ todayDelta|abs }}</span></div></div></a>
+          <a class='sl-card sl-metric' href='experiments.php'><div class='sl-metric-icon' style='color:#16a34a;background:#eaf8ef'><i class='fas fa-database'></i></div><div><div>缺少原始数据</div><div class='sl-metric-value'>{{ smartlabPatentOverview.experiment_without_upload_count ?: 0 }}</div><div class='sl-muted'>实验附件待补齐</div></div></a>
+          <a class='sl-card sl-metric' href='inventory.php'><div class='sl-metric-icon' style='color:#f59e0b;background:#fff7ed'><i class='fas fa-triangle-exclamation'></i></div><div><div>低库存预警</div><div class='sl-metric-value'>{{ smartlabPatentOverview.low_stock_count ?: 0 }}</div><div class='sl-muted'>资源库存风险</div></div></a>
+          <a class='sl-card sl-metric' href='smartlab-review.php'><div class='sl-metric-icon' style='color:#7c3aed;background:#f3efff'><i class='fas fa-user-check'></i></div><div><div>待审核</div><div class='sl-metric-value'>{{ smartlabPatentOverview.pending_review_count ?: 0 }}</div><div class='sl-muted'>进入导师审核中心</div></div></a>
+          <a class='sl-card sl-metric' href='templates.php'><div class='sl-metric-icon' style='color:#0d9488;background:#ecfeff'><i class='fas fa-file-lines'></i></div><div><div>实验模板</div><div class='sl-metric-value'>{{ smartlabPatentOverview.template_count ?: 0 }}</div><div class='sl-muted'>团队可用模板</div></div></a>
+        </div>
+        {% set wbBundle = smartlabPatentResultBundles.wb ?? smartlabPatentResultBundles['wb'] ?? smartlabPatentPrimaryResult %}
+        {% set ifBundle = smartlabPatentResultBundles.if ?? smartlabPatentResultBundles['if'] ?? smartlabPatentPrimaryResult %}
+        {% set qpcrBundle = smartlabPatentResultBundles.qpcr ?? smartlabPatentResultBundles['qpcr'] ?? smartlabPatentPrimaryResult %}
+        <section class='sl-card mb-3'>
+          <div class='sl-card-head'>
+            <h3>科研训练闭环 · 端到端证据链</h3>
+            <span class='sl-badge purple'>系统阈值 · 结构化证据</span>
+          </div>
+          <div class='sl-flow mb-3' style='flex-wrap:wrap'>
+            {% for step in ['原始记录上传','智能识别/数字化档案','断点识别','跳步识别','模板补全/草稿','提交导师审核'] %}
+              <div class='sl-flow-step {{ loop.index == 3 ? "green" : loop.index == 4 ? "orange" : loop.index == 5 ? "teal" : loop.index == 6 ? "purple" }}' style='min-width:98px;padding:14px 8px'>
+                <div style='font-size:11px;color:var(--sl-muted)'>0{{ loop.index }}</div>
+                <div><b>{{ step }}</b></div>
+              </div>
+              {% if not loop.last %}<div class='sl-flow-arrow'>→</div>{% endif %}
+            {% endfor %}
+          </div>
+          <div class='sl-template-table-wrap'>
+          <table class='sl-table'>
+            <thead><tr><th style='min-width:120px'>学生/实验标签</th><th style='min-width:86px'>实验类型</th><th style='min-width:180px'>当前证据摘要</th><th style='min-width:130px'>异常/风险信号</th><th style='min-width:130px'>建议下一步</th><th style='min-width:210px'>模块状态</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><b>{{ wbBundle.student_name ?: '—' }}</b><div class='sl-muted'>{{ wbBundle.experiment_code ?: (wbBundle.title ?: '实验记录') }}</div></td>
+                <td><span class='sl-badge blue'>Western Blot</span></td>
+                <td>VGlut1 / GAD67 条带识别 · GAPDH 内参归一化 · ECL 化学发光原图{% if wbBundle.upload_count %} · {{ wbBundle.upload_count }} 个附件{% endif %}</td>
+                <td><span class='sl-badge red'>条带偏移风险 0.89</span><div class='sl-row-action-note'>GAD67 归一化断点·需复核曝光参数</div></td>
+                <td>
+                  <a class='sl-action-link d-block mb-1' href='smartlab-recognition.php{% if wbBundle.experiment_id %}?experiment_id={{ wbBundle.experiment_id }}{% endif %}' title='查看数字化档案'>查看数字化档案</a>
+                  <a class='sl-action-link d-block mb-1' href='smartlab-breakpoint.php{% if wbBundle.experiment_id %}?experiment_id={{ wbBundle.experiment_id }}{% endif %}' title='断点识别'>断点识别</a>
+                  <a class='sl-action-link d-block mb-1' href='smartlab-jump.php{% if wbBundle.experiment_id %}?experiment_id={{ wbBundle.experiment_id }}{% endif %}' title='跳步识别'>跳步识别</a>
+                  <a class='sl-action-link d-block mb-1' href='smartlab-templates.php{% if wbBundle.experiment_id %}?experiment_id={{ wbBundle.experiment_id }}{% endif %}' title='模板补全/草稿'>模板补全/草稿</a>
+                  <a class='sl-action-link d-block' href='smartlab-review.php{% if wbBundle.experiment_id %}?experiment_id={{ wbBundle.experiment_id }}{% endif %}' title='导师审核'>导师审核</a>
+                </td>
+                <td><span class='sl-badge green mr-1 mb-1'>上传完成</span><span class='sl-badge blue mr-1 mb-1'>识别已结构化</span><span class='sl-badge orange mr-1 mb-1'>待学生确认</span><span class='sl-badge purple mb-1'>待导师确认</span></td>
+              </tr>
+              <tr>
+                <td><b>{{ ifBundle.student_name ?: '—' }}</b><div class='sl-muted'>{{ ifBundle.experiment_code ?: (ifBundle.title ?: '实验记录') }}</div></td>
+                <td><span class='sl-badge blue'>免疫荧光 IF</span></td>
+                <td>DAPI / FITC / TRITC 通道映射 · NeuN 阳性率 · GFAP 信号 · Merge 一致性{% if ifBundle.upload_count %} · {{ ifBundle.upload_count }} 个附件{% endif %}</td>
+                <td><span class='sl-badge orange'>视野计数阈值 0.66</span><div class='sl-row-action-note'>Aβ组视野细胞密度偏低·系统阈值</div></td>
+                <td>
+                  <a class='sl-action-link d-block mb-1' href='smartlab-recognition.php{% if ifBundle.experiment_id %}?experiment_id={{ ifBundle.experiment_id }}{% endif %}' title='查看数字化档案'>查看数字化档案</a>
+                  <a class='sl-action-link d-block mb-1' href='smartlab-breakpoint.php{% if ifBundle.experiment_id %}?experiment_id={{ ifBundle.experiment_id }}{% endif %}' title='断点识别'>断点识别</a>
+                  <a class='sl-action-link d-block mb-1' href='smartlab-jump.php{% if ifBundle.experiment_id %}?experiment_id={{ ifBundle.experiment_id }}{% endif %}' title='跳步识别'>跳步识别</a>
+                  <a class='sl-action-link d-block mb-1' href='smartlab-templates.php{% if ifBundle.experiment_id %}?experiment_id={{ ifBundle.experiment_id }}{% endif %}' title='模板补全/草稿'>模板补全/草稿</a>
+                  <a class='sl-action-link d-block' href='smartlab-review.php{% if ifBundle.experiment_id %}?experiment_id={{ ifBundle.experiment_id }}{% endif %}' title='导师审核'>导师审核</a>
+                </td>
+                <td><span class='sl-badge green mr-1 mb-1'>上传完成</span><span class='sl-badge blue mr-1 mb-1'>识别已结构化</span><span class='sl-badge orange mb-1'>待学生确认</span></td>
+              </tr>
+              <tr>
+                <td><b>{{ qpcrBundle.student_name ?: '—' }}</b><div class='sl-muted'>{{ qpcrBundle.experiment_code ?: (qpcrBundle.title ?: '实验记录') }}</div></td>
+                <td><span class='sl-badge blue'>qPCR</span></td>
+                <td>Ct 原始值 · 扩增曲线 · 熔解曲线 · fold-change 结果 · mTOR FC=2.83{% if qpcrBundle.upload_count %} · {{ qpcrBundle.upload_count }} 个附件{% endif %}</td>
+                <td><span class='sl-badge red'>fold-change 超阈值 0.89</span><div class='sl-row-action-note'>关键基因数值不连续性·需复核 Ct 与熔解曲线</div></td>
+                <td>
+                  <a class='sl-action-link d-block mb-1' href='smartlab-recognition.php{% if qpcrBundle.experiment_id %}?experiment_id={{ qpcrBundle.experiment_id }}{% endif %}' title='查看数字化档案'>查看数字化档案</a>
+                  <a class='sl-action-link d-block mb-1' href='smartlab-breakpoint.php{% if qpcrBundle.experiment_id %}?experiment_id={{ qpcrBundle.experiment_id }}{% endif %}' title='断点识别'>断点识别</a>
+                  <a class='sl-action-link d-block mb-1' href='smartlab-jump.php{% if qpcrBundle.experiment_id %}?experiment_id={{ qpcrBundle.experiment_id }}{% endif %}' title='跳步识别'>跳步识别</a>
+                  <a class='sl-action-link d-block mb-1' href='smartlab-templates.php{% if qpcrBundle.experiment_id %}?experiment_id={{ qpcrBundle.experiment_id }}{% endif %}' title='模板补全/草稿'>模板补全/草稿</a>
+                  <a class='sl-action-link d-block' href='smartlab-review.php{% if qpcrBundle.experiment_id %}?experiment_id={{ qpcrBundle.experiment_id }}{% endif %}' title='导师审核'>导师审核</a>
+                </td>
+                <td><span class='sl-badge green mr-1 mb-1'>上传完成</span><span class='sl-badge blue mr-1 mb-1'>识别已结构化</span><span class='sl-badge orange mr-1 mb-1'>待学生确认</span><span class='sl-badge purple mb-1'>待导师确认</span></td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
+          {% set allocationRows = smartlabPatentMyReviewsArr|filter(row => row.pack_key in ['western_blot', 'if', 'qpcr'] and row.upload_count > 0) %}
+          <div class='sl-grid cols-3 mt-3'>
+            {% for student in [
+              ['李明', 'li.ming@labsmart.box', '2 个 WB · 1 个 qPCR'],
+              ['王小雨', 'wang.xiaoyu@labsmart.box', '1 个 WB · 1 个 IF · 1 个 qPCR'],
+              ['陈一然', 'chen.yiran@labsmart.box', '1 个 WB · 1 个 IF · 1 个 qPCR']
+            ] %}
+              {% set studentRows = allocationRows|filter(row => row.student_email == student[1]) %}
+              <div class='sl-callout blue'>
+                <div class='d-flex justify-content-between align-items-center mb-2'>
+                  <b>{{ student[0] }}</b>
+                  <span class='sl-badge blue'>{{ studentRows|length }} 条</span>
+                </div>
+                <div class='sl-muted mb-2'>{{ student[2] }}</div>
+                {% for row in studentRows|slice(0, 4) %}
+                  {% set packShort = row.pack_key == 'western_blot' ? 'WB' : (row.pack_key == 'qpcr' ? 'qPCR' : 'IF') %}
+                  <a class='sl-action-link d-block mb-1' href='smartlab-recognition.php?experiment_id={{ row.experiment_id }}'>
+                    <span class='sl-badge {{ row.pack_key == "qpcr" ? "red" : (row.pack_key == "if" ? "orange" : "blue") }} mr-1'>{{ packShort }}</span>
+                    {{ row.experiment_code ?: (row.experiment_title ?: '实验记录') }}
+                  </a>
+                {% endfor %}
+              </div>
+            {% endfor %}
+          </div>
+          <div class='sl-muted mt-2' style='font-size:12px'>以上为预置训练数据，基于结构化证据与系统阈值生成，实际结果需学生确认或修正后方可作为有效证据进入导师审核流程。</div>
+        </section>
+        <div class='sl-grid layout-2-1'>
+          <section class='sl-card'>
+            <h3>核心流程</h3>
+            <div class='sl-flow' style='flex-wrap:wrap'>
+              {% for step in ['采集模块','记录模块','断点识别模块','跳步识别模块','模板补全模块'] %}
+                <div class='sl-flow-step {{ loop.index == 3 ? "green" : loop.index == 4 ? "orange" : loop.index == 5 ? "purple" : loop.index == 6 ? "teal" }}'><i class='fas fa-{{ loop.index == 1 ? "flask-vial" : loop.index == 2 ? "file-pen" : loop.index == 3 ? "microscope" : loop.index == 4 ? "braille" : "puzzle-piece" }} fa-2x mb-2 text-primary'></i><div><b>{{ step }}</b></div><div class='sl-muted'>0{{ loop.index }}</div></div>
+                {% if not loop.last %}<div class='sl-flow-arrow'>→</div>{% endif %}
+              {% endfor %}
+            </div>
+          </section>
+          <section class='sl-card'>
+            <h3>系统提醒</h3>
+            {% for alert in smartlabPatentAlertsArr %}
+              <a class='sl-card mb-2 d-block' href='{{ alert.href }}' style='box-shadow:none;background:{{ alert.level == "orange" ? "#fff7ed" : alert.level == "red" ? "#fff1f2" : alert.level == "green" ? "#eaf8ef" : "#f8fbff" }}'>
+                <b class='{{ alert.level == "orange" ? "text-warning" : alert.level == "red" ? "text-danger" : alert.level == "green" ? "text-success" : "text-primary" }}'>{{ alert.title }}</b>
+                <div class='sl-muted'>{{ alert.body }}</div>
+              </a>
+            {% endfor %}
+          </section>
+          <section class='sl-card'>
+            <h3>最近实验记录</h3>
+            <table class='sl-table'>
+              <thead><tr><th>实验名称</th><th>实验类型</th><th>上传状态</th><th>异常状态</th><th>审核状态</th><th>操作</th></tr></thead>
+              <tbody>
+              {% for row in smartlabPatentRecentExperimentsArr %}
+                {% set uploadLabel = row.upload_count > 0 ? '已上传 ' ~ row.upload_count ~ ' 个附件' : '缺少原始数据' %}
+                {% set reviewLabel = row.review_status == 'submitted' ? '待审核' : row.review_status == 'approved' ? '已通过' : row.review_status == 'needs_revision' ? '待修改' : row.review_status == 'rejected' ? '已拒绝' : '未提交' %}
+                <tr><td>{{ row.title }}</td><td>{{ row.project_code ?: '未绑定项目' }}</td><td><span class='sl-badge {{ row.upload_count > 0 ? "green" : "orange" }}'>{{ uploadLabel }}</span></td><td>{{ row.date ?: '-' }}</td><td>{{ reviewLabel }}</td><td><a href='experiments.php?mode=view&id={{ row.id }}'>查看</a></td></tr>
+              {% else %}
+                <tr><td colspan='6'><div class='alert alert-info mb-0'>当前团队还没有实验记录。请从“实验记录”创建第一条记录。</div></td></tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </section>
+          <section class='sl-card'>
+            <h3>算法服务状态</h3>
+            {% for service in ['OCR','目标检测','语义分析','断点识别','跳步识别','模板补全'] %}
+              <div class='d-flex justify-content-between border-bottom py-2'><span><i class='fas fa-circle-dot text-primary mr-2'></i>{{ service }}</span><span class='sl-badge green'>在线</span></div>
+            {% endfor %}
+          </section>
+        </div>
+
+      {% elseif smartlabPatentView == 'records' %}
+        <div class='smartlab-crumb'><a href='smartlab-overview.php'><i class='fas fa-angle-left mr-1'></i>返回实验记录</a></div>
+        <form method='post' action='smartlab-records.php'>
+        {{ App.Session.get('csrf')|csrf }}
+        <input type='hidden' name='smartlab_action' value='create_experiment'>
+        <section class='sl-card mb-3'>
+          <h3>基本信息</h3>
+          <div class='sl-grid cols-3'>
+            <label><span class='text-danger'>*</span> 实验名称<input class='form-control mt-1' name='experiment_title' placeholder='输入实验名称' required></label>
+            <label>实验类型<select class='form-control mt-1' name='experiment_type'><option>qPCR实验</option><option>IF实验</option><option>ELISA实验</option><option>WB实验</option><option>流式实验</option><option>其他</option></select></label>
+            <label>实验日期<input class='form-control mt-1' name='experiment_date' type='date' value='{{ smartlabPatentToday }}'></label>
+            <label>实验人员<div class='sl-field mt-1'><span class='sl-badge'>{{ smartlabPatentUserName }}</span></div></label>
+            <label>课题编号<input class='form-control mt-1' name='project_code' placeholder='可选：项目/课题编号'></label>
+          </div>
+        </section>
+        <section class='sl-card mb-3'>
+          <h3>样本信息</h3>
+          <table class='sl-table'>
+            <thead><tr><th>样本编号</th><th>样本名称</th><th>样本类型</th><th>来源</th><th>处理方式</th><th>备注</th><th>操作</th></tr></thead>
+            <tbody>
+              {% for i in 1..3 %}
+                <tr><td><input class='form-control form-control-sm' name='sample_code[]' placeholder='S-{{ i }}'></td><td><input class='form-control form-control-sm' name='sample_name[]' placeholder='样本名称'></td><td><select class='form-control form-control-sm' name='sample_type[]'><option>细胞样本</option><option>组织样本</option><option>血清/血浆</option><option>核酸样本</option><option>其他</option></select></td><td><input class='form-control form-control-sm' name='sample_source[]' placeholder='来源'></td><td><input class='form-control form-control-sm' name='sample_treatment[]' placeholder='处理方式'></td><td><input class='form-control form-control-sm' name='sample_note[]' placeholder='备注'></td><td><button class='btn btn-link btn-sm p-0 text-muted' type='button' data-sl-remove-row title='删除本行'><i class='far fa-trash-can'></i></button></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <div class='sl-muted mt-2'>保存后同步写入 SmartLab 样本表、样本事件表，并关联到当前实验。</div>
+        </section>
+        <div class='sl-grid layout-3-2 mb-3'>
+        <section class='sl-card'>
+          <h3>实验步骤记录</h3>
+          <div class='sl-grid cols-2'>
+            <div>
+              {% for step in ['总RNA提取','反转录（cDNA合成）','qPCR反应体系配置','qPCR扩增','数据分析'] %}
+                <div class='d-flex border-bottom py-2'><span class='sl-badge blue mr-3'>{{ loop.index }}</span><b>{{ step }}</b></div>
+              {% endfor %}
+            </div>
+            <div>
+              <label>步骤描述<textarea class='form-control' name='step_body[]' rows='5' placeholder='填写当前步骤的操作过程、参数和观察结果'></textarea></label>
+              <textarea class='form-control mt-2' name='step_body[]' rows='3' placeholder='可选：补充第二个步骤'></textarea>
+            </div>
+          </div>
+        </section>
+        <section class='sl-card'>
+          <h3>仪器参数</h3>
+          <textarea class='form-control' name='instrument_params' rows='8' placeholder='记录仪器型号、运行程序、温度、循环数、检测通道、曝光参数等'></textarea>
+        </section>
+        </div>
+        <div class='sl-grid layout-3-2'>
+          <section class='sl-card'>
+            <h3>试剂耗材</h3>
+            <table class='sl-table'><thead><tr><th>名称</th><th>品牌/货号</th><th>规格</th><th>批号</th><th>用量</th><th>单位</th><th>操作</th></tr></thead><tbody>
+              {% for i in 1..4 %}
+                <tr><td><input class='form-control form-control-sm' name='reagent_name[]' placeholder='试剂/耗材名称'></td><td><input class='form-control form-control-sm' name='reagent_brand[]' placeholder='品牌/货号'></td><td><input class='form-control form-control-sm' name='reagent_spec[]' placeholder='规格'></td><td><input class='form-control form-control-sm' name='reagent_lot[]' placeholder='批号'></td><td><input class='form-control form-control-sm' name='reagent_amount[]' placeholder='用量'></td><td><input class='form-control form-control-sm' name='reagent_unit[]' placeholder='单位'></td><td><button class='btn btn-link btn-sm p-0 text-muted' type='button' data-sl-remove-row title='删除本行'><i class='far fa-trash-can'></i></button></td></tr>
+              {% endfor %}
+            </tbody></table>
+            <div class='sl-muted mt-2'>保存后进入实验正文，后续可在库存模块按批号追踪试剂耗材。</div>
+          </section>
+          <section class='sl-card'>
+            <h3>原始附件</h3>
+            <div class='sl-callout blue'>创建实验后会跳转到实验详情页，可直接使用 SmartLab 附件区上传原始数据并与实验关联。</div>
+          </section>
+        </div>
+        <section class='sl-card mt-3'><h3>备注</h3><textarea class='form-control' name='experiment_note' rows='3' placeholder='记录实验条件、异常、下一步计划等'></textarea></section>
+        <div class='sl-bottom-bar'><a class='btn btn-outline-primary' href='experiments.php'>查看已有实验</a><button class='btn btn-primary' type='submit'>创建实验记录</button></div>
+        </form>
+
+      {% elseif smartlabPatentView == 'upload' %}
+        <div class='smartlab-crumb'><i class='fas fa-house'></i> 采集模块 <i class='fas fa-angle-right'></i> 记录模块</div>
+        <div class='sl-grid layout-3-2'>
+          <div>
+            <section class='sl-card mb-3'>
+              <div class='sl-card-head'><h3>选择实验并上传原始附件</h3><a class='btn btn-primary btn-sm' href='smartlab-records.php'><i class='fas fa-plus mr-1'></i>新建实验记录</a></div>
+              <table class='sl-table' data-sl-table='experiment-list'>
+                <thead><tr><th data-sl-sort='text'>实验名称</th><th data-sl-sort='date'>实验日期</th><th data-sl-sort='number'>附件状态</th><th data-sl-sort='text'>审核状态</th><th>操作</th></tr></thead>
+                <tbody>
+                {% for row in smartlabPatentRecentExperimentsArr %}
+                  {% set reviewLabel = row.review_status == 'submitted' ? '待审核' : row.review_status == 'approved' ? '已通过' : row.review_status == 'needs_revision' ? '待修改' : row.review_status == 'rejected' ? '已拒绝' : '未提交' %}
+                  <tr class='{{ row.id == selectedExperimentId ? "sl-selected-row" }}'>
+                    <td>
+                      <a class='sl-action-link' href='smartlab-upload.php?experiment_id={{ row.id }}'>{{ row.title }}</a>
+                      {% if row.id == selectedExperimentId %}<span class='sl-badge blue ml-1'>当前</span>{% endif %}
+                    </td>
+                    <td>{{ row.date ?: '-' }}</td>
+                    <td><span class='sl-badge {{ row.upload_count > 0 ? "green" : "orange" }}'>{{ row.upload_count > 0 ? '已上传 ' ~ row.upload_count ~ ' 个附件' : '待上传原始数据' }}</span></td>
+                    <td>{{ reviewLabel }}</td>
+                    <td>
+                      <label class='btn btn-primary btn-sm mb-0'>
+                        <span data-smartlab-direct-upload-label>上传</span>
+                        <input type='file' class='d-none' data-smartlab-direct-upload data-experiment-id='{{ row.id }}' multiple>
+                      </label>
+                      <a class='btn btn-outline-primary btn-sm' href='experiments.php?mode=edit&amp;id={{ row.id }}&amp;smartlab_step=upload#filesDiv'>附件区</a>
+                      <a class='btn btn-link btn-sm' href='experiments.php?mode=view&id={{ row.id }}'>详情</a>
+                    </td>
+                  </tr>
+                {% else %}
+                  <tr><td colspan='5'><div class='alert alert-info mb-0'>还没有实验记录。请先创建实验，再进入实验详情页上传原始附件。</div></td></tr>
+                {% endfor %}
+                </tbody>
+              </table>
+              <div class='sl-muted mt-2'>点击实验名称会在右侧显示该实验批次信息；点击“上传”会把文件直接保存到对应实验。</div>
+            </section>
+            <section class='sl-card mb-3'>
+              <div class='sl-card-head'><h3>WB 原始数据要求</h3><span class='sl-badge blue'>真实附件</span></div>
+              <table class='sl-table'>
+                <tbody>
+                  <tr><td>WB 原图</td><td>整膜图、曝光图、化学发光原图，优先上传未裁剪版本。</td></tr>
+                  <tr><td>灰度/定量文件</td><td>仪器导出 CSV/XLSX、灰度定量表，或带 lane 信息的分析表。</td></tr>
+                  <tr><td>操作记录</td><td>曝光时间、抗体稀释、膜类型、显色试剂、异常说明可作为 PDF/图片/表格上传。</td></tr>
+                </tbody>
+              </table>
+            </section>
+            <section class='sl-card mb-3'>
+              <div class='sl-card-head'><h3>上传后流程</h3><a class='btn btn-outline-primary btn-sm' href='experiments.php'>查看全部实验</a></div>
+              <div class='sl-muted'>附件上传成功后，该实验的“上传原始数据”步骤会自动变成已完成，然后开放识别与结果回填。</div>
+            </section>
+          </div>
+          <aside class='sl-side-list'>
+            {% set uploadResult = smartlabPatentPrimaryResult %}
+            <section class='sl-card'><h3>实验批次信息</h3>
+              {% for row in [['实验名称', uploadResult.title ?: '暂无真实实验'],['实验类型', uploadResult.label ?: '-'],['当前用户', smartlabPatentUserName],['实验日期', uploadResult.date ?: '-'],['实验编号', uploadResult.experiment_code ?: (uploadResult.title ?: '实验记录')],['附件数量', (uploadResult.upload_count ?: 0) ~ ' 个']] %}
+                <div class='sl-mini-stat'><span class='sl-muted'>{{ row[0] }}</span><b>{{ row[1] }}</b></div>
+              {% endfor %}
+              <a class='btn btn-outline-primary btn-block mt-3' href='experiments.php?mode=view&id={{ uploadResult.experiment_id }}'>查看实验批次</a>
+            </section>
+            <section class='sl-card'><h3>上传统计</h3><div class='text-center my-3'><div style='width:118px;height:118px;border-radius:50%;margin:auto;background:conic-gradient(#2f7cff 0 40%,#22c55e 40% 70%,#fbbf24 70%);display:grid;place-items:center'><div style='width:72px;height:72px;border-radius:50%;background:#fff;display:grid;place-items:center'><b>总文件数<br>{{ uploadResult.upload_count ?: 0 }}</b></div></div></div><div class='sl-muted'>已用存储 <b>{{ ((uploadResult.total_filesize ?: 0) / 1024)|round(1) }} KB</b></div><div class='progress mt-2' style='height:5px'><div class='progress-bar bg-success' style='width:{{ uploadResult.upload_count ? 100 : 0 }}%'></div></div></section>
+            <section class='sl-card'><h3>数据关联状态</h3>
+              {% if uploadResult.upload_count %}
+                <div class='py-2'><i class='fas fa-circle-check text-success mr-2'></i><b>已有真实附件</b><div class='sl-muted ml-4'>附件已关联到实验 {{ uploadResult.experiment_code ?: (uploadResult.title ?: '实验记录') }}。</div></div>
+              {% else %}
+                <div class='py-2'><i class='fas fa-circle-exclamation text-warning mr-2'></i><b>还没有附件</b><div class='sl-muted ml-4'>进入实验附件区上传 WB 原图或数据文件。</div></div>
+              {% endif %}
+            </section>
+            <section class='sl-card'><h3><i class='fas fa-circle-info text-primary mr-2'></i>提示</h3><div class='sl-muted'>上传完成后回到实验详情页，流程会根据真实附件数量推进到识别与结果回填。</div></section>
+          </aside>
+        </div>
+
+      {% elseif smartlabPatentView == 'recognition' %}
+        {% set reco = smartlabPatentSelectedExperimentId ? smartlabPatentPrimaryResult : smartlabPatentPrimaryResult %}
+        {% set workflowArchive = patentWorkflow.digital_archive|default({}) %}
+        {% set recognitionArchive = smartlabPatentRecognitionArchive|default({}) %}
+        {% set isWbRecognition = recognitionArchive.is_wb|default(false) %}
+        <div class='smartlab-crumb'><i class='fas fa-house'></i> 首页 <i class='fas fa-angle-right'></i> 智能识别 <i class='fas fa-angle-right'></i> 原始数据 → 结构化证据 · 数字化实验记录档案</div>
+        <section class='sl-patent-hero sl-compact mb-3'>
+          <div>
+            <div class='sl-hero-kicker'>AI Recognition Layer</div>
+            <h2>从原始附件到结构化实验档案</h2>
+            <p>系统把图片、CSV 和实验正文统一映射为证据对象，导师在同一视图中核验 AI 提取字段、学生修正值和原始证据来源。</p>
+          </div>
+          <div class='sl-hero-panel'>
+            <div class='sl-compact-stack'>
+              <div class='sl-mini-line'><i class='fas fa-camera-retro'></i><span>图像证据</span><b>{{ reco.image_uploads|length ?: 0 }} 张</b></div>
+              <div class='sl-mini-line'><i class='fas fa-database'></i><span>结构化字段</span><b>{{ (isWbRecognition ? recognitionArchive.field_rows|length : reco.analysis_points|length) ?: 0 }} 项</b></div>
+              <div class='sl-mini-line'><i class='fas fa-user-check'></i><span>学生确认</span><b>待导师复核</b></div>
+            </div>
+          </div>
+        </section>
+        <section class='sl-card sl-review-context mb-3'>
+          <div class='sl-context-item'><div class='sl-muted'>学生</div><b>{{ reco.student_name ?: (evidenceContext.student_name ?: '—') }}</b></div>
+          <div class='sl-context-item'><div class='sl-muted'>课题</div><b>{{ reco.project_code ?: (evidenceContext.project_code ?: '—') }}</b></div>
+          <div class='sl-context-item'><div class='sl-muted'>当前实验</div><b>{{ reco.experiment_code ?: (reco.title ?: reco.label ?: '实验记录') }}</b></div>
+          <div class='sl-context-item'><div class='sl-muted'>识别状态</div><span class='sl-badge orange'>{{ reco.status_label ?: (evidenceContext.status_label ?: '结构化提取中') }}</span></div>
+          <div class='sl-context-item'><div class='sl-muted'>流程阶段</div><span class='sl-badge purple'>原始数据 → 结构化证据</span></div>
+        </section>
+        <section class='sl-card mb-3'>
+          <div class='sl-card-head'><h3>智能识别审阅队列</h3><span class='sl-badge purple'>按学生实验切换证据包</span></div>
+          <table class='sl-table' data-sl-table='experiment-list'>
+            <thead><tr><th data-sl-sort='text'>实验</th><th data-sl-sort='text'>学生 / 课题</th><th data-sl-sort='number'>AI已提取内容</th><th data-sl-sort='text'>结构化识别要点</th><th>下一步</th><th>操作</th></tr></thead>
+            <tbody>
+            {% for bundle in smartlabPatentResultBundles %}
+              {% set confirmPoint = bundle.assay == 'if'
+                ? '通道映射、NeuN阳性率、GFAP信号与Merge一致性'
+                : (bundle.assay == 'qpcr'
+                  ? 'Ct表、扩增曲线、熔解曲线与fold-change阈值'
+                  : '条带、内参、灰度归一化与lane映射') %}
+              {% set nextStep = ['断点识别', 'smartlab-breakpoint.php?experiment_id=' ~ bundle.experiment_id] %}
+              <tr class='{{ bundle.experiment_id == reco.experiment_id ? "sl-selected-row" }}'>
+                <td><a class='sl-action-link' href='smartlab-recognition.php?experiment_id={{ bundle.experiment_id }}'><b>{{ bundle.title ?: bundle.label ?: '实验记录' }}</b></a>{% if bundle.experiment_id == reco.experiment_id %}<span class='sl-badge blue ml-1'>当前</span>{% endif %}<div class='sl-muted'>{{ bundle.experiment_code ?: '实验 #' ~ bundle.experiment_id }} · {{ bundle.label ?: '实验记录' }}</div></td>
+                <td>{{ bundle.student_name ?: '—' }}<div class='sl-muted'>{{ bundle.project_code ?: '—' }}</div></td>
+                <td>{% for point in bundle.analysis_points|slice(0, 3) %}<span class='sl-badge blue mr-1 mb-1'>{{ point.name }}</span>{% endfor %}<div class='sl-muted mt-1'>{{ bundle.upload_count ?: 0 }} 个附件</div></td>
+                <td>{{ confirmPoint }}</td>
+                <td><a class='sl-action-link' href='{{ nextStep[1] }}'>{{ nextStep[0] }}</a></td>
+                <td><a class='btn btn-outline-primary btn-sm' href='experiments.php?mode=view&amp;id={{ bundle.experiment_id }}'>返回实验记录</a></td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </section>
+        <div class='sl-grid layout-3-2'>
+          <section class='sl-card'>
+            <div class='sl-card-head'><h3>原始证据图</h3><span class='sl-badge green'>{{ reco.image_uploads|length ?: 0 }} 张</span></div>
+            {% for item in reco.image_uploads %}
+              <div class='sl-file mb-3 {{ loop.first ? "border-primary" }}'>
+                <a class='sl-image-link' href='{{ item.href }}' target='_blank' rel='noopener' title='打开原图'>
+                  <img class='sl-result-image' src='{{ item.href }}' alt='{{ item.real_name }}'>
+                  <span class='sl-image-action'><i class='fas fa-up-right-from-square'></i>打开原图</span>
+                </a>
+                <b class='d-block mt-2'>{{ item.real_name }}</b>
+                <div class='sl-muted mt-1'>实验 {{ reco.experiment_code ?: (reco.title ?: '实验记录') }}</div>
+              </div>
+            {% else %}
+              <div class='alert alert-warning mb-0'>还没有可用于识别的真实图片附件。</div>
+            {% endfor %}
+          </section>
+          <section class='sl-card sl-template-main'>
+            <h3>AI识别证据定位</h3>
+            {% if reco.image_uploads|length %}
+              <a class='sl-image-link mb-3' href='{{ reco.image_uploads[0].href }}' target='_blank' rel='noopener' title='打开原图'>
+                <img class='sl-result-image' src='{{ reco.image_uploads[0].href }}' alt='{{ reco.image_uploads[0].real_name }}'>
+                <span class='sl-image-action'><i class='fas fa-up-right-from-square'></i>打开原图</span>
+              </a>
+            {% endif %}
+            {% if isWbRecognition %}
+              <div class='sl-region'><span class='sl-badge green'>区域 · WB条带图像</span><br>{{ recognitionArchive.summary }}</div>
+              <div class='sl-region purple mt-3'><span class='sl-badge purple'>第4步灰度归一化表</span><br>{{ recognitionArchive.source_note }}</div>
+              <table class='sl-table mt-3'>
+                <thead><tr><th>样本</th><th>Target Signal</th><th>Reference Signal</th><th>Normalized</th><th>Trend / Note</th></tr></thead>
+                <tbody>
+                  {% if recognitionArchive.result_rows|length %}
+                  {% for row in recognitionArchive.result_rows %}
+                    <tr>
+                      <td>{{ row.sample }}</td>
+                      <td>{{ row.target_signal ?: '待补充' }}</td>
+                      <td>{{ row.reference_signal ?: '待补充' }}</td>
+                      <td><b>{{ row.normalized_signal ?: '待补充' }}</b></td>
+                      <td class='sl-muted'>{{ row.trend ?: '-' }}{% if row.note %} · {{ row.note }}{% endif %}</td>
+                    </tr>
+                  {% endfor %}
+                  {% else %}
+                    <tr><td colspan='5' class='sl-muted'>第4步“结果回填确认”暂无灰度归一化数据。</td></tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            {% else %}
+              <div class='sl-region'><span class='sl-badge green'>区域 · 结构化提取结果</span><br>{{ workflowArchive.summary|default(reco.summary) }}</div>
+              <div class='sl-region purple mt-3'><span class='sl-badge purple'>识别指标</span><br>{% for point in workflowArchive.analysis_points|default(reco.analysis_points) %}{{ point.name }}：{{ point.value }}<br>{% endfor %}</div>
+            {% endif %}
+            <div class='sl-muted mt-2' style='font-size:12px'>导师在此审阅原始附件、结构化字段和学生确认状态；断点判断与跳步推理在后续页面完成。</div>
+          </section>
+          <section class='sl-card'>
+            <div class='sl-card-head'><h3>导师复核字段</h3><span class='sl-badge blue'>学生确认-导师复核</span></div>
+            <div class='sl-muted mb-2' style='font-size:12px'>导师查看学生对 AI 提取字段的确认/修正记录，优先处理待补充、低置信度和与结论相关的字段。</div>
+            {% if isWbRecognition %}
+              {% set studentConfirmRows = recognitionArchive.confirmation_rows %}
+            {% elseif reco.assay == 'qpcr' %}
+              {% set studentConfirmRows = [
+                {field: '目标基因', ai_value: 'mTOR', student_value: 'mTOR', status: '已确认', badge: 'green', evidence: 'qPCR Ct表 (1个)'},
+                {field: '内参基因', ai_value: 'GAPDH', student_value: 'GAPDH', status: '已确认', badge: 'green', evidence: 'qPCR Ct表 (1个)'},
+                {field: 'Fold-change 离群值', ai_value: 'mTOR=2.83, Rheb=2.45, Lamtor1=1.12', student_value: 'mTOR=2.83, Rheb=2.45 超阈值', status: '学生已修正', badge: 'orange', evidence: 'qPCR原始Ct CSV'},
+                {field: '复孔一致性', ai_value: '待计算', student_value: '待补充', status: '待补充', badge: 'purple', evidence: '扩增曲线图 (待上传)'}
+              ] %}
+            {% else %}
+              {% set studentConfirmRows = [
+                {field: '通道映射', ai_value: 'DAPI / 488 / 594 / Merge', student_value: 'DAPI / FITC / TRITC / Merge', status: '已确认', badge: 'green', evidence: 'IF第1组 (3张)'},
+                {field: 'NeuN阳性率', ai_value: 'Aβ组降低，Aβ+PME组恢复', student_value: 'Aβ: 34% ↓, Aβ+PME: 68% ↑', status: '学生已修正', badge: 'orange', evidence: 'IF细胞计数表 (1个)'},
+                {field: 'Merge一致性', ai_value: 'Merge无偏移', student_value: 'DAPI+NeuN merge 无偏移', status: '已确认', badge: 'green', evidence: 'IF第1组合并图'},
+                {field: '视野计数', ai_value: '2视野/组', student_value: '待补充', status: '待补充', badge: 'purple', evidence: 'IF原始文件 (待上传)'}
+              ] %}
+            {% endif %}
+            <table class='sl-table'>
+              <thead><tr><th>AI提取字段</th><th>学生确认/修正值</th><th>复核状态</th><th>证据来源</th></tr></thead>
+              <tbody>
+              {% for row in studentConfirmRows %}
+                <tr>
+                  <td><span class='sl-muted'>{{ row.field }}</span><br>{{ row.ai_value }}</td>
+                  <td>{{ row.student_value }}</td>
+                  <td><span class='sl-badge {{ row.badge }}'>{{ row.status }}</span></td>
+                  <td class='sl-muted'>{{ row.evidence }}{% if row.source_type|default('') %}<div><span class='sl-badge blue'>{{ row.source_type }}</span>{% if row.confidence|default('') %}<span class='sl-badge green ml-1'>{{ row.confidence }}</span>{% endif %}</div>{% endif %}</td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </section>
+        </div>
+        <section class='sl-card mb-3'>
+          <div class='sl-card-head'><h3>智能识别 · 导师复核清单</h3><div><button class='btn btn-primary btn-sm' type='button' data-sl-run-recognition>重新识别</button> <button class='btn btn-outline-primary btn-sm' type='button' data-sl-export-recognition>导出结果</button></div></div>
+          <div class='sl-console mb-3' data-sl-recognition-console>检查当前实验原始附件、学生确认值和数字化记录档案是否足以进入导师审核。</div>
+          {% set recognitionRows = isWbRecognition ? recognitionArchive.field_rows : reco.analysis_points %}
+          {% for row in recognitionRows %}
+            <div class='sl-card mb-3' style='box-shadow:none'>
+              <span class='sl-badge {{ row.badge|default(loop.index == 1 ? "green" : loop.index == 2 ? "orange" : "purple") }}'>{{ row.status|default('待确认') }}</span>
+              <b>{{ row.field|default(row.name) }}</b>
+              <p class='mt-2 mb-1'>{{ row.ai_value|default(row.value) }}</p>
+              <div class='sl-muted' data-sl-student-value>学生确认/修正值：{{ row.student_value|default(row.ai_value|default(row.value)) }}</div>
+              {% if row.correction_note|default('') %}
+                <div class='sl-muted'>修正说明：{{ row.correction_note }}</div>
+              {% endif %}
+              <div class='sl-grid cols-2 sl-muted'><span>来源实验：{{ reco.experiment_code ?: (reco.title ?: '实验记录') }}</span><span>证据来源：{{ row.evidence|default(reco.upload_count ~ ' 个附件') }}</span><span>置信度：{{ row.confidence|default(98 - loop.index ~ '%') }}</span></div>
+              {% if isWbRecognition %}
+                <div class='mt-3' data-sl-recognition-actions>
+                  <button class='btn btn-outline-success btn-sm mr-2' type='button' data-sl-recognition-confirm data-field-key='{{ row.key }}' data-decision='confirmed' {{ row.decision|default('') == 'confirmed' ? 'disabled' : '' }}>{{ row.decision|default('') == 'confirmed' ? '已确认' : '确认此项' }}</button>
+                  <button class='btn btn-outline-danger btn-sm' type='button' data-sl-recognition-open-correction>需要修正</button>
+                </div>
+                <div class='mt-3 d-none' data-sl-recognition-correction data-field-key='{{ row.key }}'>
+                  <label class='smallgray mb-1'>修正后的识别值</label>
+                  <textarea class='form-control form-control-sm mb-2' rows='2' data-sl-correction-value>{{ row.student_value|default(row.ai_value|default(row.value)) }}</textarea>
+                  <label class='smallgray mb-1'>修正说明</label>
+                  <input class='form-control form-control-sm mb-2' data-sl-correction-note value='{{ row.correction_note|default("") }}' placeholder='例如：文件名识别正确，但目标蛋白应按实验记录修正' />
+                  <button class='btn btn-primary btn-sm mr-2' type='button' data-sl-recognition-save-correction>保存修正</button>
+                  <button class='btn btn-outline-secondary btn-sm' type='button' data-sl-recognition-cancel-correction>取消</button>
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+          <div class='sl-callout blue'>
+            <b>检测动作</b>
+            <div class='mt-2'>
+              <a class='btn btn-primary btn-sm mr-2' href='smartlab-breakpoint.php?experiment_id={{ reco.experiment_id }}'>确认并进入断点识别</a>
+              <a class='btn btn-outline-danger btn-sm' href='experiments.php?mode=view&id={{ reco.experiment_id }}'>返回实验记录补充证据</a>
+            </div>
+            <div class='sl-muted mt-2' style='font-size:12px'>模板草稿在断点识别→跳步识别→模板补全/草稿完成后生成，无需从识别页直接跳转。</div>
+          </div>
+        </section>
+        <section class='sl-card mb-3'>
+          <h3>数字化实验记录档案</h3>
+          <table class='sl-table'>
+            <thead><tr><th>#</th><th>证据对象</th><th>区域/类别</th><th>结构化提取结果</th><th>证据绑定</th><th>采集时间/坐标</th><th>来源实验</th><th>操作</th></tr></thead>
+            <tbody>
+              {% set archiveRecords = isWbRecognition ? recognitionArchive.records : workflowArchive.records|default(reco.uploads) %}
+              {% for upload in archiveRecords %}
+                <tr>
+                  <td>{{ loop.index }}</td>
+                  <td>{{ upload.real_name|default(upload.filename) }}</td>
+                  <td><span class='sl-badge {{ upload.kind == "image" ? "green" : "blue" }}'>{{ upload.region_type|default(upload.kind == "image" ? "图像区域" : "数据表") }}</span></td>
+                  <td>{{ upload.structured_text|default(reco.summary) }}</td>
+                  <td><span class='sl-badge blue'>{{ upload.kind == "image" ? "原始图像" : (upload.upload_id|default(0) == 0 ? "实验记录回填" : "原始数据") }} {{ loop.index }}</span></td>
+                  <td class='sl-muted'>{{ upload.collected_at|default(reco.date ?: smartlabPatentToday) }} / {{ upload.coordinates|default(reco.experiment_code ?: (reco.title ?: '实验记录')) }}</td>
+                  <td>{{ reco.experiment_code ?: '实验记录' }}</td>
+                  <td>{% if upload.href|default('') %}<a href='{{ upload.href }}' target='_blank' rel='noopener'>打开</a>{% else %}<span class='sl-muted'>-</span>{% endif %}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </section>
+
+      {% elseif smartlabPatentView == 'breakpoint' %}
+        {% set selectedResult = smartlabPatentSelectedExperimentId ? smartlabPatentPrimaryResult : smartlabPatentPrimaryResult %}
+        {% set bpAssay = selectedResult.assay|default('qpcr') %}
+        {% set bpAssayLabel = bpAssay == 'wb' ? 'WB' : (bpAssay == 'if' ? 'IF' : 'qPCR') %}
+        {% set bpAssayFull = bpAssay == 'wb' ? '免疫印迹(WB)' : (bpAssay == 'if' ? '免疫荧光(IF)' : '实时荧光定量(qPCR)') %}
+        {% set bpPrimaryCandidate = patentWorkflow.breakpoint_result.primary_candidate|default({}) %}
+        {% set bpHeroScore = bpPrimaryCandidate.score|default(bpPrimaryCandidate.joint_score|default('0.89')) %}
+        <section class='sl-patent-hero sl-compact mb-3'>
+          <div>
+            <div class='sl-hero-kicker'>Breakpoint Detection Engine</div>
+            <h2>相邻步骤连续性与异常断点定位</h2>
+            <p>按时间序列逐段比较实验记录、图像证据和仪器参数变化，只输出需要导师复核的候选位置，不直接替代导师结论。</p>
+          </div>
+          <div class='sl-hero-panel'>
+            <div class='sl-hero-score' style='margin:0 0 10px'>
+              <strong>{{ bpHeroScore }}</strong>
+              <span>候选评分</span>
+            </div>
+            <div class='sl-compact-stack'>
+              <div class='sl-mini-line'><i class='fas fa-timeline'></i><span>实验类型</span><b>{{ bpAssayLabel }}</b></div>
+              <div class='sl-mini-line'><i class='fas fa-triangle-exclamation'></i><span>关注阈值</span><b>0.70</b></div>
+            </div>
+          </div>
+        </section>
+        <section class='sl-card sl-review-context mb-3'>
+          <div class='sl-context-item'><div class='sl-muted'>导师审核对象</div><b>{{ selectedResult.student_name ?: (evidenceContext.student_name ?: '—') }}</b></div>
+          <div class='sl-context-item'><div class='sl-muted'>课题</div><b>{{ selectedResult.project_code ?: (evidenceContext.project_code ?: '—') }}</b></div>
+          <div class='sl-context-item'><div class='sl-muted'>当前实验</div><b>{{ selectedResult.experiment_code ?: (selectedResult.title ?: '实验记录') }}</b></div>
+          <div class='sl-context-item'><div class='sl-muted'>审核状态</div><span class='sl-badge orange'>{{ selectedResult.status_label ?: (evidenceContext.status_label ?: '未提交') }}</span></div>
+          <div class='sl-context-item'><div class='sl-muted'>导师关注点</div><span class='sl-badge red'>记录连续性 / 图像质控 / 数值跳变</span></div>
+        </section>
+        <div class='sl-grid layout-2-1'>
+          <section class='sl-card' style='grid-column:1 / -1'>
+            <div class='sl-card-head'><h3>断点识别审阅队列</h3><span class='sl-badge blue'>全体学生实验可切换</span></div>
+            <table class='sl-table' data-sl-table='experiment-list'>
+              <thead><tr><th data-sl-sort='text'>实验</th><th data-sl-sort='text'>学生 / 类型</th><th data-sl-sort='number'>证据附件</th><th data-sl-sort='text'>断点类型</th><th data-sl-sort='number'>风险评分</th><th>建议</th><th>操作</th></tr></thead>
+              <tbody>
+              {% set breakpointQueueBundles = smartlabPatentResultBundles|filter(bundle => bundle.experiment_id == selectedResult.experiment_id)|merge(smartlabPatentResultBundles|filter(bundle => bundle.experiment_id != selectedResult.experiment_id)) %}
+              {% for bundle in breakpointQueueBundles %}
+                {% set isCurrentBundle = bundle.experiment_id == selectedResult.experiment_id %}
+                {% set bundleBpFocus = bundle.assay == 'wb' ? 'WB条带/灰度连续性' : (bundle.assay == 'qpcr' ? 'qPCR Ct/fold-change阈值' : (bundle.assay in ['if', 'ihc'] ? '图像阈值/视野计数' : '标准流程连续性')) %}
+                {% set currentPrimary = patentWorkflow.breakpoint_result.primary_candidate|default({}) %}
+                {% set currentScore = currentPrimary.score|default(currentPrimary.joint_score|default('')) %}
+                {% set currentScoreValue = currentScore == '' ? 0 : currentScore + 0 %}
+                {% set bp = isCurrentBundle and currentScore
+                  ? [currentPrimary.label|default('候选逻辑断点'), currentScore, currentScoreValue, currentPrimary.recommendation|default('进入跳步识别继续核验')]
+                  : ['切换后分析','-', 0, '点击实验名称后读取该实验结构化记录与附件重新评分'] %}
+                <tr class='{{ isCurrentBundle ? "sl-selected-row" }}'>
+                  <td><a class='sl-action-link' href='smartlab-breakpoint.php?experiment_id={{ bundle.experiment_id }}'><b>{{ bundle.title ?: bundle.label ?: '实验记录' }}</b></a>{% if isCurrentBundle %}<span class='sl-badge blue ml-1'>当前</span>{% endif %}<div class='sl-muted'>{{ bundle.experiment_code ?: '实验 #' ~ bundle.experiment_id }} · {{ bundle.label ?: '实验记录' }}</div></td>
+                  <td>{{ bundle.student_name ?: '—' }}<div class='sl-muted'>{{ bundleBpFocus }}</div></td>
+                  <td>{{ bundle.upload_count ?: 0 }} 个</td>
+                  <td>{{ bp[0] }}</td>
+                  <td><span class='sl-badge {{ bp[1] == '-' ? "blue" : (bp[2] > 0.80 ? "red" : "orange") }}'>{{ bp[1] }}</span></td>
+                  <td>{{ bp[3] }}</td>
+                  <td><a class='btn btn-outline-primary btn-sm' href='experiments.php?mode=view&amp;id={{ bundle.experiment_id }}'>查看记录</a></td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </section>
+          <section class='sl-card' style='grid-column:1 / -1'>
+            <h3>实验概览</h3>
+            <div class='sl-grid cols-5'>
+              {% for row in [['当前实验', selectedResult.experiment_code ?: (selectedResult.title ?: '实验记录')],['实验名称', selectedResult.title ?: '未找到 ' ~ bpAssayFull ~ ' 结果'],['实验日期', selectedResult.date ?: '-'],['附件', (bpAssayLabel ~ ' ') ~ (selectedResult.upload_count ?: 0) ~ ' 个'],['全实验附件', (selectedResult.source_upload_count ?: selectedResult.upload_count ?: 0) ~ ' 个']] %}
+                <div><div class='sl-muted'>{{ row[0] }}</div><b class='{{ loop.last ? "text-danger" }}'>{{ row[1] }}</b></div>
+              {% endfor %}
+            </div>
+            {% if selectedResult.image_uploads|length %}
+              <div class='sl-preview-grid mt-3'>
+                {% for upload in selectedResult.image_uploads %}
+                  <div class='sl-preview-card'>
+                    <a class='sl-image-link' href='{{ upload.href }}' target='_blank' rel='noopener' title='打开原图'>
+                      <img class='sl-result-image' src='{{ upload.href }}' alt='{{ upload.real_name }}'>
+                      <span class='sl-image-action'><i class='fas fa-up-right-from-square'></i>打开原图</span>
+                    </a>
+                    <b>{{ upload.real_name }}</b>
+                    <span class='sl-badge green mt-2'>{{ bpAssayLabel }}图像预览</span>
+                  </div>
+                {% endfor %}
+              </div>
+            {% endif %}
+            <div class='sl-attachment-list mt-3'>
+              {% for upload in selectedResult.data_uploads %}
+                <a href='{{ upload.href }}' target='_blank' rel='noopener'><span>{{ upload.real_name }}</span><span class='sl-badge {{ upload.kind == "image" ? "green" : "blue" }}'>{{ upload.kind == "image" ? "图片" : "数据" }}</span></a>
+              {% endfor %}
+            </div>
+          </section>
+          <section class='sl-card' style='grid-column:1 / -1'>
+            <div class='sl-card-head'><h3>断点识别依据</h3><span class='sl-badge purple'>{{ bpAssayLabel }} 当前实验</span></div>
+            <div class='sl-grid cols-3 mb-3' style='gap:16px'>
+              <div class='sl-mini-stat'><span class='sl-muted'>记录是否接得上</span><b class='text-primary' style='font-size:1.1rem'>流程连续性</b></div>
+              <div class='sl-mini-stat'><span class='sl-muted'>图像/数值是否突变</span><b class='text-success' style='font-size:1.1rem'>证据变化</b></div>
+              <div class='sl-mini-stat'><span class='sl-muted'>达到候选标准</span><b class='text-danger' style='font-size:1.1rem'>0.7 以上</b></div>
+            </div>
+            <div class='sl-callout blue mb-0' style='font-size:13px;padding:12px'>
+              <b><i class='fas fa-magnifying-glass-chart mr-2'></i>系统怎么找断点</b>
+              <p class='sl-muted mb-0 mt-2'>系统按相邻实验步骤逐段检查：前后记录是否连贯、图像、曲线或定量数据是否突然变化、是否有原始附件或结构化表格支撑。关注度越高，越需要进入下一步复核；低于 0.7 只作为关注位置，0.7 以上才列为候选断点。</p>
+            </div>
+          </section>
+          <section class='sl-card'>
+            <h3>实验事件序列（按时间顺序）</h3>
+            <table class='sl-table'>
+              <thead><tr><th>步骤</th><th>时间</th><th>操作描述</th><th>记录/数据</th><th>前后衔接</th><th>关注度</th><th>状态</th></tr></thead>
+              <tbody>
+              {% set eventRows = [] %}
+              {% if patentWorkflow.breakpoint_result.event_sequence|default([])|length %}
+                {% for event in patentWorkflow.breakpoint_result.event_sequence %}
+                  {% set pair = patentWorkflow.breakpoint_result.adjacent_pairs[loop.index0]|default({}) %}
+                  {% set score = pair.joint_score|default('-') %}
+                  {% set scoreValue = score == '-' ? 0 : score + 0 %}
+                  {% set status = pair.is_candidate|default(false) ? '候选' : (score != '-' and scoreValue > 0.35 ? '关注' : '正常') %}
+                  <tr class='{{ status == "候选" ? "alert-row" }}'><td>{{ event.step }}</td><td>{{ event.time }}</td><td>{{ event.operation }}</td><td>{{ event.reading }}</td><td>{{ pair.semantic_continuity|default('-') }}</td><td>{{ score }}</td><td><span class='sl-badge {{ status == "候选" ? "red" : status == "关注" ? "orange" : "green" }}'>{{ status }}</span></td></tr>
+                {% endfor %}
+              {% elseif bpAssay == 'wb' %}
+                <tr><td colspan='7'><div class='sl-callout blue mb-0'><b>暂无可评分 WB 断点序列</b><div class='sl-muted mt-1'>当前实验未读取到结构化 WB 结果、灰度表或断点表，本页不生成示例候选。</div></div></td></tr>
+              {% elseif bpAssay == 'if' %}
+                {% set eventRows = [
+                  [1,'制片','组织切片与抗原修复','切片厚度 4 μm','0.98','0.05','正常'],
+                  [2,'封闭','5% 山羊血清封闭','封闭 30 min','0.97','0.08','正常'],
+                  [3,'一抗孵育','NeuN / GFAP 抗体孵育','4°C 过夜','0.96','0.10','正常'],
+                  [4,'二抗孵育','Alexa Fluor 二抗','避光 1h','0.95','0.12','正常'],
+                  [5,'封片','DAPI 封片','封片完成','0.94','0.14','正常'],
+                  [6,'成像','共聚焦采集','Aβ组视野细胞密度偏低','0.73','0.49','可疑'],
+                  [7,'计数','ImageJ 细胞计数','NeuN+ 计数 45 cells/field','0.92','0.21','正常']
+                ] %}
+              {% else %}
+                {% set eventRows = [
+                  [1,'导入','读取 qPCR 原始 Ct 数据','Ct / DeltaCt 记录','0.98','0.08','正常'],
+                  [2,'计算','生成 delta Ct / delta-delta Ct','Control mean 已计算','0.97','0.10','正常'],
+                  [3,'绘图','读取扩增曲线图像与 Rn_by_cycle','扩增曲线已上传','0.96','0.12','正常'],
+                  [4,'质控','mTOR fold-change = 2.83；Rheb fold-change = 2.45','超过预设阈值 2.00','0.72','0.57','可疑'],
+                  [5,'归档','关联 fold-change 图与 Ct 表','图表附件已上传','0.94','0.18','正常']
+                ] %}
+              {% endif %}
+              {% if eventRows|length %}
+                {% for row in eventRows %}
+                  <tr class='{{ row[6] == "候选" ? "alert-row" }}'><td>{{ row[0] }}</td><td>{{ row[1] }}</td><td>{{ row[2] }}</td><td>{{ row[3] }}</td><td>{{ row[4] }}</td><td>{{ row[5] }}</td><td><span class='sl-badge {{ row[6] == "候选" ? "red" : row[6] in ["可疑","关注"] ? "orange" : "green" }}'>{{ row[6] == "可疑" ? "关注" : row[6] }}</span></td></tr>
+                {% endfor %}
+              {% endif %}
+              </tbody>
+            </table>
+          </section>
+          <aside class='sl-side-list'>
+            <section class='sl-card'>
+              {% set bpResult = patentWorkflow.breakpoint_result|default({}) %}
+              {% set primaryBp = bpResult.primary_candidate|default({}) %}
+              {% set primaryScore = primaryBp.score|default(primaryBp.joint_score|default('0.00')) %}
+              {% set primaryScoreValue = primaryScore + 0 %}
+              {% set bpCandidates = bpResult.candidates|default([]) %}
+              {% set candidateCount = bpCandidates|length %}
+              {% set primaryTone = primaryScoreValue > 0.69 ? 'red' : (primaryScoreValue > 0.35 ? 'orange' : 'green') %}
+              <div class='sl-card-head'><h3>断点识别结果 <span class='sl-badge {{ primaryTone }} ml-2'>候选 {{ candidateCount }}</span></h3><button class='btn btn-outline-primary btn-sm' type='button' data-sl-run-breakpoint>重新分析</button></div>
+              <div class='sl-console mb-3' data-sl-breakpoint-console>{{ bpResult.has_real_wb_data|default(true) ? '已完成事件序列断点分析。' : '未读取到可评分 WB 数据，未生成示例断点。' }}</div>
+              <div class='sl-callout {{ primaryTone }} mb-3'><span class='sl-badge {{ primaryTone }}'>{{ primaryScoreValue > 0.69 ? '候选断点' : (primaryScoreValue > 0.35 ? '关注位置' : '低关注') }}</span><h3 class='mt-2'>{{ primaryBp.label|default(bpAssay == 'wb' ? 'WB流程连续性断点候选' : (bpAssay == 'if' ? '细胞密度/通道阈值/视野计数断点' : 'mTOR/Rheb fold-change 超过阈值')) }}</h3><div>依据：{{ bpResult.source|default(bpAssay == 'wb' ? 'WB 条带图、灰度数据与归一化附件' : (bpAssay == 'if' ? 'IF 视野图、细胞计数与阈值附件' : 'qPCR Ct、扩增曲线与熔解曲线附件')) }}</div><div>关注位置：{{ primaryBp.before|default('-') }} → {{ primaryBp.after|default('-') }}</div><div>关注度：{{ primaryScore }}</div><div>建议：{{ primaryBp.recommendation|default('进入跳步识别继续核验，不在断点识别阶段直接判定缺失步骤。') }}</div><a class='btn btn-outline-primary btn-sm btn-block mt-3' href='experiments.php?mode=view&id={{ selectedResult.experiment_id }}'>查看相关实验</a></div>
+              {% for candidate in bpCandidates|slice(1, 2) %}
+                <div class='sl-callout orange {{ loop.last ? "" : "mb-3" }}'><span class='sl-badge orange'>备选位置</span><h3 class='mt-2'>{{ candidate.label|default(candidate.before ~ ' → ' ~ candidate.after) }}</h3><div>关注位置：{{ candidate.before }} → {{ candidate.after }}</div><div>关注度：{{ candidate.joint_score|default(candidate.score|default('-')) }}</div><div>建议：{{ candidate.recommendation|default('作为跳步识别上下文保留。') }}</div></div>
+              {% else %}
+                <div class='sl-callout orange'><span class='sl-badge orange'>说明</span><h3 class='mt-2'>断点识别只输出候选位置</h3><div>是否存在跳步、缺失哪一步，将在下一模块“跳步识别”中判断。</div></div>
+              {% endfor %}
+            </section>
+            <section class='sl-card'>
+              <h3>识别详情（{{ primaryBp.before|default('前一事件') }} → {{ primaryBp.after|default('后一事件') }}）</h3>
+              {% set evidenceFiles = bpResult.evidence_files|default({}) %}
+              {% set evidenceImage = evidenceFiles.image|default('') %}
+              {% set evidenceGrayCsv = evidenceFiles.gray_csv|default('') %}
+              {% set evidenceImageFallback = bpAssay == 'wb' ? '未读取到WB图像证据' : (bpAssay == 'if' ? '未读取到IF图像证据' : '未读取到qPCR图表证据') %}
+              {% set evidenceDataFallback = bpAssay == 'wb' ? '未读取到WB灰度表' : (bpAssay == 'if' ? '未读取到IF计数表' : '未读取到qPCR Ct表') %}
+              {% set evidenceImageLabel = evidenceImage not in ['', '-'] ? evidenceImage : evidenceImageFallback %}
+              {% set evidenceGrayCsvLabel = evidenceGrayCsv not in ['', '-'] ? evidenceGrayCsv : evidenceDataFallback %}
+              {% set bpDataLabel = bpAssay == 'wb' ? '灰度数据' : (bpAssay == 'if' ? '计数数据' : '定量数据') %}
+              {% for row in [['识别结果', candidateCount > 0 ? '候选断点 / 待跳步识别核验' : '未达候选标准 / 保留关注信息'],['涉及步骤', primaryBp.before|default('-') ~ ' → ' ~ primaryBp.after|default('-')],['依据图像', evidenceImageLabel],[bpDataLabel, evidenceGrayCsvLabel],['依据说明', primaryBp.evidence|default(primaryBp.label|default('-'))],['关注度', primaryScore]] %}
+                <div class='sl-mini-stat'><span class='sl-muted'>{{ row[0] }}</span><b class='{{ loop.last ? "text-danger" }}'>{{ row[1] }}</b></div>
+              {% endfor %}
+            </section>
+          </aside>
+          {% set bpPairs = patentWorkflow.breakpoint_result.adjacent_pairs|default([]) %}
+          <section class='sl-card'><h3>图像/数值变化</h3>{% if bpPairs|length %}<div class='sl-chart'>{% for pair in bpPairs %}<span style='height:{{ ((pair.numeric_gradient + 0) * 100)|round }}%' data-label='{{ loop.index }}' aria-label='第{{ loop.index }}段数据变化 {{ pair.numeric_gradient }}' title='第{{ loop.index }}段：{{ pair.numeric_gradient }}'></span>{% endfor %}</div>{% else %}<div class='sl-muted'>暂无可绘制评分数据</div>{% endif %}</section>
+          <section class='sl-card'><h3>记录衔接情况</h3>{% if bpPairs|length %}<div class='sl-chart'>{% for pair in bpPairs %}<span style='height:{{ ((pair.semantic_continuity + 0) * 100)|round }}%;background:#2563eb' data-label='{{ loop.index }}' aria-label='第{{ loop.index }}段记录衔接 {{ pair.semantic_continuity }}' title='第{{ loop.index }}段：{{ pair.semantic_continuity }}'></span>{% endfor %}</div>{% else %}<div class='sl-muted'>暂无可绘制评分数据</div>{% endif %}</section>
+          <section class='sl-card'><h3>复核关注度</h3>{% if bpPairs|length %}<div class='sl-chart'>{% for pair in bpPairs %}<span style='height:{{ ((pair.joint_score + 0) * 100)|round }}%;background:#7c3aed' data-label='{{ loop.index }}' aria-label='第{{ loop.index }}段复核关注度 {{ pair.joint_score }}' title='第{{ loop.index }}段：{{ pair.joint_score }}'></span>{% endfor %}</div>{% else %}<div class='sl-muted'>暂无可绘制评分数据</div>{% endif %}</section>
+          <section class='sl-card' style='grid-column:1 / -1'>
+            <div class='sl-card-head'><h3>相邻步骤比较</h3><span class='sl-badge purple'>用于定位需要复核的位置</span></div>
+            <table class='sl-table'>
+              <thead><tr><th>前一步</th><th>后一步</th><th>时间间隔</th><th>数据变化</th><th>记录衔接</th><th>关注度</th><th>结果</th></tr></thead>
+              <tbody>
+              {% if patentWorkflow.breakpoint_result.adjacent_pairs|default([])|length %}
+                {% for row in patentWorkflow.breakpoint_result.adjacent_pairs %}
+                  <tr class='{{ row.is_candidate ? "alert-row" }}'>
+                    <td>{{ row.before }}</td><td>{{ row.after }}</td><td>{{ row.time_gap }}</td>
+                    <td><span class='sl-badge {{ row.numeric_gradient + 0 > 0.30 ? "orange" : "green" }}'>{{ row.numeric_gradient }}</span></td>
+                    <td>{{ row.semantic_continuity }}</td>
+                    <td><b class='{{ row.joint_score + 0 > 0.35 ? "text-danger" }}'>{{ row.joint_score }}</b></td>
+                    <td><span class='sl-badge {{ row.is_candidate ? "red" : "green" }}'>{{ row.is_candidate ? "候选" : "正常" }}</span></td>
+                  </tr>
+                {% endfor %}
+              {% elseif bpAssay == 'wb' %}
+                <tr><td colspan='7'><div class='sl-muted'>暂无相邻事件评分；当前实验未读取到可评分数据。</div></td></tr>
+              {% elseif bpAssay == 'if' %}
+                {% set adjRows = [
+                  ['制片','封闭','-','0.10','0.97','0.07','否'],
+                  ['封闭','一抗孵育','-','0.12','0.96','0.09','否'],
+                  ['一抗孵育','二抗孵育','-','0.13','0.95','0.10','否'],
+                  ['二抗孵育','封片','-','0.14','0.94','0.11','否'],
+                  ['封片','成像','-','0.84','0.50','0.70','是'],
+                  ['成像','计数','-','0.14','0.93','0.11','否']
+                ] %}
+              {% else %}
+                {% set adjRows = [
+                  ['导入','计算','-','0.15','0.95','0.11','否'],
+                  ['计算','绘图','-','0.18','0.94','0.13','否'],
+                  ['绘图','质控','-','0.85','0.48','0.72','是'],
+                  ['质控','归档','-','0.14','0.95','0.10','否']
+                ] %}
+              {% endif %}
+              {% if adjRows|default([])|length %}
+                {% for row in adjRows %}
+                  <tr class='{{ row[6] == "是" ? "alert-row" }}'>
+                    <td>{{ row[0] }}</td><td>{{ row[1] }}</td><td>{{ row[2] }}</td>
+                    <td><span class='sl-badge {{ (row[3] + 0) > 0.30 ? "orange" : "green" }}'>{{ row[3] }}</span></td>
+                    <td>{{ row[4] }}</td>
+                    <td><b class='{{ (row[5] + 0) > 0.35 ? "text-danger" }}'>{{ row[5] }}</b></td>
+                    <td><span class='sl-badge {{ row[6] == "是" ? "red" : "green" }}'>{{ row[6] == "是" ? "候选" : "正常" }}</span></td>
+                  </tr>
+                {% endfor %}
+              {% endif %}
+              </tbody>
+            </table>
+            <div class='sl-muted mt-2' style='font-size:12px'>断点识别只标出需要导师复核的位置；是否真的缺步骤，交给下一步“跳步识别”判断。</div>
+          </section>
+        </div>
+        <div class='sl-footer-actions' style='position:static'>
+          <div style='flex:1;text-align:left;font-size:13px;color:var(--sl-muted);align-self:center'>断点识别完成后，进入跳步识别检测缺失步骤和证据链连续性。</div>
+          <a class='btn btn-outline-primary' href='experiments.php?mode=view&id={{ selectedResult.experiment_id }}'><i class='fas fa-arrow-left mr-1'></i>返回实验记录</a>
+          <a class='btn btn-primary' href='smartlab-jump.php{% if selectedResult.experiment_id %}?experiment_id={{ selectedResult.experiment_id }}{% endif %}'><i class='fas fa-chart-line mr-1'></i>跳步识别</a>
+        </div>
+
+      {% elseif smartlabPatentView == 'jump' %}
+        {% set jumpResult = patentWorkflow.jump_result|default({}) %}
+        {% set breakpointResult = patentWorkflow.breakpoint_result|default({}) %}
+        {% set wb = smartlabPatentSelectedExperimentId ? smartlabPatentPrimaryResult : smartlabPatentPrimaryResult %}
+        {% set jumpAssay = wb.assay|default('selected') %}
+        {% set jumpAssayLabel = jumpAssay == 'wb' ? 'WB' : (jumpAssay == 'qpcr' ? 'qPCR' : (jumpAssay == 'if' ? 'IF' : (jumpAssay == 'ihc' ? 'IHC' : '实验'))) %}
+        {% set hasFreshJumpResult = jumpResult.status|default('') != '' %}
+        {% set jumpStatus = hasFreshJumpResult ? jumpResult.status : '待分析' %}
+        {% set jumpDecision = hasFreshJumpResult ? jumpResult.decision|default('—') : '请点击「重新分析」，从当前实验断点结果重新计算跳步风险。' %}
+        {% set jumpRisk = hasFreshJumpResult ? jumpResult.risk_score|default(0) : 0 %}
+        {% set jumpConfidence = hasFreshJumpResult ? jumpResult.confidence|default('—') : '—' %}
+        {% set jumpOffset = hasFreshJumpResult ? jumpResult.offset|default(0) : 0 %}
+        {% set jumpNeighborAvg = hasFreshJumpResult ? jumpResult.neighbor_average|default(0) : 0 %}
+        {% set jumpThreshold = hasFreshJumpResult ? jumpResult.threshold|default(0) : 0 %}
+        {% set jumpBeforeEvidence = hasFreshJumpResult ? jumpResult.before_evidence|default('—') : '等待重新分析后生成' %}
+        {% set jumpAfterEvidence = hasFreshJumpResult ? jumpResult.after_evidence|default('—') : '等待重新分析后生成' %}
+        {% set jumpMissingSteps = hasFreshJumpResult ? jumpResult.missing_steps|default([]) : [] %}
+        {% set jumpRecommendation = hasFreshJumpResult ? jumpResult.recommendation|default('—') : '旧版跳步结果不会直接作为结论展示，请重新分析当前实验。' %}
+        {% set jumpCandidateBreakpoint = jumpResult.candidate_breakpoint|default(breakpointResult.primary_candidate|default({})) %}
+        {% set jumpEvidenceFiles = jumpResult.evidence_files|default(breakpointResult.evidence_files|default({})) %}
+        {% set wbMetrics = breakpointResult.wb_metrics|default({}) %}
+        {% set hasRealWbData = breakpointResult.has_real_wb_data|default(false) %}
+        <section class='sl-patent-hero sl-compact mb-3'>
+          <div>
+            <div class='sl-hero-kicker'>Missing-Step Reasoning</div>
+            <h2>断点前后证据链的跳步风险推断</h2>
+            <p>把断点候选、前后有效证据、灰度/Ct/图像指标和模板先验联合评分，推断可能缺失的实验步骤并生成导师复核依据。</p>
+          </div>
+          <div class='sl-hero-panel'>
+            <div class='sl-hero-score' style='margin:0 0 10px'>
+              <strong>{{ jumpRisk ?: '—' }}</strong>
+              <span>{{ jumpStatus }}</span>
+            </div>
+            <div class='sl-compact-stack'>
+              <div class='sl-mini-line'><i class='fas fa-code-branch'></i><span>偏移量</span><b>{{ jumpOffset }}</b></div>
+              <div class='sl-mini-line'><i class='fas fa-gauge-high'></i><span>阈值</span><b>{{ jumpThreshold }}</b></div>
+            </div>
+          </div>
+        </section>
+        <section class='sl-card sl-review-context mb-3'>
+          <div class='sl-context-item'><div class='sl-muted'>导师审阅对象</div><b>{{ wb.student_name ?: (evidenceContext.student_name ?: '—') }}</b></div>
+          <div class='sl-context-item'><div class='sl-muted'>课题</div><b>{{ wb.project_code ?: (evidenceContext.project_code ?: '—') }}</b></div>
+          <div class='sl-context-item'><div class='sl-muted'>当前实验</div><b>{{ wb.experiment_code ?: (wb.title ?: '实验记录') }}</b></div>
+          <div class='sl-context-item'><div class='sl-muted'>跳步状态</div><span class='sl-badge {{ jumpStatus == '疑似跳步' ? 'red' : (jumpStatus == '记录断裂/证据不足' ? 'orange' : 'blue') }}'>{{ jumpStatus }}</span></div>
+          <div class='sl-context-item'><div class='sl-muted'>系统关注点</div><span class='sl-badge purple'>缺失步骤 / 证据链连续性</span></div>
+        </section>
+        <div class='sl-grid layout-2-1'>
+          <section class='sl-card' style='grid-column:1 / -1'>
+            <div class='sl-card-head'><h3>跳步识别审阅队列</h3><span class='sl-badge blue'>全体学生实验可切换</span></div>
+            <table class='sl-table' data-sl-table='experiment-list'>
+              <thead><tr><th data-sl-sort='text'>实验</th><th data-sl-sort='text'>学生 / 类型</th><th data-sl-sort='number'>证据附件</th><th data-sl-sort='text'>跳步状态</th><th data-sl-sort='number'>风险评分</th><th>操作</th></tr></thead>
+              <tbody>
+              {% set jumpQueueBundles = smartlabPatentResultBundles|filter(bundle => bundle.experiment_id == wb.experiment_id)|merge(smartlabPatentResultBundles|filter(bundle => bundle.experiment_id != wb.experiment_id)) %}
+              {% for bundle in jumpQueueBundles %}
+                {% set isCurrentBundle = bundle.experiment_id == wb.experiment_id %}
+                {% set bundleJumpFocus = bundle.assay == 'wb' ? 'WB洗膜/二抗缺失核查' : (bundle.assay == 'qpcr' ? 'qPCR体系/扩增/熔解步骤核查' : (bundle.assay in ['if', 'ihc'] ? '固定/孵育/成像步骤核查' : '标准流程缺失核查')) %}
+                <tr class='{{ isCurrentBundle ? "sl-selected-row" }}'>
+                  <td><a class='sl-action-link' href='smartlab-jump.php?experiment_id={{ bundle.experiment_id }}'><b>{{ bundle.title ?: bundle.label ?: '实验记录' }}</b></a>{% if isCurrentBundle %}<span class='sl-badge blue ml-1'>当前</span>{% endif %}<div class='sl-muted'>{{ bundle.experiment_code ?: '实验 #' ~ bundle.experiment_id }} · {{ bundle.label ?: '实验记录' }}</div></td>
+                  <td>{{ bundle.student_name ?: '—' }}<div class='sl-muted'>{{ bundleJumpFocus }}</div></td>
+                  <td>{{ bundle.upload_count ?: 0 }} 个</td>
+                  <td>{{ isCurrentBundle and jumpStatus != '待分析' ? jumpStatus : '切换后分析' }}</td>
+                  <td><span class='sl-badge {{ jumpRisk >= 0.5 ? 'red' : (jumpRisk > 0 ? 'orange' : 'blue') }}'>{{ isCurrentBundle and jumpRisk > 0 ? jumpRisk : '—' }}</span></td>
+                  <td><a class='btn btn-outline-primary btn-sm' href='experiments.php?mode=view&amp;id={{ bundle.experiment_id }}'>返回实验记录</a></td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </section>
+          <section class='sl-card' style='grid-column:1 / -1'>
+            <div class='sl-card-head'><h3>{{ jumpAssayLabel }} 跳步证据 · 前后证据评估</h3><span class='sl-badge purple'>前一有效证据 / 后一有效证据</span></div>
+            <div class='sl-grid cols-2 mb-3'>
+              <div class='sl-callout blue'>
+                <b>前一有效证据（断点 before）</b>
+                <p class='mt-2 mb-1 sl-muted'>{{ jumpBeforeEvidence }}</p>
+                <span class='sl-badge green'>{{ jumpCandidateBreakpoint.before|default('—') }}</span>
+              </div>
+              <div class='sl-callout blue'>
+                <b>后一有效证据（断点 after）</b>
+                <p class='mt-2 mb-1 sl-muted'>{{ jumpAfterEvidence }}</p>
+                <span class='sl-badge green'>{{ jumpCandidateBreakpoint.after|default('—') }}</span>
+              </div>
+            </div>
+            <div class='sl-callout {{ jumpStatus == '疑似跳步' ? 'red' : (jumpStatus == '记录断裂/证据不足' ? 'orange' : 'blue') }} mb-3'>
+              <b>跳步判定</b>
+              <span class='sl-badge {{ jumpStatus == '疑似跳步' ? 'red' : (jumpStatus == '记录断裂/证据不足' ? 'orange' : 'blue') }} ml-2'>{{ jumpStatus }}</span>
+              <span class='sl-badge orange ml-1'>偏移量 {{ jumpOffset }}</span>
+              <span class='sl-badge purple ml-1'>阈值 {{ jumpThreshold }}</span>
+              <p class='mt-2 mb-0 sl-muted'>
+                {{ jumpDecision }}
+              </p>
+            </div>
+            <div class='sl-muted' style='font-size:12px'>判定规则：偏移量源于当前实验类型的关键证据变化与断点相邻对联合评分；若偏移量 > 1.5 × 同批相邻均值（{{ jumpNeighborAvg }}），则判定为疑似跳步。图像、表格和结构化记录共同进入证据链校验。</div>
+          </section>
+          <section class='sl-card'>
+            <h3>{{ jumpAssayLabel }} 附件与数据证据</h3>
+            <div class='sl-grid cols-2 mb-3'>
+              {% for row in [['当前实验', wb.experiment_code ?: (wb.title ?: '实验记录')],['实验名称', wb.title ?: '未找到当前结果'],['当前附件', (wb.upload_count ?: 0) ~ ' 个'],[jumpAssayLabel ~ '证据文件', (jumpEvidenceFiles.image|default('—') ?: '—')] ] %}
+                <div><div class='sl-muted'>{{ row[0] }}</div><b>{{ row[1] }}</b></div>
+              {% endfor %}
+            </div>
+            <div class='sl-preview-grid'>
+              {% for upload in wb.image_uploads %}
+                <div class='sl-preview-card'>
+                  <a class='sl-image-link' href='{{ upload.href }}' target='_blank' rel='noopener' title='打开原图'>
+                    <img class='sl-result-image' src='{{ upload.href }}' alt='{{ upload.real_name }}'>
+                    <span class='sl-image-action'><i class='fas fa-up-right-from-square'></i>打开原图</span>
+                  </a>
+                  <b>{{ upload.real_name }}</b>
+                  <span class='sl-badge green mt-2'>{{ jumpAssayLabel }}图像证据</span>
+                </div>
+              {% else %}
+                <div class='alert alert-warning mb-0'>还没有{{ jumpAssayLabel }}图像附件，请先补充原始图像或仪器导出文件。</div>
+              {% endfor %}
+            </div>
+            <div class='sl-attachment-list mt-3'>
+              {% for upload in wb.data_uploads %}
+                <a href='{{ upload.href }}' target='_blank' rel='noopener'><span>{{ upload.real_name }}</span><span class='sl-badge blue'>数据</span></a>
+              {% endfor %}
+            </div>
+            <b class='d-block mt-3'>{{ jumpAssayLabel }}证据文件索引</b>
+            <div class='sl-muted mt-2'>
+              <div>原始图像/图表：{{ jumpEvidenceFiles.image|default('') ?: '待补充' }}</div>
+              <div>定量数据CSV：{{ jumpEvidenceFiles.gray_csv|default('') ?: '待补充' }}</div>
+              <div>断点CSV：{{ jumpEvidenceFiles.breakpoint_csv|default('') ?: '待补充' }}</div>
+            </div>
+          </section>
+          <section class='sl-card'>
+            <div class='sl-card-head'><h3>{{ wb.assay == 'wb' ? 'WB' : (wb.assay == 'qpcr' ? 'qPCR' : (wb.assay == 'if' ? 'IF' : '实验')) }} 跳步识别分析</h3><div>
+              <span class='sl-badge {{ jumpStatus == '疑似跳步' ? 'red' : (jumpStatus == '记录断裂/证据不足' ? 'orange' : 'blue') }}'>{{ jumpStatus }}</span>
+              <button class='btn btn-outline-primary btn-sm ml-2' type='button' data-sl-run-jump>重新分析</button>
+            </div></div>
+            <div class='sl-console mb-3' data-sl-jump-console>{% if jumpStatus == '待分析' %}等待执行跳步识别分析。点击「重新分析」从断点结果/数字化档案读取前后证据并计算跳步风险。{% else %}已完成前后证据偏移联合分析。偏移量 {{ jumpOffset }}，阈值 {{ jumpThreshold }}（1.5×同批相邻均值 {{ jumpNeighborAvg }}）。判定：{{ jumpStatus }}。{% endif %}</div>
+            <div class='sl-grid cols-2 sl-jump-metrics'>
+              <div class='sl-card' style='box-shadow:none'>
+                <h3>偏移量（归一化梯度）</h3>
+                <div style='font-size:34px;color:{{ jumpOffset > jumpThreshold ? '#ef4444' : '#16a34a' }};font-weight:800'>{{ jumpOffset }}</div>
+                <div class='progress'><div class='progress-bar {{ jumpOffset > jumpThreshold ? 'bg-danger' : 'bg-success' }}' style='width:{{ (jumpOffset * 100)|round(0, 'floor') }}%'></div></div>
+                <p class='mt-3 mb-0 sl-muted'>关键参照CV：{{ wbMetrics.reference_cv_label|default('待计算') }}</p>
+              </div>
+              <div class='sl-card' style='box-shadow:none'>
+                <h3>{{ jumpAssayLabel }} 关键指标</h3>
+                <table class='sl-table'>
+                  <thead><tr><th>指标</th><th>值</th><th>状态</th></tr></thead>
+                  <tr><td>归一化梯度</td><td>{{ wbMetrics.normalization_gradient|default('—') }}</td><td><span class='sl-badge {{ (wbMetrics.normalization_gradient|default(0)) > 0.3 ? 'red' : 'green' }}'>{{ (wbMetrics.normalization_gradient|default(0)) > 0.3 ? '偏高' : '正常' }}</span></td></tr>
+                  <tr><td>内参CV</td><td>{{ wbMetrics.reference_cv_label|default('—') }}</td><td><span class='sl-badge {{ (wbMetrics.reference_cv|default(0)) > 0.15 ? 'orange' : 'green' }}'>{{ (wbMetrics.reference_cv|default(0)) > 0.15 ? '关注' : '正常' }}</span></td></tr>
+                  <tr><td>复孔CV</td><td>{{ wbMetrics.replicate_cv|default('—') }}</td><td><span class='sl-badge {{ (wbMetrics.replicate_cv|default(0)) > 0.15 ? 'orange' : 'green' }}'>{{ (wbMetrics.replicate_cv|default(0)) > 0.15 ? '关注' : '正常' }}</span></td></tr>
+                </table>
+              </div>
+            </div>
+            <div class='sl-callout {{ jumpStatus == '疑似跳步' ? 'red' : (jumpStatus == '记录断裂/证据不足' ? 'orange' : 'blue') }} mt-3'>
+              <b>分析结论</b>
+              <p class='mt-2 mb-1'>{{ jumpRecommendation }}</p>
+              {% if jumpMissingSteps|length %}
+                <div class='mt-2'><span class='sl-badge purple'>疑似缺失步骤</span></div>
+                <div class='sl-flow mt-2'>
+                  {% for step in jumpMissingSteps %}
+                    <div class='sl-flow-step orange' style='min-width:80px;padding:10px 6px'><b>{{ step }}</b></div>
+                    {% if not loop.last %}<div class='sl-flow-arrow'>→</div>{% endif %}
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+            {% if jumpEvidenceFiles %}
+            <div class='sl-muted mt-2'>
+              <b>证据文件</b>：{{ jumpEvidenceFiles.image|default('无') }}{{ jumpEvidenceFiles.gray_csv|default('') ? '、' ~ jumpEvidenceFiles.gray_csv }}{{ jumpEvidenceFiles.breakpoint_csv|default('') ? '、' ~ jumpEvidenceFiles.breakpoint_csv }}
+            </div>
+            {% endif %}
+          </section>
+          <section class='sl-card'>
+            <h3>缺失步骤推理结果</h3>
+            {% if jumpMissingSteps|length %}
+            <div class='sl-flow'>
+              {% for step in jumpMissingSteps %}
+                <div class='sl-step-card'><div class='num'>{{ loop.index }}</div><i class='fas fa-{{ loop.index == 1 ? "flask" : loop.index == 2 ? "clipboard-check" : loop.index == 3 ? "shield-halved" : "vial" }} fa-2x my-2 text-primary'></i><div>{{ step }}</div><span class='sl-badge {{ loop.index == 1 ? 'green' : 'blue' }} mt-2'>置信度 {{ (jumpConfidence * 100)|round(0) }}%</span></div>
+                {% if not loop.last %}<div class='sl-flow-arrow'>→</div>{% endif %}
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class='sl-callout blue'>
+              <b>未检测到缺失步骤</b>
+              <p class='mb-0 mt-2 sl-muted'>当前断点前后记录未发现明显步骤缺失，或证据不足无法推断。可进入步骤推理核验证据链。</p>
+            </div>
+            {% endif %}
+            <div class='alert alert-info mt-3 mb-0'><b>置信度 {{ jumpConfidence }}</b><br>基于当前实验的关键指标、参照CV、断点相邻对和证据文件联合评分。置信度 ≥ 0.70 时缺失步骤推理可信度较高。</div>
+          </section>
+          <aside class='sl-card'>
+            <h3>导师复核依据</h3>
+            {% set jumpReviewBasis = jumpAssay == 'wb'
+              ? ['WB断点识别结果：相邻事件序列与联合评分','灰度归一化CSV：目标蛋白/内参灰度比值','原始条带图：条带ROI定位与背景区域','WB协议检测：封闭/洗膜/二抗记录完整性','历史完整序列：同批WB实验完整步骤统计']
+              : (jumpAssay == 'qpcr'
+                ? ['qPCR断点识别结果：Ct、扩增曲线与fold-change联合评分','Ct原始表：目标基因/内参基因差异','扩增曲线图：阈值线、Rn变化与异常孔','熔解曲线：单峰性与非特异扩增核查','历史完整序列：同批qPCR实验完整步骤统计']
+                : ['图像实验断点识别结果：视野、通道与计数联合评分','原始图像：通道映射、ROI与背景区域','定量表：阳性率、细胞计数与阈值','染色流程：固定、封闭、孵育、成像记录完整性','历史完整序列：同批图像实验完整步骤统计'])
+            %}
+            {% for basis in jumpReviewBasis %}
+              <div class='py-2 border-bottom'><i class='fas fa-check text-success mr-2'></i>{{ basis }}</div>
+            {% endfor %}
+            <div class='sl-callout blue mt-4'><b><i class='far fa-lightbulb text-primary mr-2'></i>说明</b><p class='mb-0 mt-2 sl-muted'>跳步识别基于断点识别输出的候选断点和证据文件，结合实验类型协议检测区分「疑似跳步」与「记录断裂/证据不足」。导师可据此决定通过、退回补充或要求重做关键步骤。</p></div>
+          </aside>
+        </div>
+        <div class='sl-footer-actions' style='position:static'>
+          <div style='flex:1;text-align:left;font-size:13px;color:var(--sl-muted);align-self:center'>跳步识别完成后，进入模板补全/草稿查看证据包；导师最终裁决在审核中心完成。</div>
+          <a class='btn btn-outline-primary' href='experiments.php?mode=view&id={{ wb.experiment_id }}'><i class='fas fa-arrow-left mr-1'></i>返回实验记录</a>
+          <a class='btn btn-primary' href='smartlab-templates.php{% if wb.experiment_id %}?experiment_id={{ wb.experiment_id }}{% endif %}'><i class='fas fa-layer-group mr-1'></i>模板补全/草稿</a>
+        </div>
+
+      {% elseif smartlabPatentView == 'reasoning' %}
+        {% set reasoningResult = smartlabPatentSelectedExperimentId ? smartlabPatentPrimaryResult : smartlabPatentPrimaryResult %}
+        {% set reasoningAssay = reasoningResult.assay|default('wb') %}
+        {% set reasoningAssayLabel = reasoningAssay == 'wb' ? 'WB' : (reasoningAssay == 'if' ? 'IF' : 'qPCR') %}
+        <section class='sl-card sl-review-context mb-3'>
+          <div class='sl-context-item'><div class='sl-muted'>学生</div><b>{{ reasoningResult.student_name ?: (evidenceContext.student_name ?: '—') }}</b></div>
+          <div class='sl-context-item'><div class='sl-muted'>课题</div><b>{{ reasoningResult.project_code ?: (evidenceContext.project_code ?: '—') }}</b></div>
+          <div class='sl-context-item'><div class='sl-muted'>当前证据</div><b>{{ reasoningResult.experiment_code ?: (reasoningResult.title ?: '缺失步骤推理') }}</b></div>
+          <div class='sl-context-item'><div class='sl-muted'>推理状态</div><span class='sl-badge orange'>{{ reasoningResult.status_label ?: (evidenceContext.status_label ?: '推理中') }}</span></div>
+          <div class='sl-context-item'><div class='sl-muted'>关注点</div><span class='sl-badge purple'>缺失步骤 / 候选路径 / 证据链重建</span></div>
+        </section>
+        <div class='sl-grid layout-2-1'>
+          <section class='sl-card' style='grid-column:1 / -1'>
+            <div class='sl-card-head'><h3>实验覆盖与缺失步骤推断</h3><span class='sl-badge blue'>WB / IF / qPCR</span></div>
+            <table class='sl-table'>
+              <thead><tr><th>实验</th><th>实验类型</th><th>推断缺失序列</th><th>置信度</th><th>补全动作</th></tr></thead>
+              <tbody>
+              {% for bundle in smartlabPatentResultBundles %}
+                {% set reasoningInfo = bundle.assay == 'wb'
+                  ? ['PBS洗涤 → 固定 → 封闭 → 一抗孵育 → 二抗孵育','0.85','已生成WB缺失步骤推理结果']
+                  : (bundle.assay == 'if'
+                    ? ['PBS洗涤 → 固定 → 封闭 → 一抗孵育 → 二抗孵育','0.81','已生成IF缺失步骤推理结果']
+                    : ['cDNA合成 → qPCR反应体系配置 → qPCR扩增程序 → 熔解曲线分析 → 结果导出','0.88','已生成qPCR缺失步骤推理结果']) %}
+                <tr class='{{ bundle.experiment_id == reasoningResult.experiment_id ? "sl-selected-row" }}'>
+                  <td><a class='sl-action-link' href='smartlab-reasoning.php?experiment_id={{ bundle.experiment_id }}'><b>{{ bundle.label }}</b></a>{% if bundle.experiment_id == reasoningResult.experiment_id %}<span class='sl-badge blue ml-1'>当前</span>{% endif %}<div class='sl-muted'>{{ bundle.experiment_code ?: (bundle.title ?: '实验记录') }}</div></td>
+                  <td><span class='sl-badge {{ bundle.assay == 'wb' ? 'green' : (bundle.assay == 'if' ? 'purple' : 'blue') }}'>{{ bundle.assay == 'wb' ? 'WB' : (bundle.assay == 'if' ? 'IF' : 'qPCR') }}</span></td>
+                  <td>{{ reasoningInfo[0] }}</td>
+                  <td><span class='sl-badge {{ reasoningInfo[1] > '0.85' ? 'green' : 'orange' }}'>{{ reasoningInfo[1] }}</span></td>
+                  <td><a class='btn btn-outline-primary btn-sm' href='experiments.php?mode=view&amp;id={{ bundle.experiment_id }}'>返回实验记录</a><div class='sl-muted mt-1'>{{ reasoningInfo[2] }}</div></td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </section>
+          <section class='sl-card' style='grid-column:1 / -1'>
+            <div class='sl-card-head'><h3>证据链重建 · 前一/当前/后一有效证据</h3><span class='sl-badge purple'>系统对齐</span></div>
+            <div class='sl-workflow' style='justify-content:center; flex-wrap:nowrap'>
+              <div class='sl-workflow-node green' style='min-width:200px'>
+                <i class='fas fa-arrow-left d-block mb-2'></i><b>前一有效证据</b>
+                <div class='sl-muted mt-2' style='font-size:12px'>
+                  {% if reasoningAssay == 'wb' %}
+                    制样/电泳/转膜步骤完成<br>蛋白浓度 2.1 μg/μL
+                  {% elseif reasoningAssay == 'if' %}
+                    制片/封闭步骤完成<br>切片厚度 4 μm
+                  {% else %}
+                    RNA提取/定量完成<br>A260/280 = 1.98
+                  {% endif %}
+                </div>
+              </div>
+              <div class='sl-flow-arrow'>→</div>
+              <div class='sl-workflow-node orange' style='min-width:200px'>
+                <i class='fas fa-exclamation-triangle d-block mb-2'></i><b>当前断点区域</b>
+                <div class='sl-muted mt-2' style='font-size:12px'>
+                  {% if reasoningAssay == 'wb' %}
+                    一抗孵育步骤缺失<br>GAD67/GAPDH ratio异常
+                  {% elseif reasoningAssay == 'if' %}
+                    一抗/二抗孵育步骤可疑<br>视野细胞密度偏低
+                  {% else %}
+                    cDNA合成/体系配置缺失<br>fold-change超阈值
+                  {% endif %}
+                </div>
+              </div>
+              <div class='sl-flow-arrow'>→</div>
+              <div class='sl-workflow-node teal' style='min-width:200px'>
+                <i class='fas fa-arrow-right d-block mb-2'></i><b>后一有效证据</b>
+                <div class='sl-muted mt-2' style='font-size:12px'>
+                  {% if reasoningAssay == 'wb' %}
+                    显影/灰度分析完成<br>GAD67 OD=0.84
+                  {% elseif reasoningAssay == 'if' %}
+                    成像/计数步骤完成<br>NeuN+ 68%
+                  {% else %}
+                    扩增/熔解曲线完成<br>mTOR fold-change=2.83
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class='sl-callout blue mt-3'>
+              <b><i class='fas fa-circle-info mr-2'></i>证据链说明</b>
+              <p class='mb-0 mt-1 sl-muted'>
+                {% if reasoningAssay == 'wb' %}
+                  前一有效证据（制样→转膜）与后一有效证据（显影→灰度分析）之间存在<b>一抗孵育、洗涤、二抗孵育</b>步骤缺失。条带/OD归一化偏移量 0.73 超过阈值 0.60，确认缺失步骤推理必要性。
+                {% elseif reasoningAssay == 'if' %}
+                  前一有效证据（制片→封闭）与后一有效证据（成像→计数）之间存在<b>一抗孵育、洗涤、二抗孵育</b>步骤缺失。阳性面积偏移 34%，最优传输(OT)代价偏高，确认缺失步骤推理必要性。
+                {% else %}
+                  前一有效证据（RNA提取→定量质控）与后一有效证据（扩增曲线→熔解曲线→Ct结果）之间存在<b>cDNA合成、qPCR反应体系配置、qPCR扩增程序、熔解曲线分析</b>步骤缺失。Ct数值不连续性显著，fold-change偏移 0.83，确认缺失步骤推理必要性。
+                {% endif %}
+              </p>
+            </div>
+          </section>
+          <section class='sl-card' style='grid-column:1 / -1'>
+            <div class='sl-card-head'><h3>候选路径评分 · DP/Viterbi 推理</h3><span class='sl-badge purple'>动态规划评分</span></div>
+            <div class='sl-callout blue mb-3' style='font-size:13px;padding:12px'>
+              <b><i class='fas fa-square-root-variable mr-2'></i>路径评分公式</b>
+              <p class='mb-0 mt-1' style='font-family:monospace;font-size:14px'>最终得分 = 0.35 × 转移得分 + 0.35 × 证据拟合 + 0.30 × 模板先验</p>
+              <p class='sl-muted mb-0 mt-2'>基于 DP/Viterbi 最优路径选择策略，候选路径按最终得分降序排列。得分 ≥ 0.70 标记为推荐路径。</p>
+            </div>
+            <table class='sl-table'>
+              <thead><tr><th>候选路径</th><th>转移得分</th><th>证据拟合</th><th>模板先验</th><th>最终得分</th><th>推荐</th></tr></thead>
+              <tbody>
+              {% if patentWorkflow.reasoning_result.candidate_paths|default([])|length %}
+                {% for path in patentWorkflow.reasoning_result.candidate_paths %}
+                  <tr class='{{ path.recommended ? "sl-selected-row" }}'>
+                    <td>{{ path.path }}</td>
+                    <td>{{ path.semantic_benefit }}</td>
+                    <td>{{ (1 - path.reading_cost)|round(2) }}</td>
+                    <td>0.80</td>
+                    <td><b class='{{ path.score > "0.75" ? "text-success" : (path.score > "0.60" ? "text-primary" : "text-muted") }}'>{{ path.score }}</b></td>
+                    <td><span class='sl-badge {{ path.recommended ? "green" : "orange" }}'>{{ path.recommended ? "推荐" : "备选" }}</span></td>
+                  </tr>
+                {% endfor %}
+              {% elseif reasoningAssay == 'wb' %}
+                {% set candidatePaths = [
+                  ['PBS洗涤 → 固定 → 封闭 → 一抗孵育 → 二抗孵育','0.86','0.82','0.88','0.85','推荐'],
+                  ['固定 → 封闭 → 一抗孵育 → 二抗孵育','0.82','0.78','0.84','0.81','推荐'],
+                  ['PBS洗涤 → 一抗孵育 → 二抗孵育','0.75','0.72','0.76','0.74','可选'],
+                  ['封闭 → 一抗孵育 → 二抗孵育 → 显影','0.68','0.66','0.70','0.68','备选'],
+                  ['PBS洗涤 → 封闭 → 一抗孵育（跳过二抗）','0.55','0.50','0.58','0.54','-']
+                ] %}
+              {% elseif reasoningAssay == 'if' %}
+                {% set candidatePaths = [
+                  ['PBS洗涤 → 固定 → 封闭 → 一抗孵育 → 二抗孵育','0.84','0.80','0.86','0.83','推荐'],
+                  ['固定 → 封闭 → 一抗孵育 → 二抗孵育','0.80','0.76','0.82','0.79','推荐'],
+                  ['PBS洗涤 → 一抗孵育 → 二抗孵育','0.73','0.70','0.74','0.72','可选'],
+                  ['封闭 → 一抗孵育 → 二抗孵育 → 成像','0.66','0.64','0.68','0.66','备选'],
+                  ['PBS洗涤 → 封闭 → 一抗孵育（跳过二抗）','0.53','0.48','0.56','0.52','-']
+                ] %}
+              {% else %}
+                {% set candidatePaths = [
+                  ['cDNA合成 → 体系配置 → 扩增程序 → 熔解曲线分析 → 结果导出','0.88','0.85','0.90','0.87','推荐'],
+                  ['体系配置 → 扩增程序 → 熔解曲线分析 → 结果导出','0.84','0.81','0.86','0.84','推荐'],
+                  ['cDNA合成 → 扩增程序 → 结果导出','0.76','0.73','0.78','0.76','可选'],
+                  ['扩增程序 → 熔解曲线分析 → 结果导出','0.69','0.67','0.72','0.69','备选'],
+                  ['cDNA合成 → 体系配置（跳过扩增）','0.57','0.53','0.60','0.56','-']
+                ] %}
+                {% for row in candidatePaths %}
+                  <tr class='{{ row[5] == "推荐" ? "sl-selected-row" }}'>
+                    <td>{{ row[0] }}</td>
+                    <td>{{ row[1] }}</td>
+                    <td>{{ row[2] }}</td>
+                    <td>{{ row[3] }}</td>
+                    <td><b class='{{ row[4] > "0.75" ? "text-success" : (row[4] > "0.60" ? "text-primary" : "text-muted") }}'>{{ row[4] }}</b></td>
+                    <td><span class='sl-badge {{ row[5] == "推荐" ? "green" : (row[5] == "可选" ? "blue" : "orange") }}'>{{ row[5] }}</span></td>
+                  </tr>
+                {% endfor %}
+              {% endif %}
+              </tbody>
+            </table>
+            <div class='sl-muted mt-2' style='font-size:12px'>转移得分衡量步骤间过渡合理性；证据拟合衡量与已有实验证据的匹配度；模板先验基于历史完整序列的统计频率。基于预置训练数据构造，不代表真实模型输出。</div>
+          </section>
+          <section class='sl-card'>
+            <h3>当前实验证据与数据</h3>
+            <div class='sl-grid cols-2 mb-3'>
+              {% for row in [['当前实验', reasoningResult.experiment_code ?: (reasoningResult.title ?: '实验记录')],['实验名称', reasoningResult.title ?: '未找到当前结果'],['当前附件', (reasoningResult.upload_count ?: 0) ~ ' 个'],['全实验类型', (smartlabPatentResultBundles|length) ~ ' 类']] %}
+                <div><div class='sl-muted'>{{ row[0] }}</div><b>{{ row[1] }}</b></div>
+              {% endfor %}
+            </div>
+            <div class='sl-preview-grid'>
+              {% for upload in reasoningResult.image_uploads %}
+                <div class='sl-preview-card'>
+                  <a class='sl-image-link' href='{{ upload.href }}' target='_blank' rel='noopener' title='打开原图'>
+                    <img class='sl-result-image' src='{{ upload.href }}' alt='{{ upload.real_name }}'>
+                    <span class='sl-image-action'><i class='fas fa-up-right-from-square'></i>打开原图</span>
+                  </a>
+                  <b>{{ upload.real_name }}</b>
+                  <span class='sl-badge green mt-2'>{{ reasoningAssayLabel }}证据预览</span>
+                </div>
+              {% else %}
+                <div class='alert alert-warning mb-0'>还没有可用于步骤推理的附件。</div>
+              {% endfor %}
+            </div>
+            <div class='sl-attachment-list mt-3'>
+              {% for upload in reasoningResult.data_uploads %}
+                <a href='{{ upload.href }}' target='_blank' rel='noopener'><span>{{ upload.real_name }}</span><span class='sl-badge blue'>数据</span></a>
+              {% endfor %}
+            </div>
+            <b class='d-block mt-3'>结构化数据</b>
+            <div class='sl-muted mt-2'>
+              {% if reasoningAssay == 'wb' %}
+                读取 WB 原图、灰度定量表和对应曝光参数，基于条带 OD 值与内参归一化推断缺失步骤。
+              {% elseif reasoningAssay == 'if' %}
+                读取 IF 通道图像、阳性面积计数和 OT 代价评估，基于形态分布变化推断缺失步骤。
+              {% else %}
+                读取 qPCR Ct 值、扩增曲线和熔解曲线，基于数值/Ct 不连续性推断缺失步骤。
+              {% endif %}
+            </div>
+          </section>
+          <aside class='sl-side-list'>
+            <section class='sl-card'>
+              <h3>推荐缺失步骤</h3>
+              <div class='sl-flow' style='flex-wrap:wrap'>
+                {% if patentWorkflow.reasoning_result.recommended_steps|default([])|length %}
+                  {% set missingSteps = patentWorkflow.reasoning_result.recommended_steps %}
+                  {% set missingIcons = ['dna','vial','chart-line','chart-simple','file-export','flask'] %}
+                {% elseif reasoningAssay == 'qpcr' %}
+                  {% set missingSteps = ['cDNA合成','qPCR反应体系配置','qPCR扩增程序','熔解曲线分析','结果导出'] %}
+                  {% set missingIcons = ['dna','vial','chart-line','chart-simple','file-export'] %}
+                {% else %}
+                  {% set missingSteps = ['PBS洗涤','固定','封闭','一抗孵育','二抗孵育'] %}
+                  {% set missingIcons = ['hand-sparkles','syringe','shield-halved','flask','vial'] %}
+                {% endif %}
+                {% for step in missingSteps %}
+                  <div class='sl-step-card' style='min-width:110px;flex:1'>
+                    <div class='num'>{{ loop.index }}</div>
+                    <i class='fas fa-{{ missingIcons[loop.index0] }} fa-2x my-2 text-primary'></i>
+                    <div>{{ step }}</div>
+                    <span class='sl-badge blue mt-2'>置信度 {{ 94 - loop.index }}</span>
+                  </div>
+                  {% if not loop.last %}<div class='sl-flow-arrow'>→</div>{% endif %}
+                {% endfor %}
+              </div>
+              <div class='alert alert-info mt-3 mb-0'>
+                {% if reasoningAssay == 'qpcr' %}
+                  未检测到统计分析、图表导出等后处理步骤缺失，可能在后一记录后执行。
+                {% else %}
+                  未检测到显色、成像等后处理步骤缺失，可能在后一记录后执行。
+                {% endif %}
+              </div>
+            </section>
+            <section class='sl-card'>
+              <h3>推理依据与说明</h3>
+              {% for basis in ['历史完整序列：同类实验完整步骤序列统计','模板库：标准实验模板与可选步骤组合','语义匹配：步骤标签与操作语义匹配度','仪器读数范围：信号变化符合预期范围'] %}
+                <div class='py-2 border-bottom'><i class='fas fa-check text-success mr-2'></i>{{ basis }}</div>
+              {% endfor %}
+              <div class='sl-callout blue mt-4'><b><i class='far fa-lightbulb text-primary mr-2'></i>说明</b><p class='mb-0 mt-2 sl-muted'>以上推理结果基于 DP/Viterbi 最优路径评分与证据链联合推断，请结合实验实际情况确认，必要时可上传补充数据以提升推理准确性。</p></div>
+            </section>
+            <section class='sl-card'>
+              <h3>补全动作</h3>
+              <div class='d-grid gap-2'>
+                {% if reasoningResult.experiment_id %}
+                  <a class='btn btn-primary btn-block mb-2' href='smartlab-templates.php?experiment_id={{ reasoningResult.experiment_id }}'>
+                    <i class='fas fa-file-lines mr-1'></i>模板补全/草稿生成
+                  </a>
+                  <a class='btn btn-outline-primary btn-block mb-2' href='experiments.php?mode=view&id={{ reasoningResult.experiment_id }}'>
+                    <i class='fas fa-flask mr-1'></i>查看原实验记录
+                  </a>
+                {% else %}
+                  <a class='btn btn-primary btn-block mb-2' href='smartlab-templates.php'>
+                    <i class='fas fa-file-lines mr-1'></i>模板补全/草稿生成
+                  </a>
+                  <a class='btn btn-outline-primary btn-block mb-2' href='experiments.php?scope=1'>
+                    <i class='fas fa-flask mr-1'></i>查看实验记录
+                  </a>
+                {% endif %}
+                {% if reasoningResult.experiment_id %}
+                  <button class='btn btn-outline-primary btn-block' type='button' data-sl-run-reasoning data-experiment-id='{{ reasoningResult.experiment_id }}'>
+                    <i class='fas fa-rotate-right mr-1'></i>重新推理
+                  </button>
+                {% endif %}
+              </div>
+            </section>
+          </aside>
+        </div>
+
+      {% elseif smartlabPatentView == 'templates' %}
+        {% set tplResult = smartlabPatentPrimaryResult.experiment_id|default(0) ? smartlabPatentPrimaryResult : smartlabPatentPrimaryResult %}
+        {% set tplAssay = tplResult.assay|default('wb') %}
+        {% set tplKind = tplAssay == 'wb' ? 'WB' : (tplAssay == 'qpcr' ? 'qPCR' : (tplAssay == 'pcr' ? 'PCR' : (tplAssay == 'if' ? 'IF' : (tplAssay == 'ihc' ? 'IHC' : (tplAssay == 'elisa' ? 'ELISA' : 'WB'))))) %}
+        {% set tplWorkflowLabel = tplKind == 'qPCR' ? 'qPCR' : tplKind %}
+        {% set tplEvidenceLabel = tplKind == 'IF' ? 'IF图像预览' : (tplKind == 'IHC' ? 'IHC图像预览' : (tplKind == 'ELISA' ? 'ELISA图表预览' : (tplKind == 'qPCR' ? 'qPCR图表预览' : (tplKind == 'PCR' ? 'PCR图像预览' : 'WB原图预览')))) %}
+        <section class='sl-card sl-review-context mb-3'>
+          <div class='sl-context-item'><div class='sl-muted'>当前送审实验</div><b>{{ tplResult.experiment_code ?: (tplResult.title ?: '实验记录') }}</b></div>
+          <div class='sl-context-item'><div class='sl-muted'>实验名称</div><b>{{ tplResult.title ?: '-' }}</b></div>
+          <div class='sl-context-item'><div class='sl-muted'>实验类型</div><span class='sl-badge blue'>{{ tplWorkflowLabel }}</span></div>
+          <div class='sl-context-item'><div class='sl-muted'>附件</div><b>{{ tplResult.upload_count ?: 0 }} 个</b></div>
+          <div class='sl-context-item'><div class='sl-muted'>审核对象</div><span class='sl-badge green'>实验 #{{ tplResult.experiment_id ?: selectedExperimentId }}</span></div>
+        </section>
+        {% if App.Request.query.get('review') == 'submitted' %}
+          <div class='alert alert-success mb-3' role='status'>
+            <b><i class='fas fa-circle-check mr-1'></i>已提交导师审核</b>
+            <div class='mt-1'>当前实验已进入导师审核流程。可在审核中心查看导师意见、模板草稿、附件证据、智能识别、断点识别和跳步识别结果。</div>
+            <a class='btn btn-outline-primary btn-sm mt-2' href='smartlab-review.php{% if tplResult.experiment_id %}?experiment_id={{ tplResult.experiment_id }}{% endif %}'>查看审核中心</a>
+          </div>
+        {% endif %}
+        <section class='sl-card mb-3'>
+          <div class='sl-card-head'><h3>选择要补全并送审的实验</h3><span class='sl-badge blue'>点击实验名称切换</span></div>
+          <table class='sl-table' data-sl-table='experiment-list'>
+            <thead><tr><th data-sl-sort='text'>实验</th><th data-sl-sort='text'>实验类型</th><th data-sl-sort='number'>附件</th><th data-sl-sort='text'>审核状态</th><th>操作</th></tr></thead>
+            <tbody>
+            {% for bundle in smartlabPatentResultBundles %}
+              <tr class='{{ bundle.experiment_id == tplResult.experiment_id ? "sl-selected-row" }}'>
+                <td><a class='sl-action-link' href='smartlab-templates.php?experiment_id={{ bundle.experiment_id }}'><b>{{ bundle.title ?: bundle.label }}</b></a>{% if bundle.experiment_id == tplResult.experiment_id %}<span class='sl-badge blue ml-1'>当前</span>{% endif %}<div class='sl-muted'>{{ bundle.experiment_code ?: '实验 #' ~ bundle.experiment_id }}</div></td>
+                <td><span class='sl-badge {{ bundle.assay == 'wb' ? 'green' : (bundle.assay == 'if' ? 'purple' : 'blue') }}'>{{ bundle.label ?: '实验记录' }}</span></td>
+                <td>{{ bundle.upload_count ?: 0 }} 个</td>
+                <td>{{ bundle.status_label ?: '未提交' }}</td>
+                <td><a class='btn btn-outline-primary btn-sm' href='experiments.php?mode=view&amp;id={{ bundle.experiment_id }}'>返回实验记录</a></td>
+              </tr>
+            {% else %}
+              <tr><td colspan='5'><div class='alert alert-warning mb-0'>还没有可用于模板补全的实验记录。</div></td></tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </section>
+        <div class='sl-grid sl-template-layout'>
+          <section class='sl-card'>
+            <div class='sl-callout blue mb-3' style='font-size:13px;padding:10px'><b><i class='fas fa-circle-info mr-2'></i>模板选择说明</b><p class='mb-0 mt-1 sl-muted'>当前实验匹配到 <strong>{{ tplWorkflowLabel }}</strong> 模板。进入页面时预览区保持空白；点击左侧<strong>保存模板草稿</strong>后，系统才会基于当前实验附件、智能识别结果、断点识别结果、跳步识别结果及补全推断结果生成结构化草稿，并把完整补全步骤和草稿写入原实验记录的结果区。</p></div>
+            <h3>{{ tplWorkflowLabel }}结构化模板库</h3>
+            <div class='input-group mb-2'><input class='form-control' data-sl-template-search placeholder='搜索模板名称或类型'><div class='input-group-append'><button class='btn btn-outline-primary' type='button' data-sl-filter-templates><i class='fas fa-filter'></i></button></div></div>
+            <div class='sl-inline-tabs' data-sl-template-tabs><span data-kind=''>全部</span><span class='{{ tplKind == "qPCR" ? "active" }}' data-kind='qPCR'>qPCR</span><span class='{{ tplKind == "PCR" ? "active" }}' data-kind='PCR'>PCR</span><span class='{{ tplKind == "ELISA" ? "active" }}' data-kind='ELISA'>ELISA</span><span class='{{ tplKind == "WB" ? "active" }}' data-kind='WB'>WB</span><span class='{{ tplKind == "IF" ? "active" }}' data-kind='IF'>IF</span><span class='{{ tplKind == "IHC" ? "active" }}' data-kind='IHC'>IHC</span><span data-kind='流式'>流式</span><span data-kind='测序'>测序</span></div>
+            {% for tpl in [
+              ['WB实验模板（蛋白检测）','WB','蛋白质研究','V2'],
+              ['WB灰度定量模板','WB','结果分析','V2'],
+              ['WB抗体孵育模板','WB','实验过程','V2'],
+              ['qPCR实验模板（基因表达）','qPCR','分子生物学','V2'],
+              ['PCR实验模板（普通PCR）','PCR','分子生物学','V2'],
+              ['ELISA实验模板（单因子）','ELISA','免疫学','V2'],
+              ['IF实验模板（哺乳动物细胞）','IF','细胞生物学','V2'],
+              ['IHC实验模板（免疫组化）','IHC','病理学','V2'],
+              ['RNA-Seq实验模板','测序','转录组学','V2']
+            ] %}
+              <div class='sl-card mb-2 {{ tpl[1] == tplKind and ("实验模板" in tpl[0]) ? "border-primary" }}' data-sl-template-card data-kind='{{ tpl[1] }}' data-sl-template-text='{{ tpl[0] }} {{ tpl[1] }} {{ tpl[2] }}' style='box-shadow:none'><b>{{ tpl[0] }}</b><div class='mt-2'><span class='sl-badge blue'>{{ tpl[1] }}</span> <span class='sl-badge'>{{ tpl[2] }}</span></div><div class='sl-muted mt-2'>版本：{{ tpl[3] }}</div><button class='btn btn-outline-primary btn-sm mt-2' type='button' data-sl-choose-template>保存模板草稿</button></div>
+            {% endfor %}
+          </section>
+          <section class='sl-card'>
+            <div class='sl-card-head'><h3>{{ tplWorkflowLabel }}模板补全预览</h3><span class='sl-muted' data-sl-template-step-count>未套用模板</span></div>
+            <div class='mb-2' style='font-size:13px;line-height:1.8'>
+              <span class='sl-badge green' title='来自实验记录/上传附件中的真实数据'>已识别</span>
+              <span style='color:var(--sl-muted)'>= 来自实验记录/上传附件的原始数据</span>
+              <br class='d-md-none'>
+              <span class='sl-badge blue ml-md-3' title='通过跳步识别和模板规则生成'>推理补全</span>
+              <span style='color:var(--sl-muted)'>= 由跳步识别和模板规则自动生成，与原始数据可区分</span>
+              <br class='d-md-none'>
+              <span class='sl-badge orange ml-md-3' title='需要用户或导师手动确认'>待确认</span>
+              <span style='color:var(--sl-muted)'>= 需要用户/导师手动确认</span>
+            </div>
+            <div data-sl-evidence-chain class='mb-3' style='display:none'>
+              <div style='font-size:13px;font-weight:800;margin-bottom:8px;color:var(--sl-blue)'><i class='fas fa-link mr-1'></i>证据链状态</div>
+              <div data-sl-chain-items style='display:flex;flex-wrap:wrap;gap:6px'></div>
+              <div class='sl-muted mt-1' style='font-size:11px'>以上证据链基于当前实验全部附件、识别结果和推理结果生成。</div>
+            </div>
+            <div class='sl-template-table-wrap'>
+              <table class='sl-table'>
+                <thead><tr><th>序号</th><th>步骤</th><th>补全内容（可编辑预览）</th><th>状态</th><th>证据来源模块</th><th>依据</th></tr></thead>
+                <tbody data-sl-template-preview>
+                  <tr><td colspan='6' class='text-center sl-muted py-4'>请先在左侧选择一个模板，点击「保存模板草稿」生成补全预览。</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <section class='sl-card sl-template-main' style='grid-column:2 / 3'>
+            <h3>实验过程草稿</h3>
+            <div data-sl-template-draft>
+              <div class='sl-callout blue mb-2 text-center sl-muted py-3'>尚未生成草稿，请先在左侧选择模板并点击「保存模板草稿」。</div>
+            </div>
+          </section>
+          <section class='sl-card sl-template-evidence' style='grid-column:2 / 3'>
+            <h3>识别依据</h3>
+            <div class='sl-mini-stat'><span class='sl-muted'>当前实验</span><b>{{ tplResult.experiment_code ?: (tplResult.title ?: '实验记录') }}</b></div>
+            <div class='sl-mini-stat'><span class='sl-muted'>实验名称</span><b>{{ tplResult.title ?: '-' }}</b></div>
+            {% if tplResult.image_uploads|length %}
+              <div class='sl-preview-grid mt-3'>
+                {% for source in tplResult.image_uploads %}
+                  <div class='sl-preview-card'>
+                    <img class='sl-result-image' src='{{ source.href }}' alt='{{ source.real_name }}'>
+                    <b>{{ source.real_name }}</b>
+                    <span class='sl-badge green mt-2'>{{ tplEvidenceLabel }}</span>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class='alert alert-warning mb-0'>还没有可用于 {{ tplWorkflowLabel }} 模板补全的真实图片附件。</div>
+            {% endif %}
+            <div class='sl-attachment-list mt-3'>
+              {% for source in tplResult.data_uploads %}
+                <a href='{{ source.href }}' target='_blank' rel='noopener'><span>{{ source.real_name }}</span><span class='sl-badge blue'>数据</span></a>
+              {% endfor %}
+            </div>
+          </section>
+        </div>
+        <div class='sl-card mb-3' style='border-left:3px solid var(--sl-blue)' data-sl-draft-export>
+          <h3><i class='fas fa-diagram-project text-primary mr-2'></i>补全流程关系说明</h3>
+          <div class='row' style='margin-top:10px'>
+            <div class='col-md-4 mb-2 mb-md-0'>
+              <b class='text-primary'>① 去补全 → 结构化实验记录</b>
+              <p class='sl-muted mt-1' style='font-size:13px'>审核页的"去补全"将返回该实验真实的结构化记录工作流，继续填写尚未完成的 {{ tplWorkflowLabel }} 字段。</p>
+            </div>
+            <div class='col-md-4 mb-2 mb-md-0'>
+              <b style='color:var(--sl-purple)'>② {{ tplWorkflowLabel }}模板补全/草稿 → 写入实验记录</b>
+	              <p class='sl-muted mt-1' style='font-size:13px'>读取同一实验的真实附件数据，融合智能识别、断点识别、跳步识别和补全推断结果，生成结构化实验过程草稿，并写入实验记录结果区。</p>
+              <p class='sl-muted' style='font-size:13px'>该草稿<strong>不替换</strong>原始实验记录，仅作为送审/汇报草稿和证据汇总。</p>
+            </div>
+            <div class='col-md-4'>
+              <b class='text-success'>③ 提交导师审核 → 审核流程</b>
+              <p class='sl-muted mt-1' style='font-size:13px'>将选中的实验提交到导师审核流程，以本 {{ tplWorkflowLabel }} 模板补全草稿和全部实验证据（附件/识别结果/推理结果）作为审核依据。</p>
+            </div>
+          </div>
+        </div>
+        <form method='post' action='smartlab-templates.php' class='sl-footer-actions' data-sl-submit-review-form>
+          {{ App.Session.get('csrf')|csrf }}
+          <input type='hidden' name='smartlab_action' value='submit_review'>
+          <input type='hidden' name='experiment_id' value='{{ tplResult.experiment_id ?: (smartlabPatentPrimaryResult.experiment_id ?: 0) }}'>
+          <div style='flex:1;text-align:left;font-size:13px;color:var(--sl-muted);align-self:center'>
+            <i class='fas fa-circle-info mr-1'></i>当前提交对象：{{ tplResult.experiment_code ?: (tplResult.title ?: '实验记录') }}。提交前请先保存模板草稿；提交后，导师将在同一条实验记录中看到 {{ tplWorkflowLabel }} 模板补全步骤、草稿和全部实验证据。
+          </div>
+          <div style='display:flex;gap:12px;align-items:center;flex-wrap:wrap'>
+            {% if tplResult.experiment_id %}
+              <a class='btn btn-outline-primary' href='experiments.php?mode=view&id={{ tplResult.experiment_id }}'><i class='fas fa-arrow-left mr-1'></i>返回原实验记录</a>
+            {% else %}
+              <a class='btn btn-outline-primary' href='experiments.php?scope=1'><i class='fas fa-flask mr-1'></i>查看实验记录</a>
+            {% endif %}
+            <button class='btn btn-outline-primary' type='button' data-sl-export-draft><i class='fas fa-file-pdf mr-1'></i>导出PDF报告</button>
+            <button class='btn btn-primary' type='submit' data-sl-submit-review-button><i class='fas fa-paper-plane mr-1'></i>提交当前实验给导师审核</button>
+            <span class='sl-muted' data-sl-submit-review-status style='font-size:13px'></span>
+          </div>
+        </form>
+
+      {% elseif smartlabPatentView == 'review' %}
+        {% set dashboard = smartlabPatentMentorReviewDashboard|default({}) %}
+        {% set dTotals = dashboard.totals|default({}) %}
+        {% set dRows = dashboard.all_rows|default([]) %}
+        {% set dStudents = dashboard.students|default([]) %}
+        {% set dHighRisk = dashboard.high_risk_rows|default([]) %}
+        {% set dSubmitted = dashboard.submitted_rows|default([]) %}
+        {% set needsRevisionCount = (dTotals.needs_revision|default(0)) + (dTotals.rejected|default(0)) %}
+        <section class='sl-card sl-review-context mb-3'>
+          <div class='sl-context-item'><div class='sl-muted'>审核视角</div><b>导师 / 团队负责人</b></div>
+          <div class='sl-context-item'><div class='sl-muted'>查看范围</div><span class='sl-badge green'>全体学生实验审核</span></div>
+          <div class='sl-context-item'><div class='sl-muted'>待审核</div><b>{{ dTotals.submitted|default(0) }} 条</b></div>
+          <div class='sl-context-item'><div class='sl-muted'>需修改/退回</div><span class='sl-badge {{ needsRevisionCount > 0 ? "red" : "blue" }}'>{{ needsRevisionCount }} 条</span></div>
+          <div class='sl-context-item'><div class='sl-muted'>学生人数</div><b>{{ dStudents|length }} 人</b></div>
+        </section>
+        <div class='sl-grid cols-5 mb-3'>
+          <a class='sl-card sl-metric' href='#'><div class='sl-metric-icon' style='color:#f59e0b;background:#fff7ed'><i class='fas fa-hourglass-half'></i></div><div><div>待审核</div><div class='sl-metric-value'>{{ dTotals.submitted|default(0) }}</div><div class='sl-muted'>等待导师审核</div></div></a>
+          <a class='sl-card sl-metric' href='#'><div class='sl-metric-icon' style='color:#ef4444;background:#fff1f2'><i class='fas fa-rotate-left'></i></div><div><div>需修改</div><div class='sl-metric-value'>{{ dTotals.needs_revision|default(0) }}</div><div class='sl-muted'>需补充后重审</div></div></a>
+          <a class='sl-card sl-metric' href='#'><div class='sl-metric-icon' style='color:#dc2626;background:#fef2f2'><i class='fas fa-triangle-exclamation'></i></div><div><div>高风险</div><div class='sl-metric-value'>{{ dTotals.high_risk|default(0) }}</div><div class='sl-muted'>需优先关注</div></div></a>
+          <a class='sl-card sl-metric' href='#'><div class='sl-metric-icon' style='color:#16a34a;background:#eaf8ef'><i class='fas fa-circle-check'></i></div><div><div>已通过</div><div class='sl-metric-value'>{{ dTotals.approved|default(0) }}</div><div class='sl-muted'>可归档确认</div></div></a>
+          <a class='sl-card sl-metric' href='#'><div class='sl-metric-icon' style='color:#64748b;background:#f8fafc'><i class='fas fa-file-lines'></i></div><div><div>未提交</div><div class='sl-metric-value'>{{ dTotals.not_submitted|default(0) }}</div><div class='sl-muted'>学生尚未送审</div></div></a>
+        </div>
+        {% if dStudents|length %}
+        <section class='sl-card mb-3'>
+          <div class='sl-card-head'><h3><i class='fas fa-user-graduate text-primary mr-2'></i>学生送审概览</h3><span class='sl-badge blue'>{{ dStudents|length }} 人</span></div>
+          <div class='sl-grid cols-3'>
+            {% for student in dStudents %}
+              <div class='sl-callout blue'>
+                <div class='d-flex justify-content-between align-items-center mb-2'>
+                  <b>{{ student.name }}</b>
+                  <span class='sl-badge blue'>{{ student.total }} 条</span>
+                </div>
+                <div class='sl-muted mb-2'>{{ student.email }}</div>
+                <div class='sl-mini-stat'><span class='sl-muted'>待审核</span><b>{{ student.pending }}</b></div>
+                <div class='sl-mini-stat'><span class='sl-muted'>需修改</span><b>{{ student.revision }}</b></div>
+                <div class='sl-mini-stat'><span class='sl-muted'>已通过</span><b>{{ student.approved }}</b></div>
+                <div class='sl-mini-stat'><span class='sl-muted'>高风险</span><span class='sl-badge {{ student.high_risk > 0 ? "red" : "green" }}'>{{ student.high_risk }}</span></div>
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+        {% endif %}
+        {% if dHighRisk|length %}
+        <section class='sl-card mb-3'>
+          <div class='sl-card-head'><h3><i class='fas fa-bell text-danger mr-2'></i>高风险与需关注实验</h3><span class='sl-badge red'>{{ dHighRisk|length }} 条</span></div>
+          <div class='sl-grid cols-2'>
+            {% for row in dHighRisk|slice(0, 6) %}
+              <div class='sl-callout red'>
+                <div class='d-flex justify-content-between align-items-center mb-2'>
+                  <b>{{ row._student_name }}</b>
+                  <span class='sl-badge red'>{{ row._risk_label }}</span>
+                </div>
+                <h4 class='mt-2 mb-1'>{{ row.experiment_title ?: '实验记录' }}</h4>
+                <div class='sl-muted'>{{ row.experiment_code ?: '实验 #' ~ row.experiment_id }} · 课题 {{ row.project_code ?: '待关联' }}</div>
+                <div class='mt-2'><span class='sl-badge {{ row._pack_badge }}'>{{ row._pack_label }}</span></div>
+                <div class='mt-2'>{{ row.comment ?: '该实验需要导师重点关注，请尽快审核。' }}</div>
+                <div class='mt-3 d-flex flex-wrap gap-2'>
+                  <a class='btn btn-outline-primary btn-sm' href='experiments.php?mode=view&amp;id={{ row.experiment_id }}'>查看实验</a>
+                  <a class='btn btn-outline-primary btn-sm' href='smartlab-recognition.php?experiment_id={{ row.experiment_id }}'>证据链</a>
+                  <a class='btn btn-outline-primary btn-sm' href='smartlab-templates.php?experiment_id={{ row.experiment_id }}'>草稿</a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+        {% endif %}
+        <section class='sl-card'>
+          <div class='sl-card-head'>
+            <h3><i class='fas fa-table-list text-primary mr-2'></i>实验审核队列</h3>
+            <div><span class='sl-badge blue mr-2'>共 {{ dRows|length }} 条</span><a class='btn btn-primary btn-sm' href='reviews.php?smartlab_view=mentor'><i class='fas fa-file-circle-check mr-1'></i>进入最终裁决</a></div>
+          </div>
+          <div class='sl-template-table-wrap'><table class='sl-table' style='min-width:980px'>
+            <thead><tr>
+              <th style='min-width:100px'>学生 / 课题</th>
+              <th style='min-width:140px'>实验记录</th>
+              <th style='min-width:90px'>实验类型</th>
+              <th style='min-width:100px'>证据链</th>
+              <th style='min-width:130px'>风险与关注点</th>
+              <th style='min-width:120px'>审核状态</th>
+              <th style='min-width:180px'>导师操作</th>
+            </tr></thead>
+            <tbody>
+            {% for row in dRows %}
+              {% set statusLabel = row.status == 'submitted' ? '待审核' : row.status == 'approved' ? '已通过' : row.status == 'needs_revision' ? '需修改' : row.status == 'rejected' ? '已退回' : '未提交' %}
+              {% set badgeClass = row.status == 'submitted' ? 'orange' : row.status == 'approved' ? 'green' : row.status in ['needs_revision', 'rejected'] ? 'red' : 'blue' %}
+              {% set decisionLabel = row.decision == 'approved' ? '通过' : row.decision == 'changes_requested' ? '退回修改' : row.decision == 'rejected' ? '拒绝' : '' %}
+              {% set statusNote = row.comment ?: (row.status == 'submitted' ? '等待导师审核意见' : row.status == 'not_submitted' ? '学生尚未提交' : '暂无补充意见') %}
+              <tr class='{{ row.status in ['needs_revision', 'rejected'] ? 'sl-review-needs-work' : (row.status == 'submitted' ? 'sl-review-wb-pending' : '') }}'>
+                <td>
+                  <b>{{ row._student_name }}</b>
+                  <div class='sl-muted'>{{ row.project_code ?: '待关联课题' }}</div>
+                </td>
+                <td>
+                  <a class='sl-action-link' href='experiments.php?mode=view&amp;id={{ row.experiment_id }}'><b>{{ row.experiment_title ?: '实验记录' }}</b></a>
+                  <div class='sl-muted'>{{ row.experiment_code ?: '实验 #' ~ row.experiment_id }} · {{ row.experiment_date ?: '-' }}</div>
+                  <div class='mt-1'><span class='sl-badge {{ row.upload_count > 0 ? 'green' : 'orange' }}'>{{ row.upload_count > 0 ? row.upload_count ~ ' 个附件' : '待上传' }}</span></div>
+                </td>
+                <td><span class='sl-badge {{ row._pack_badge }}'>{{ row._pack_label }}</span></td>
+                <td>
+                  <span class='sl-badge blue'>识别/断点/跳步</span>
+                  <div class='sl-row-action-note'>{{ row.upload_count > 0 ? '原始附件 ' ~ row.upload_count ~ ' 项' : '等待上传' }}</div>
+                </td>
+                <td>
+                  {% if row._is_high_risk %}
+                    <span class='sl-badge red'>{{ row._risk_label }}</span>
+                  {% else %}
+                    <span class='sl-badge green'>常规审核</span>
+                  {% endif %}
+                  {% if row.pack_key == 'qpcr' %}
+                    <div class='sl-row-action-note'>fold-change 阈值需复核</div>
+                  {% elseif row.pack_key == 'western_blot' %}
+                    <div class='sl-row-action-note'>跳步推理需核验</div>
+                  {% elseif row.pack_key in ['if', 'ihc'] %}
+                    <div class='sl-row-action-note'>图像阈值需确认</div>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class='sl-badge {{ badgeClass }}'>{{ statusLabel }}</span>
+                  {% if decisionLabel %}
+                    <div class='sl-muted mt-1' style='font-size:12px'>导师: {{ decisionLabel }}</div>
+                  {% endif %}
+                  <div class='sl-row-action-note'>{{ statusNote }}</div>
+                </td>
+                <td class='text-nowrap' style='max-width:200px'>
+                  <div class='d-flex flex-wrap gap-1 mb-1'>
+                    <a class='btn btn-outline-primary btn-sm' href='experiments.php?mode=view&amp;id={{ row.experiment_id }}' title='查看实验记录'><i class='fas fa-flask'></i></a>
+                    <a class='btn btn-outline-primary btn-sm' href='smartlab-recognition.php?experiment_id={{ row.experiment_id }}' title='智能识别'><i class='fas fa-camera-retro'></i></a>
+                    <a class='btn btn-outline-primary btn-sm' href='smartlab-breakpoint.php?experiment_id={{ row.experiment_id }}' title='断点识别'><i class='fas fa-magnifying-glass-chart'></i></a>
+                    <a class='btn btn-outline-primary btn-sm' href='smartlab-jump.php?experiment_id={{ row.experiment_id }}' title='跳步识别'><i class='fas fa-chart-line'></i></a>
+                    <a class='btn btn-outline-primary btn-sm' href='smartlab-templates.php?experiment_id={{ row.experiment_id }}' title='模板补全/草稿'><i class='fas fa-layer-group'></i></a>
+                  </div>
+                  <div style='font-size:11px;color:var(--sl-muted)'>
+                    <a href='experiments.php?mode=view&amp;id={{ row.experiment_id }}' class='mr-1'>实验</a>
+                    <a href='smartlab-recognition.php?experiment_id={{ row.experiment_id }}' class='mr-1'>识别</a>
+                    <a href='smartlab-breakpoint.php?experiment_id={{ row.experiment_id }}' class='mr-1'>断点</a>
+	                    <a href='smartlab-jump.php?experiment_id={{ row.experiment_id }}' class='mr-1'>跳步</a>
+	                    <a href='smartlab-templates.php?experiment_id={{ row.experiment_id }}' class='mr-1'>模板</a>
+	                    <a href='reviews.php?smartlab_view=mentor'>裁决</a>
+	                  </div>
+                </td>
+              </tr>
+            {% else %}
+              <tr><td colspan='7'><div class='alert alert-info mb-0'>当前还没有学生提交的审核实验。学生提交实验后，将在本页显示。</div></td></tr>
+            {% endfor %}
+            </tbody>
+          </table></div>
+        </section>
+
+      {% elseif smartlabPatentView == 'algorithms' %}
+        {# ----- Phase 8: 模块-模型编排映射（Module-to-Model Orchestration） ----- #}
+        <section class='sl-card mb-3'>
+          <div class='sl-card-head'><h3><i class='fas fa-diagram-project text-primary mr-2'></i>模块-模型编排映射</h3><span class='sl-badge purple'>Phase 8</span></div>
+          <div class='sl-template-table-wrap'>
+            <table class='sl-table' style='min-width:820px'>
+              <thead><tr><th>工作流模块</th><th>绑定模型服务</th><th>阈值/判定规则</th><th>输出产物</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><span class='sl-badge blue'><i class='fas fa-camera-retro mr-1'></i>智能识别</span></td>
+                  <td>目标检测 · OCR · 表格解析</td>
+                  <td>置信度阈值 <b>0.75</b></td>
+                  <td><span class='sl-badge green' style='font-size:11px'>recognition JSON</span></td>
+                </tr>
+                <tr>
+                  <td><span class='sl-badge green'><i class='fas fa-magnifying-glass-chart mr-1'></i>断点识别</span></td>
+                  <td>数值跳变梯度 · 语义连续性分析</td>
+                  <td>梯度权重 <b>0.6</b> · 连续性权重 <b>0.4</b> · 联合异常阈值 <b>0.7</b></td>
+                  <td><span class='sl-badge orange' style='font-size:11px'>breakpoint score</span> <span class='sl-badge red ml-1' style='font-size:11px'>anomaly log</span></td>
+                </tr>
+                <tr>
+                  <td><span class='sl-badge orange'><i class='fas fa-chart-line mr-1'></i>跳步识别</span></td>
+                  <td>前后证据偏移量检测 · OT代价(IF) · Ct不连续性(qPCR)</td>
+                  <td>偏移量 &gt; <b>1.5×</b> 同批相邻均值</td>
+                  <td><span class='sl-badge purple' style='font-size:11px'>jump risk</span> <span class='sl-badge orange ml-1' style='font-size:11px'>缺失标记</span></td>
+                </tr>
+                <tr>
+                  <td><span class='sl-badge purple'><i class='fas fa-file-lines mr-1'></i>模板补全</span></td>
+                  <td>模板先验匹配与证据链补全</td>
+                  <td>模板拟合度阈值 <b>0.70</b></td>
+                  <td><span class='sl-badge teal' style='font-size:11px'>draft</span> <span class='sl-badge blue ml-1' style='font-size:11px'>evidence package</span></td>
+                </tr>
+                <tr>
+                  <td><span class='sl-badge teal'><i class='fas fa-file-lines mr-1'></i>模板补全</span></td>
+                  <td>模板先验匹配 · 证据绑定 · 草稿生成</td>
+                  <td>模板统计频率 · 证据拟合度</td>
+                  <td><span class='sl-badge blue' style='font-size:11px'>draft / evidence package</span></td>
+                </tr>
+                <tr>
+                  <td><span class='sl-badge red'><i class='fas fa-file-circle-check mr-1'></i>导师审核</span></td>
+                  <td>风险标签生成 · 确认清单核对</td>
+                  <td>按实验类型生成检查项</td>
+                  <td><span class='sl-badge red' style='font-size:11px'>risk labels</span> <span class='sl-badge green ml-1' style='font-size:11px'>confirmation checklist</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class='sl-muted mt-2' style='font-size:12px'>上表为 SmartLab 工作流模块到模型服务的编排映射，各模块输出产物流入下一模块作为输入证据。阈值与前一页面评分面板一致。</div>
+        </section>
+
+        <div class='sl-grid layout-2-1'>
+          {# ----- Phase 8: 增强服务表（模块绑定 + 输出产物） ----- #}
+          <section class='sl-card'>
+            <div class='d-flex justify-content-between align-items-center mb-3 flex-wrap'>
+              <h3>算法与模型服务</h3>
+              <div>
+                <button class='btn btn-outline-primary btn-sm mr-1' type='button' data-sl-health-check>模型服务健康检查</button>
+                <button class='btn btn-outline-primary btn-sm mr-1' type='button' data-sl-refresh-telemetry>刷新服务遥测</button>
+                <a class='btn btn-primary btn-sm' href='sysconfig.php'>新建算法服务</a>
+              </div>
+            </div>
+            <div class='sl-console mb-3' data-sl-health-console>点击健康检查后，将在本页显示本地图像算法服务返回状态。点击刷新服务遥测可更新下方服务表中各模型的调用统计与绑定状态。</div>
+            <div class='sl-template-table-wrap'>
+              <table class='sl-table' style='min-width:960px'>
+                <thead><tr><th>算法/模型名称</th><th>状态</th><th>版本</th><th>平均延迟</th><th>模块绑定</th><th>输出产物</th><th>使用场景</th><th>操作</th></tr></thead>
+                <tbody>
+                {% for row in [
+                  ['目标检测','通用目标检测模型','V2','128 ms','智能识别','recognition JSON','实验图像目标定位、器皿/试剂识别', smartlabPatentToday ~ ' 06:30'],
+                  ['OCR识别','通用OCR识别模型','V2','96 ms','智能识别','recognition JSON / 表格字段','文本提取、表格识别、标签识别', smartlabPatentToday ~ ' 06:30'],
+                  ['语义分析','医学文档语义理解模型','V2','210 ms','跳步识别 / 模板补全','semantic continuity score','文本语义理解、实体抽取、关系识别', smartlabPatentToday ~ ' 06:30'],
+                  ['断点识别引擎','实验断点定位与分类','V2','152 ms','断点识别','breakpoint score / anomaly log','识别实验流程中的断点及原因', smartlabPatentToday ~ ' 06:30'],
+                  ['跳步识别引擎','实验缺失检测引擎','V2','134 ms','跳步识别','jump risk / 缺失证据标记','检测实验流程中缺失或跳过的步骤', smartlabPatentToday ~ ' 06:30'],
+                  ['模板补全引擎','模板匹配与字段补全','V2','176 ms','模板补全','draft / evidence package','模板匹配、字段抽取与智能补全', smartlabPatentToday ~ ' 06:30']
+                ] %}
+                  {% set bindingBadgeMap = {0:'blue', 1:'blue', 2:'purple', 3:'green', 4:'orange', 5:'purple', 6:'teal'} %}
+                  {% set artifactBadgeMap = {0:'green', 1:'green', 2:'blue', 3:'orange', 4:'purple', 5:'teal', 6:'blue'} %}
+                  <tr>
+                    <td><span class='sl-service-icon'><i class='fas fa-{{ loop.index == 1 ? "camera-retro" : loop.index == 2 ? "expand" : loop.index == 3 ? "brain" : loop.index == 4 ? "layer-group" : loop.index == 5 ? "puzzle-piece" : loop.index == 6 ? "diagram-project" : "file-circle-check" }}'></i></span><b>{{ row[0] }}</b><div class='sl-muted ml-5'>{{ row[1] }}</div></td>
+                    <td><span class='sl-badge green'>在线</span></td>
+                    <td>{{ row[2] }}</td>
+                    <td>{{ row[3] }}</td>
+                    <td><span class='sl-badge {{ bindingBadgeMap[loop.index0] }}'>{{ row[4] }}</span></td>
+                    <td><span class='sl-badge {{ artifactBadgeMap[loop.index0] }}' style='font-size:11px'>{{ row[5] }}</span></td>
+                    <td style='font-size:12px'>{{ row[6] }}</td>
+                    <td class='text-nowrap'><a href='sysconfig.php'>配置</a>　<button class='btn btn-link btn-sm p-0' type='button' data-sl-service-info data-service='{{ row[0] }}'>监控</button></td>
+                  </tr>
+                {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <div class='sl-muted mt-3'>共 7 条算法服务 · 模块绑定与输出产物基于当前系统配置</div>
+          </section>
+
+          {# ----- Phase 8: 右侧面板（阈值展示 + 实验策略预设 + 策略参数） ----- #}
+          <aside>
+            {# Requirement 4: 当前系统阈值面板 #}
+            <section class='sl-card mb-3'>
+              <h3><i class='fas fa-gauge-high text-primary mr-2'></i>当前系统阈值</h3>
+              <div class='sl-mini-stat'><span class='sl-muted'>识别置信度</span><b>0.75</b></div>
+              <div class='sl-mini-stat'><span class='sl-muted'>联合异常评分</span><b>0.70</b></div>
+              <div class='sl-mini-stat'><span class='sl-muted'>跳步偏移倍数</span><b>1.5× 相邻均值</b></div>
+              <div class='sl-mini-stat'><span class='sl-muted'>DP/Viterbi 路径评分</span><b>0.70</b></div>
+              <div class='sl-mini-stat'><span class='sl-muted'>qPCR fold-change</span><b>2.00</b></div>
+              <div class='sl-muted mt-2' style='font-size:11px'>以上阈值与 SmartLab 各分析页面评分面板一致，用于结构化证据链判定。</div>
+            </section>
+
+            {# Requirement 2: 实验类型策略预设 #}
+            <section class='sl-card mb-3'>
+              <div class='sl-card-head'><h3>实验类型策略预设</h3><span class='sl-badge purple'>按实验类型定制</span></div>
+              <div class='d-flex gap-2 flex-wrap mb-2'>
+                <button class='btn btn-outline-primary btn-sm' type='button' data-sl-apply-policy-preset data-assay='wb'><i class='fas fa-flask mr-1'></i>WB 预设</button>
+                <button class='btn btn-outline-primary btn-sm' type='button' data-sl-apply-policy-preset data-assay='if'><i class='fas fa-microscope mr-1'></i>IF 预设</button>
+                <button class='btn btn-outline-primary btn-sm' type='button' data-sl-apply-policy-preset data-assay='qpcr'><i class='fas fa-dna mr-1'></i>qPCR 预设</button>
+              </div>
+              <div class='sl-console mb-2' data-sl-preset-console style='min-height:52px;font-size:11px'>点击上方预设按钮，查看各实验类型的策略参数概览。</div>
+              <div class='sl-muted' style='font-size:11px;line-height:1.6'>
+                <b>WB</b>：条带检测、内参归一化、灰度定量阈值<br>
+                <b>IF</b>：通道映射、阳性面积/细胞计数、OT代价评估<br>
+                <b>qPCR</b>：Ct值校验、扩增曲线评估、熔解曲线单峰确认、fold-change阈值 2.00
+              </div>
+            </section>
+
+            {# 保留原有策略参数面板（保持 data-sl-save-policy 行为不变） #}
+            <section class='sl-card'>
+              <h3>策略参数</h3>
+              <p class='sl-muted'>全局策略参数影响算法推理与决策行为。</p>
+              <label>异常阈值<input class='form-control mt-1 mb-3' value='0.60'></label>
+              <div class='sl-muted mb-3'>当异常置信度 ≥ 阈值时触发异常</div>
+              <label>置信度阈值<input class='form-control mt-1 mb-3' value='0.75'></label>
+              <div class='sl-muted mb-3'>低于该阈值的识别结果将进入待审核</div>
+              <label>模板匹配策略<select class='form-control mt-1 mb-3'><option>综合最优匹配</option></select></label>
+              <label>推理路径数量<select class='form-control mt-1 mb-3'><option>5</option></select></label>
+              <label>最大补全字段数<input class='form-control mt-1 mb-3' value='10'></label>
+              <div class='custom-control custom-switch mb-3'><input type='checkbox' class='custom-control-input' id='retrySwitch' checked><label class='custom-control-label' for='retrySwitch'>重试机制</label></div>
+              <label>最大重试次数<input class='form-control mt-1 mb-3' value='2'></label>
+              <button class='btn btn-primary btn-block' type='button' data-sl-save-policy>保存策略参数</button>
+            </section>
+          </aside>
+        </div>
+      {% endif %}
+      </div>
+    </main>
+  </div>
+</div>
+<script defer src='/assets/smartlab-patent.js?v={{ v }}-wb-report-submit-20260613-2'></script>
+
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<div class='d-flex justify-content-between align-items-start mb-3'>
+  <div>
+    <p class='smallgray text-uppercase mb-1'>SmartLab</p>
+    <h2 class='mb-2'>{{ smartlabCanManageReviewDecisions ? '审核中心' : '审核协同中心' }}</h2>
+    <p class='mb-0'>{{ smartlabCanManageReviewDecisions ? '导师端在这里执行最终审核裁决。' : '助理端在这里跟踪审核状态、整理意见并催办，不直接做最终通过/退回/拒绝。' }}</p>
+  </div>
+</div>
+
+<div class='list-group'>
+  {% for review in reviewsArr %}
+    <div class='list-group-item'>
+      <div class='d-flex justify-content-between align-items-start flex-wrap'>
+        <div class='mr-3'>
+          <div class='smallgray text-uppercase'>{{ review.entity_type }} #{{ review.entity_id }}</div>
+          <h5 class='mt-2 mb-1'>{{ review.project_code ?: '未绑定项目' }}{% if review.project_name %} · {{ review.project_name }}{% endif %}</h5>
+          <div>提交人：{{ review.requester_name ?: '未知' }}</div>
+          <div>审核人：{{ review.assignee_name ?: '未分配' }}</div>
+          {% if review.decision %}
+            <div class='smallgray text-uppercase mt-1'>处理结果
+              {{
+                review.decision == 'approved' ? '通过'
+                : review.decision == 'changes_requested' ? '退回修改'
+                : review.decision == 'rejected' ? '拒绝'
+                : review.decision
+              }}
+            </div>
+          {% endif %}
+          {% if review.comment %}
+            <div class='mt-2 smallgray'>{{ review.comment }}</div>
+          {% endif %}
+          {% if review.entity_type == 'experiment' %}
+            <div class='mt-2'>
+              <a class='btn btn-outline-secondary btn-sm mr-2' href='experiments.php?mode=view&id={{ review.entity_id }}'>查看实验记录</a>
+              <a class='btn btn-outline-primary btn-sm' href='make.php?type=experiments&id={{ review.entity_id }}&format=pdf' target='_blank' rel='noopener'>下载实验 PDF</a>
+            </div>
+          {% endif %}
+        </div>
+        <div>
+          <span class='badge badge-dark'>
+            {{ review.status == 'submitted' ? '已提交' : review.status == 'approved' ? '已通过' : review.status == 'needs_revision' ? '待修改' : review.status == 'rejected' ? '已拒绝' : review.status }}
+          </span>
+        </div>
+      </div>
+      {% if smartlabCanManageReviewDecisions %}
+        <form method='post' action='reviews.php' class='mt-3'>
+          {{ App.Session.get('csrf')|csrf }}
+          <input type='hidden' name='flow_id' value='{{ review.id }}' />
+          <div class='form-group mb-2'>
+            <label for='comment-{{ review.id }}' class='smallgray text-uppercase'>审核意见</label>
+            <textarea class='form-control' id='comment-{{ review.id }}' name='comment' rows='2' placeholder='填写审核意见或修改要求。'>{{ review.comment }}</textarea>
+          </div>
+          <div class='d-flex flex-wrap'>
+            <button class='btn btn-success btn-sm mr-2 mb-2' type='submit' name='decision' value='approve'>通过</button>
+            <button class='btn btn-warning btn-sm mr-2 mb-2' type='submit' name='decision' value='request_changes'>退回修改</button>
+            <button class='btn btn-danger btn-sm mr-2 mb-2' type='submit' name='decision' value='reject'>拒绝</button>
+          </div>
+        </form>
+      {% else %}
+        <div class='mt-3 smallgray'>助理端只做审核协同和意见整理，最终裁决由导师端完成。</div>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class='alert alert-info mb-0'>当前团队下还没有 SmartLab 审核流。</div>
+  {% endfor %}
+</div>
+{% endblock body %}

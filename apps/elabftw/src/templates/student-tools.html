@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class='row mb-4'>
+  <div class='col-12'>
+    <div class='d-flex justify-content-between align-items-start flex-wrap'>
+      <div class='mr-3 mb-3'>
+        <div class='smallgray text-uppercase'>LabSmart Student</div>
+        <h2 class='mb-2'>科研工具</h2>
+        <p class='mb-0'>常用实验计算、结构编辑、克隆、仪器预约和 AI 辅助工具入口。</p>
+      </div>
+      <a href='dashboard.php' class='btn btn-outline-secondary btn-sm'>返回工作台</a>
+    </div>
+  </div>
+</div>
+
+<div class='row mb-4'>
+  {% set tools = [
+    {'title': '仪器预约', 'desc': '查看仪器和共享资源日历，发起个人预约。', 'href': 'scheduler.php', 'icon': 'far fa-calendar-check'},
+    {'title': '原始数据上传', 'desc': '上传实验图片、CSV、PDF 和仪器导出文件，进入智能识别流程。', 'href': 'smartlab-upload.php', 'icon': 'fas fa-upload'},
+    {'title': '智能识别', 'desc': '识别实验图片、表格、标签和结果附件中的关键对象。', 'href': 'smartlab-recognition.php', 'icon': 'fas fa-camera-retro'},
+    {'title': '断点识别', 'desc': '定位实验流程中的中断、异常和关键质控节点。', 'href': 'smartlab-breakpoint.php', 'icon': 'fas fa-magnifying-glass-chart'},
+    {'title': '跳步识别', 'desc': '对照标准流程和结果序列，识别疑似跳过或缺失步骤。', 'href': 'smartlab-jump.php', 'icon': 'fas fa-chart-line'},
+    {'title': '模板补全', 'desc': '基于真实附件和结构化记录补齐实验模板字段。', 'href': 'smartlab-templates.php', 'icon': 'fas fa-layer-group'},
+    {'title': '算法配置', 'desc': '查看 OCR、目标检测、语义分析和补全引擎状态。', 'href': 'smartlab-algorithms.php', 'icon': 'fas fa-gear'},
+    {'title': '化合物', 'desc': '查询和记录常用化学信息，辅助实验记录。', 'href': 'compounds.php', 'icon': 'fas fa-flask'},
+    {'title': '化学结构编辑器', 'desc': '绘制和编辑分子结构，辅助实验记录。', 'href': 'chem-editor.php', 'icon': 'fas fa-pen-to-square'},
+    {'title': '克隆工具', 'desc': '保留 OpenCloning 入口，用于序列和克隆设计。', 'href': 'syc.php', 'icon': 'fas fa-dna'},
+    {'title': '试剂配制计算', 'desc': '按浓度、体积和分子量计算称量或母液体积。', 'href': '#reagent-calculator', 'icon': 'fas fa-calculator'},
+    {'title': '稀释计算', 'desc': '按 C1V1=C2V2 进行常用稀释换算。', 'href': '#dilution-calculator', 'icon': 'fas fa-fill-drip'},
+    {'title': '引物设计', 'desc': '基于本地 Primer3 生成 PCR/qPCR 候选引物并保存记录。', 'href': 'primer-design.php', 'icon': 'fas fa-vial'},
+    {'title': 'AI 文献总结助手', 'desc': '预留文献摘要、实验背景和要点提取入口。', 'href': '#ai-literature', 'icon': 'fas fa-wand-magic-sparkles'}
+  ] %}
+  {% for tool in tools %}
+    <div class='col-lg-4 col-md-6 mb-3'>
+      <a class='card h-100 text-decoration-none color-strong' href='{{ tool.href }}'>
+        <div class='card-body'>
+          <div class='d-flex align-items-start'>
+            <i class='{{ tool.icon }} fa-fw fa-lg mr-3 mt-1 color-blue'></i>
+            <div>
+              <h4 class='h5 mb-2'>{{ tool.title }}</h4>
+              <div class='smallgray'>{{ tool.desc }}</div>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+  {% endfor %}
+</div>
+
+<div class='alert alert-info'>
+  试剂配制、稀释计算和 AI 文献总结目前先作为学生端工具入口预留；引物设计已接入本地 Primer3，不上传序列到云端。
+</div>
+
+{% endblock body %}

@@ -1,0 +1,37 @@
+{#
+ # SmartLab template completion draft block.
+ #
+ # Variables:
+ #   title         — section title
+ #   templateName  — selected template name
+ #   assayLabel    — assay label
+ #   steps         — list of template completion steps
+ #   draft         — list of generated draft sections
+ #   now           — write timestamp
+ #}
+<h3>SmartLab {{ title|e }}</h3>
+<table><tbody>
+  <tr><th>模板</th><td>{{ templateName|e }}</td></tr>
+  <tr><th>实验类型</th><td>{{ assayLabel|e }}</td></tr>
+  <tr><th>写入说明</th><td>已保存完整模板补全步骤和过程草稿；导师审核时可在本实验记录中查看。</td></tr>
+  <tr><th>写入时间</th><td>{{ now|default('now'|date('Y-m-d H:i:s')) }}</td></tr>
+</tbody></table>
+
+<h4>模板补全步骤</h4>
+<table><thead><tr><th>序号</th><th>步骤</th><th>补全内容</th><th>来源</th></tr></thead><tbody>
+  {% for step in steps %}
+    <tr>
+      <td>{{ step.num|e }}</td>
+      <td>{{ step.name|e }}</td>
+      <td>{{ step.content|e }}</td>
+      <td>{{ step.source|e }}</td>
+    </tr>
+  {% endfor %}
+</tbody></table>
+
+<h4>实验过程草稿</h4>
+<table><tbody>
+  {% for section in draft %}
+    <tr><th>{{ section.title|e }}</th><td>{{ section.content|e }}</td></tr>
+  {% endfor %}
+</tbody></table>

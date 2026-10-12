@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<div class='row mb-4'>
+  <div class='col-12'>
+    <div class='card border-0 shadow-sm'>
+      <div class='card-body'>
+        <div class='d-flex justify-content-between align-items-start flex-wrap'>
+          <div class='mr-3 mb-3'>
+            <div class='smallgray text-uppercase'>SmartLab Imaging</div>
+            <h2 class='mt-2 mb-3'>ImageJ Studio</h2>
+            <p class='mb-3'>把独立的 ImageJ 处理能力从 SmartLab 内置评分里拆出来，提供完整的批量图像、ROI、参数和结果控制台。</p>
+            <div class='d-flex flex-wrap'>
+              <a href='dashboard.php' class='btn btn-outline-secondary btn-sm mr-2 mb-2'>返回 Dashboard</a>
+              <a href='experiments.php' class='btn btn-outline-primary btn-sm mr-2 mb-2'>打开 Experiments</a>
+              <a href='assay-catalog.php' class='btn btn-outline-primary btn-sm mb-2'>对象字典</a>
+            </div>
+          </div>
+          <div class='mb-3'>
+            <span class='badge badge-light px-3 py-2'>ImageJ Worker</span>
+          </div>
+        </div>
+        <div class='row'>
+          <div class='col-lg-3 col-sm-6 mb-3'>
+            <div class='border rounded p-3 bg-light h-100'>
+              <div class='smallgray text-uppercase'>Bridge</div>
+              <div id='imagej-studio-bridge-status' class='h4 mb-1'>Checking</div>
+              <div class='smallgray'>PHP bridge 到 Fiji worker 的连接状态。</div>
+            </div>
+          </div>
+          <div class='col-lg-3 col-sm-6 mb-3'>
+            <div class='border rounded p-3 bg-light h-100'>
+              <div class='smallgray text-uppercase'>Engine</div>
+              <div id='imagej-studio-engine' class='h4 mb-1'>Unknown</div>
+              <div class='smallgray'>当前远程分析引擎与模式。</div>
+            </div>
+          </div>
+          <div class='col-lg-3 col-sm-6 mb-3'>
+            <div class='border rounded p-3 bg-light h-100'>
+              <div class='smallgray text-uppercase'>Macros</div>
+              <div id='imagej-studio-macro-count' class='h4 mb-1'>0</div>
+              <div class='smallgray'>容器内已加载的 SmartLab 宏文件数量。</div>
+            </div>
+          </div>
+          <div class='col-lg-3 col-sm-6 mb-3'>
+            <div class='border rounded p-3 bg-light h-100'>
+              <div class='smallgray text-uppercase'>Plugins</div>
+              <div id='imagej-studio-plugin-count' class='h4 mb-1'>0</div>
+              <div class='smallgray'>挂载到 Fiji 的插件数量。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class='row'>
+  <div class='col-xl-4 mb-4'>
+    <div class='card h-100'>
+      <div class='card-body'>
+        <div class='smallgray text-uppercase mb-2'>Input Queue</div>
+        <label class='btn btn-outline-secondary btn-sm mb-3' for='imagej-studio-file'>添加本地图像</label>
+        <input id='imagej-studio-file' class='d-none' type='file' accept='.png,.jpg,.jpeg,.webp,.bmp' multiple />
+        <div id='imagej-studio-status' class='smallgray mb-3'>导入一张或多张图像后，可在右侧预览中编辑 ROI，然后按批量或单张方式提交到 ImageJ worker。</div>
+        <div class='form-group'>
+          <label for='imagej-studio-image-select'>当前图像</label>
+          <select id='imagej-studio-image-select' class='form-control'>
+            <option value=''>尚未导入图像</option>
+          </select>
+        </div>
+        <div class='form-group'>
+          <label for='imagej-studio-batch-mode'>执行范围</label>
+          <select id='imagej-studio-batch-mode' class='form-control'>
+            <option value='current'>仅当前图像</option>
+            <option value='all'>全部图像</option>
+          </select>
+        </div>
+        <div class='border rounded bg-light'>
+          <div id='imagej-studio-image-list' class='list-group list-group-flush'>
+            <div class='list-group-item smallgray'>暂无图像</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class='col-xl-8 mb-4'>
+    <div class='card h-100'>
+      <div class='card-body'>
+        <div class='smallgray text-uppercase mb-2'>ImageJ Controls</div>
+        <div class='row'>
+          <div class='col-md-4 mb-3'>
+            <label for='imagej-studio-mode'>分析模式</label>
+            <select id='imagej-studio-mode' class='form-control'>
+              <option value='deconv'>DAB / Hematoxylin</option>
+              <option value='brown'>Brown heuristic</option>
+            </select>
+          </div>
+          <div class='col-md-4 mb-3'>
+            <label for='imagej-studio-threshold'>Brown threshold</label>
+            <input id='imagej-studio-threshold' class='form-control' type='number' min='1' max='255' value='32' />
+          </div>
+          <div class='col-md-4 mb-3'>
+            <label for='imagej-studio-he-threshold'>Hematoxylin threshold</label>
+            <input id='imagej-studio-he-threshold' class='form-control' type='number' min='1' max='255' value='24' />
+          </div>
+        </div>
+        <div class='row'>
+          <div class='col-md-4 mb-3'>
+            <label for='imagej-studio-roi-select'>当前 ROI</label>
+            <select id='imagej-studio-roi-select' class='form-control'>
+              <option value='0'>ROI 1</option>
+            </select>
+          </div>
+          <div class='col-md-4 mb-3'>
+            <label for='imagej-studio-roi-label'>ROI label</label>
+            <input id='imagej-studio-roi-label' class='form-control' value='ROI 1' />
+          </div>
+          <div class='col-md-4 mb-3 d-flex align-items-end flex-wrap'>
+            <button id='imagej-studio-add-roi' class='btn btn-outline-primary btn-sm mr-2 mb-2' type='button'>新增 ROI</button>
+            <button id='imagej-studio-delete-roi' class='btn btn-outline-secondary btn-sm mr-2 mb-2' type='button'>删除 ROI</button>
+            <button id='imagej-studio-copy-roi' class='btn btn-outline-primary btn-sm mb-2' type='button'>同步到全部图像</button>
+          </div>
+        </div>
+        <div class='row'>
+          <div class='col-md-3 mb-3'>
+            <label for='imagej-studio-roi-x'>X %</label>
+            <input id='imagej-studio-roi-x' class='form-control' type='number' min='0' max='100' step='0.1' value='15' />
+          </div>
+          <div class='col-md-3 mb-3'>
+            <label for='imagej-studio-roi-y'>Y %</label>
+            <input id='imagej-studio-roi-y' class='form-control' type='number' min='0' max='100' step='0.1' value='15' />
+          </div>
+          <div class='col-md-3 mb-3'>
+            <label for='imagej-studio-roi-w'>W %</label>
+            <input id='imagej-studio-roi-w' class='form-control' type='number' min='2' max='100' step='0.1' value='70' />
+          </div>
+          <div class='col-md-3 mb-3'>
+            <label for='imagej-studio-roi-h'>H %</label>
+            <input id='imagej-studio-roi-h' class='form-control' type='number' min='2' max='100' step='0.1' value='70' />
+          </div>
+        </div>
+        <div class='row'>
+          <div class='col-lg-7 mb-3'>
+            <div id='imagej-studio-preview-empty' class='smallgray mb-2'>这里会显示当前图像。拖动框体可直接调整 ROI。</div>
+            <canvas id='imagej-studio-preview' class='w-100 border rounded bg-white d-none'></canvas>
+            <div id='imagej-studio-preview-meta' class='smallgray mt-2'></div>
+          </div>
+          <div class='col-lg-5 mb-3'>
+            <div class='smallgray mb-2'>本页面是单独给 ImageJ worker 用的完整操作界面。SmartLab 自带 IHC 面板继续保留，适合快速回填；这里适合批量、调参和看原始输出。</div>
+            <div class='d-flex flex-wrap mb-3'>
+              <button id='imagej-studio-run' class='btn btn-primary btn-sm mr-2 mb-2' type='button'>Run ImageJ</button>
+              <button id='imagej-studio-reset-roi' class='btn btn-outline-secondary btn-sm mr-2 mb-2' type='button'>Reset ROI</button>
+              <button id='imagej-studio-refresh-info' class='btn btn-outline-primary btn-sm mb-2' type='button'>刷新系统信息</button>
+            </div>
+            <div class='border rounded p-3 bg-light mb-3'>
+              <div class='smallgray text-uppercase mb-2'>Worker Details</div>
+              <div id='imagej-studio-worker-details' class='smallgray'>等待系统信息。</div>
+            </div>
+            <div class='border rounded p-3 bg-light'>
+              <div class='smallgray text-uppercase mb-2'>Run Log</div>
+              <div id='imagej-studio-run-log' class='smallgray'>尚未执行。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class='row'>
+  <div class='col-lg-7 mb-4'>
+    <div class='card h-100'>
+      <div class='card-body'>
+        <div class='smallgray text-uppercase mb-2'>Results</div>
+        <div class='table-responsive'>
+          <table class='table table-sm table-bordered bg-white mb-0'>
+            <thead>
+              <tr>
+                <th>Image</th>
+                <th>ROI</th>
+                <th>Positive Ratio</th>
+                <th>Intensity</th>
+                <th>H-score</th>
+                <th>IRS</th>
+                <th>Tissue %</th>
+              </tr>
+            </thead>
+            <tbody id='imagej-studio-results-body'>
+              <tr>
+                <td colspan='7' class='smallgray'>尚未返回分析结果。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class='col-lg-5 mb-4'>
+    <div class='card h-100'>
+      <div class='card-body'>
+        <div class='smallgray text-uppercase mb-2'>Raw JSON</div>
+        <textarea id='imagej-studio-raw-json' class='form-control' rows='18' readonly>暂无输出。</textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script defer src='/assets/smartlab-imagej-studio.js?v={{ v }}'></script>
+{% endblock %}

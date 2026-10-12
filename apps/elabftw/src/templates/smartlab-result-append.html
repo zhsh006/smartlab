@@ -1,0 +1,16 @@
+{#
+ # SmartLab result append block.
+ # Replaces appendSmartlabResult() HTML concatenation in SmartlabPatentController.
+ #
+ # Variables:
+ #   title  — result section title (e.g. "智能识别结果")
+ #   rows   — associative array of key => value pairs
+ #   now    — ISO datetime string for write timestamp
+ #}
+<h3>SmartLab {{ title|e }}</h3>
+<table><tbody>
+  {% for key, value in rows %}
+    <tr><th>{{ key|e }}</th><td>{{ value|nl2br }}</td></tr>
+  {% endfor %}
+  <tr><th>写入时间</th><td>{{ now|default('now'|date('Y-m-d H:i:s')) }}</td></tr>
+</tbody></table>

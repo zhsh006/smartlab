@@ -1,0 +1,410 @@
+{% extends 'base.html' %}
+
+{% block body %}
+{% set smartlabCatalogEditable = smartlabCanManageAssayCatalog %}
+<div class='row mb-4'>
+  <div class='col-lg-12'>
+    <div class='card border-0 shadow-sm'>
+      <div class='card-body'>
+        <div class='d-flex justify-content-between align-items-start flex-wrap'>
+          <div class='mr-3'>
+            <div class='smallgray text-uppercase'>生物实验规范层</div>
+            <h3 class='mt-2 mb-2'>{{ smartlabCatalogEditable ? '实验对象字典' : '实验对象字典总览' }}</h3>
+            <p class='mb-0'>{{ smartlabCatalogEditable ? '统一维护引物、抗体和试剂对象，供 qPCR、WB、IF、IHC、ELISA 的实验包直接选择和回填。' : '导师端查看对象覆盖率、使用频次和归档状态，不在这里执行对象维护。' }}</p>
+          </div>
+          <form method='get' class='form-inline mt-2 mt-lg-0'>
+            <label class='sr-only' for='assay-catalog-search'>搜索</label>
+            <input id='assay-catalog-search' class='form-control mr-2' type='search' name='q' value='{{ smartlabAssayCatalogSearch }}' placeholder='搜索编号 / 名称 / 靶标' />
+            <button type='submit' class='btn btn-outline-secondary'>搜索</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if smartlabCatalogEditable %}
+<div class='row mb-4'>
+  <div class='col-md-4 mb-3'>
+    <div class='card border-0 shadow-sm h-100'>
+      <div class='card-body'>
+        <div class='smallgray text-uppercase'>引物对象</div>
+        <div class='display-4 mb-2'>{{ smartlabAssayCatalogSummary.primer_count ?: 0 }}</div>
+        <div class='smallgray'>活跃 {{ smartlabAssayCatalogSummary.primer_count ?: 0 }} · 已归档 {{ smartlabAssayCatalogSummary.archived_primer_count ?: 0 }}</div>
+      </div>
+    </div>
+  </div>
+  <div class='col-md-4 mb-3'>
+    <div class='card border-0 shadow-sm h-100'>
+      <div class='card-body'>
+        <div class='smallgray text-uppercase'>抗体对象</div>
+        <div class='display-4 mb-2'>{{ smartlabAssayCatalogSummary.antibody_count ?: 0 }}</div>
+        <div class='smallgray'>活跃 {{ smartlabAssayCatalogSummary.antibody_count ?: 0 }} · 已归档 {{ smartlabAssayCatalogSummary.archived_antibody_count ?: 0 }}</div>
+      </div>
+    </div>
+  </div>
+  <div class='col-md-4 mb-3'>
+    <div class='card border-0 shadow-sm h-100'>
+      <div class='card-body'>
+        <div class='smallgray text-uppercase'>试剂对象</div>
+        <div class='display-4 mb-2'>{{ smartlabAssayCatalogSummary.reagent_count ?: 0 }}</div>
+        <div class='smallgray'>活跃 {{ smartlabAssayCatalogSummary.reagent_count ?: 0 }} · 已归档 {{ smartlabAssayCatalogSummary.archived_reagent_count ?: 0 }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if smartlabCatalogEditable %}
+<div class='row mb-4'>
+  <div class='col-lg-4 mb-3'>
+    <div class='card border-0 shadow-sm h-100'>
+      <div class='card-body'>
+        <div class='smallgray text-uppercase'>引物维护</div>
+        <h4 class='mt-2'>登记 / 更新引物</h4>
+        <form method='post'>
+          {{ App.Session.get('csrf')|csrf }}
+          <input type='hidden' name='smartlab_action' value='save_primer' />
+          <div class='form-group'>
+            <label for='primer-code'>编号</label>
+            <input type='hidden' name='id' value='{{ smartlabPrimerEditor.id }}' />
+            <input id='primer-code' class='form-control' name='code' value='{{ smartlabPrimerEditor.code }}' required />
+          </div>
+          <div class='form-group'>
+            <label for='primer-target-gene'>靶基因</label>
+            <input id='primer-target-gene' class='form-control' name='target_gene' value='{{ smartlabPrimerEditor.target_gene }}' required />
+          </div>
+          <div class='form-group'>
+            <label for='primer-reference-gene'>内参基因</label>
+            <input id='primer-reference-gene' class='form-control' name='reference_gene' value='{{ smartlabPrimerEditor.reference_gene }}' />
+          </div>
+          <div class='form-row'>
+            <div class='col'>
+              <label for='primer-amplicon-bp'>扩增片段 bp</label>
+              <input id='primer-amplicon-bp' class='form-control' name='amplicon_bp' value='{{ smartlabPrimerEditor.amplicon_bp }}' />
+            </div>
+            <div class='col'>
+              <label for='primer-annealing-temperature'>Tm / 退火温度</label>
+              <input id='primer-annealing-temperature' class='form-control' name='annealing_temperature' value='{{ smartlabPrimerEditor.annealing_temperature }}' />
+            </div>
+          </div>
+          <div class='form-group mt-3'>
+            <label for='primer-note'>备注</label>
+            <textarea id='primer-note' class='form-control' rows='3' name='note'>{{ smartlabPrimerEditor.note }}</textarea>
+          </div>
+          <button type='submit' class='btn btn-primary'>{{ smartlabPrimerEditor.id ? '更新引物对象' : '保存引物对象' }}</button>
+          {% if smartlabPrimerEditor.id %}
+            <a href='assay-catalog.php' class='btn btn-outline-secondary ml-2'>取消编辑</a>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class='col-lg-4 mb-3'>
+    <div class='card border-0 shadow-sm h-100'>
+      <div class='card-body'>
+        <div class='smallgray text-uppercase'>抗体维护</div>
+        <h4 class='mt-2'>登记 / 更新抗体</h4>
+        <form method='post'>
+          {{ App.Session.get('csrf')|csrf }}
+          <input type='hidden' name='smartlab_action' value='save_antibody' />
+          <div class='form-group'>
+            <label for='antibody-code'>编号</label>
+            <input type='hidden' name='id' value='{{ smartlabAntibodyEditor.id }}' />
+            <input id='antibody-code' class='form-control' name='code' value='{{ smartlabAntibodyEditor.code }}' required />
+          </div>
+          <div class='form-group'>
+            <label for='antibody-name'>名称</label>
+            <input id='antibody-name' class='form-control' name='name' value='{{ smartlabAntibodyEditor.name }}' required />
+          </div>
+          <div class='form-group'>
+            <label for='antibody-application-scope'>适用范围</label>
+            <select id='antibody-application-scope' class='form-control' name='application_scope' required>
+              <option value='western_blot' {{ smartlabAntibodyEditor.application_scope == 'western_blot' ? 'selected' }}>western_blot</option>
+              <option value='if' {{ smartlabAntibodyEditor.application_scope == 'if' ? 'selected' }}>if</option>
+              <option value='ihc' {{ smartlabAntibodyEditor.application_scope == 'ihc' ? 'selected' }}>ihc</option>
+              <option value='elisa' {{ smartlabAntibodyEditor.application_scope == 'elisa' ? 'selected' }}>elisa</option>
+            </select>
+          </div>
+          <div class='form-row'>
+            <div class='col'>
+              <label for='antibody-host-species'>宿主</label>
+              <input id='antibody-host-species' class='form-control' name='host_species' value='{{ smartlabAntibodyEditor.host_species }}' />
+            </div>
+            <div class='col'>
+              <label for='antibody-dilution-hint'>稀释比例</label>
+              <input id='antibody-dilution-hint' class='form-control' name='dilution_hint' value='{{ smartlabAntibodyEditor.dilution_hint }}' />
+            </div>
+          </div>
+          <div class='form-group mt-3'>
+            <label for='antibody-target-name'>靶标</label>
+            <input id='antibody-target-name' class='form-control' name='target_name' value='{{ smartlabAntibodyEditor.target_name }}' />
+          </div>
+          <div class='form-group'>
+            <label for='antibody-note'>备注</label>
+            <textarea id='antibody-note' class='form-control' rows='3' name='note'>{{ smartlabAntibodyEditor.note }}</textarea>
+          </div>
+          <button type='submit' class='btn btn-primary'>{{ smartlabAntibodyEditor.id ? '更新抗体对象' : '保存抗体对象' }}</button>
+          {% if smartlabAntibodyEditor.id %}
+            <a href='assay-catalog.php' class='btn btn-outline-secondary ml-2'>取消编辑</a>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class='col-lg-4 mb-3'>
+    <div class='card border-0 shadow-sm h-100'>
+      <div class='card-body'>
+        <div class='smallgray text-uppercase'>试剂维护</div>
+        <h4 class='mt-2'>登记 / 更新试剂</h4>
+        <form method='post'>
+          {{ App.Session.get('csrf')|csrf }}
+          <input type='hidden' name='smartlab_action' value='save_reagent' />
+          <div class='form-group'>
+            <label for='reagent-code'>编号</label>
+            <input type='hidden' name='id' value='{{ smartlabReagentEditor.id }}' />
+            <input id='reagent-code' class='form-control' name='code' value='{{ smartlabReagentEditor.code }}' required />
+          </div>
+          <div class='form-group'>
+            <label for='reagent-name'>名称</label>
+            <input id='reagent-name' class='form-control' name='name' value='{{ smartlabReagentEditor.name }}' required />
+          </div>
+          <div class='form-group'>
+            <label for='reagent-scope'>适用范围</label>
+            <select id='reagent-scope' class='form-control' name='reagent_scope' required>
+              <option value='qpcr_kit' {{ smartlabReagentEditor.reagent_scope == 'qpcr_kit' ? 'selected' }}>qpcr_kit</option>
+              <option value='qpcr_instrument' {{ smartlabReagentEditor.reagent_scope == 'qpcr_instrument' ? 'selected' }}>qpcr_instrument</option>
+              <option value='western_blot_detection' {{ smartlabReagentEditor.reagent_scope == 'western_blot_detection' ? 'selected' }}>western_blot_detection</option>
+              <option value='western_blot_membrane' {{ smartlabReagentEditor.reagent_scope == 'western_blot_membrane' ? 'selected' }}>western_blot_membrane</option>
+              <option value='if_blocking' {{ smartlabReagentEditor.reagent_scope == 'if_blocking' ? 'selected' }}>if_blocking</option>
+              <option value='if_microscope' {{ smartlabReagentEditor.reagent_scope == 'if_microscope' ? 'selected' }}>if_microscope</option>
+              <option value='ihc_antigen_retrieval' {{ smartlabReagentEditor.reagent_scope == 'ihc_antigen_retrieval' ? 'selected' }}>ihc_antigen_retrieval</option>
+              <option value='ihc_counterstain' {{ smartlabReagentEditor.reagent_scope == 'ihc_counterstain' ? 'selected' }}>ihc_counterstain</option>
+              <option value='ihc_fixative' {{ smartlabReagentEditor.reagent_scope == 'ihc_fixative' ? 'selected' }}>ihc_fixative</option>
+              <option value='elisa_kit' {{ smartlabReagentEditor.reagent_scope == 'elisa_kit' ? 'selected' }}>elisa_kit</option>
+              <option value='elisa_substrate' {{ smartlabReagentEditor.reagent_scope == 'elisa_substrate' ? 'selected' }}>elisa_substrate</option>
+              <option value='elisa_reader' {{ smartlabReagentEditor.reagent_scope == 'elisa_reader' ? 'selected' }}>elisa_reader</option>
+            </select>
+          </div>
+          <div class='form-row'>
+            <div class='col'>
+              <label for='reagent-vendor'>供应商</label>
+              <input id='reagent-vendor' class='form-control' name='vendor' value='{{ smartlabReagentEditor.vendor }}' />
+            </div>
+            <div class='col'>
+              <label for='reagent-model-hint'>型号 / 提示</label>
+              <input id='reagent-model-hint' class='form-control' name='model_hint' value='{{ smartlabReagentEditor.model_hint }}' />
+            </div>
+          </div>
+          <div class='form-group mt-3'>
+            <label for='reagent-note'>备注</label>
+            <textarea id='reagent-note' class='form-control' rows='3' name='note'>{{ smartlabReagentEditor.note }}</textarea>
+          </div>
+          <button type='submit' class='btn btn-primary'>{{ smartlabReagentEditor.id ? '更新试剂对象' : '保存试剂对象' }}</button>
+          {% if smartlabReagentEditor.id %}
+            <a href='assay-catalog.php' class='btn btn-outline-secondary ml-2'>取消编辑</a>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if smartlabAssayCatalogEditType and smartlabAssayCatalogEditorUsageArr %}
+  <div class='row mb-4'>
+    <div class='col-lg-12'>
+      <div class='card border-0 shadow-sm'>
+        <div class='card-body'>
+          <div class='smallgray text-uppercase'>使用记录</div>
+          <h4 class='mt-2'>最近引用该对象的实验包</h4>
+          <div class='table-responsive'>
+            <table class='table table-sm table-bordered bg-white'>
+              <thead>
+                <tr>
+                  <th>实验</th>
+                  <th>实验包</th>
+                  <th>对象槽位</th>
+                  <th>更新时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in smartlabAssayCatalogEditorUsageArr %}
+                  <tr>
+                    <td><a href='experiments.php?mode=view&id={{ row.experiment_id }}'>{{ row.experiment_title }}</a></td>
+                    <td>{{ row.pack_key }}</td>
+                    <td>{{ row.object_slot|default('primary') }}</td>
+                    <td>{{ row.updated_at }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+<div class='row mb-4'>
+  <div class='col-lg-12'>
+    <div class='card border-0 shadow-sm'>
+      <div class='card-body'>
+        <div class='smallgray text-uppercase'>引物目录</div>
+        <h4 class='mt-2'>qPCR 引物对象</h4>
+        <div class='table-responsive'>
+          <table class='table table-sm table-bordered bg-white'>
+            <thead>
+              <tr>
+                <th>编号</th>
+                <th>靶标</th>
+                <th>内参</th>
+                <th>扩增片段</th>
+                <th>退火温度</th>
+                <th>状态</th>
+                <th>使用次数</th>
+                <th>备注</th>
+                {% if smartlabCatalogEditable %}<th></th>{% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in smartlabPrimerCatalogArr %}
+                <tr>
+                  <td>{{ row.code }}</td>
+                  <td>{{ row.target_gene }}</td>
+                  <td>{{ row.reference_gene ?: '未填' }}</td>
+                  <td>{{ row.amplicon_bp ?: '未填' }}</td>
+                  <td>{{ row.annealing_temperature ?: '未填' }}</td>
+                  <td>{{ row.is_active ? 'active' : 'archived' }}</td>
+                  <td>{{ row.usage_count ?: 0 }}{% if row.last_used_at %}<div class='smallgray'>{{ row.last_used_at }}</div>{% endif %}</td>
+                  <td>{{ row.note ?: '未填' }}</td>
+                  {% if smartlabCatalogEditable %}
+                    <td>
+                      <a class='btn btn-outline-secondary btn-sm mr-1' href='assay-catalog.php?edit_type=primer&edit_id={{ row.id }}'>编辑</a>
+                      <form method='post' class='d-inline'>
+                        {{ App.Session.get('csrf')|csrf }}
+                        <input type='hidden' name='id' value='{{ row.id }}' />
+                        <input type='hidden' name='smartlab_action' value='{{ row.is_active ? 'archive_primer' : 'restore_primer' }}' />
+                        <button type='submit' class='btn btn-outline-{{ row.is_active ? 'warning' : 'success' }} btn-sm'>{{ row.is_active ? '归档' : '恢复' }}</button>
+                      </form>
+                    </td>
+                  {% endif %}
+                </tr>
+              {% else %}
+                <tr><td colspan='{{ smartlabCatalogEditable ? 9 : 8 }}' class='smallgray text-center'>暂无引物对象。</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class='row mb-4'>
+  <div class='col-lg-6 mb-3'>
+    <div class='card border-0 shadow-sm h-100'>
+      <div class='card-body'>
+        <div class='smallgray text-uppercase'>抗体目录</div>
+        <h4 class='mt-2'>抗体对象</h4>
+        <div class='table-responsive'>
+          <table class='table table-sm table-bordered bg-white'>
+            <thead>
+              <tr>
+                <th>编号</th>
+                <th>名称</th>
+                <th>范围</th>
+                <th>宿主</th>
+                <th>稀释比例</th>
+                <th>靶标</th>
+                <th>状态</th>
+                <th>使用次数</th>
+                {% if smartlabCatalogEditable %}<th></th>{% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in smartlabAntibodyCatalogArr %}
+                <tr>
+                  <td>{{ row.code }}</td>
+                  <td>{{ row.name }}</td>
+                  <td>{{ row.application_scope }}</td>
+                  <td>{{ row.host_species ?: '未填' }}</td>
+                  <td>{{ row.dilution_hint ?: '未填' }}</td>
+                  <td>{{ row.target_name ?: '未填' }}</td>
+                  <td>{{ row.is_active ? 'active' : 'archived' }}</td>
+                  <td>{{ row.usage_count ?: 0 }}{% if row.last_used_at %}<div class='smallgray'>{{ row.last_used_at }}</div>{% endif %}</td>
+                  {% if smartlabCatalogEditable %}
+                    <td>
+                      <a class='btn btn-outline-secondary btn-sm mr-1' href='assay-catalog.php?edit_type=antibody&edit_id={{ row.id }}'>编辑</a>
+                      <form method='post' class='d-inline'>
+                        {{ App.Session.get('csrf')|csrf }}
+                        <input type='hidden' name='id' value='{{ row.id }}' />
+                        <input type='hidden' name='smartlab_action' value='{{ row.is_active ? 'archive_antibody' : 'restore_antibody' }}' />
+                        <button type='submit' class='btn btn-outline-{{ row.is_active ? 'warning' : 'success' }} btn-sm'>{{ row.is_active ? '归档' : '恢复' }}</button>
+                      </form>
+                    </td>
+                  {% endif %}
+                </tr>
+              {% else %}
+                <tr><td colspan='{{ smartlabCatalogEditable ? 9 : 8 }}' class='smallgray text-center'>暂无抗体对象。</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class='col-lg-6 mb-3'>
+    <div class='card border-0 shadow-sm h-100'>
+      <div class='card-body'>
+        <div class='smallgray text-uppercase'>试剂目录</div>
+        <h4 class='mt-2'>试剂对象</h4>
+        <div class='table-responsive'>
+          <table class='table table-sm table-bordered bg-white'>
+            <thead>
+              <tr>
+                <th>编号</th>
+                <th>名称</th>
+                <th>范围</th>
+                <th>供应商</th>
+                <th>型号 / 提示</th>
+                <th>状态</th>
+                <th>使用次数</th>
+                <th>备注</th>
+                {% if smartlabCatalogEditable %}<th></th>{% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in smartlabReagentCatalogArr %}
+                <tr>
+                  <td>{{ row.code }}</td>
+                  <td>{{ row.name }}</td>
+                  <td>{{ row.reagent_scope }}</td>
+                  <td>{{ row.vendor ?: '未填' }}</td>
+                  <td>{{ row.model_hint ?: '未填' }}</td>
+                  <td>{{ row.is_active ? 'active' : 'archived' }}</td>
+                  <td>{{ row.usage_count ?: 0 }}{% if row.last_used_at %}<div class='smallgray'>{{ row.last_used_at }}</div>{% endif %}</td>
+                  <td>{{ row.note ?: '未填' }}</td>
+                  {% if smartlabCatalogEditable %}
+                    <td>
+                      <a class='btn btn-outline-secondary btn-sm mr-1' href='assay-catalog.php?edit_type=reagent&edit_id={{ row.id }}'>编辑</a>
+                      <form method='post' class='d-inline'>
+                        {{ App.Session.get('csrf')|csrf }}
+                        <input type='hidden' name='id' value='{{ row.id }}' />
+                        <input type='hidden' name='smartlab_action' value='{{ row.is_active ? 'archive_reagent' : 'restore_reagent' }}' />
+                        <button type='submit' class='btn btn-outline-{{ row.is_active ? 'warning' : 'success' }} btn-sm'>{{ row.is_active ? '归档' : '恢复' }}</button>
+                      </form>
+                    </td>
+                  {% endif %}
+                </tr>
+              {% else %}
+                <tr><td colspan='{{ smartlabCatalogEditable ? 9 : 8 }}' class='smallgray text-center'>暂无试剂对象。</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

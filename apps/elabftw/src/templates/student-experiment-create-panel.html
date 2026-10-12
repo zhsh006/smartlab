@@ -1,0 +1,57 @@
+<div class='card mb-4'>
+  <div class='card-body'>
+    <div class='d-flex justify-content-between align-items-start flex-wrap mb-3'>
+      <div class='mr-3'>
+        <div class='smallgray text-uppercase'>我的实验</div>
+        <h2 class='h4 mb-2'>新建实验记录</h2>
+        <p class='mb-0'>空白记录和内置实验类型都从这里进入，创建后统一在实验详情页补充记录、样本、附件和审核。</p>
+      </div>
+      <form method='post' action='create-student-experiment.php' class='mt-2 mb-0'>
+        {{ App.Session.get('csrf')|csrf }}
+        <div class='input-group'>
+          <input class='form-control' name='title' placeholder='输入实验名称，留空则自动命名' aria-label='实验名称' />
+          <div class='input-group-append'>
+            <button type='submit' class='btn btn-primary'>创建空白实验</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class='row'>
+      {% set assayPacks = [
+        {'key': 'qpcr', 'label': 'qPCR', 'desc': 'Ct、ΔCt、Fold Change、质控和图表。'},
+        {'key': 'western_blot', 'label': 'Western Blot', 'desc': '抗体、条带图、灰度值和归一化结果。'},
+        {'key': 'if', 'label': '免疫荧光', 'desc': '染色流程、图像、荧光强度和质控。'},
+        {'key': 'ihc', 'label': '免疫组化', 'desc': '病理评分、ROI、H-score 和代表图归档。'}
+      ] %}
+      {% for pack in assayPacks %}
+        <div class='col-lg-3 col-md-6 mb-3 mb-lg-0'>
+          <div class='border rounded h-100 p-3 bg-light'>
+            <div class='font-weight-bold'>{{ pack.label }}</div>
+            <div class='smallgray mt-2'>{{ pack.desc }}</div>
+            <div class='badge badge-info mt-2'>智能辅助：断点/跳步/推理/模板补全</div>
+            <div class='d-flex flex-wrap mt-3'>
+              <form method='post' action='create-assay-pack.php' class='mb-2'>
+                {{ App.Session.get('csrf')|csrf }}
+                <input type='hidden' name='pack' value='{{ pack.key }}' />
+                <input type='hidden' name='pack_mode' value='quick' />
+                <input class='form-control form-control-sm mb-2' name='project_code' placeholder='课题编号，例如 P-2026-003' />
+                {% if pack.key == 'qpcr' %}
+                  <input class='form-control form-control-sm mb-2' name='target_name' placeholder='目标基因，例如 Raptor、mTOR' />
+                {% elseif pack.key == 'western_blot' %}
+                  <input class='form-control form-control-sm mb-2' name='target_name' placeholder='目标蛋白，例如 VGlut1 / GAD67' />
+                {% elseif pack.key == 'if' %}
+                  <input class='form-control form-control-sm mb-2' name='target_name' placeholder='染色指标，例如 NeuN / GFAP' />
+                {% else %}
+                  <input class='form-control form-control-sm mb-2' name='target_name' placeholder='检测指标' />
+                {% endif %}
+                <div class='smallgray mb-2'>创建后自动生成实验编号，并在详情页继续补充样本、材料、附件和结果。</div>
+                <button type='submit' class='btn btn-primary btn-sm'>创建{{ pack.label }}实验</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>

@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class='row mb-4'>
+  <div class='col-12'>
+    <div class='d-flex justify-content-between align-items-start flex-wrap'>
+      <div class='mr-3 mb-3'>
+        <div class='smallgray text-uppercase'>LabSmart Student</div>
+        <h2 class='mb-2'>课题组库存</h2>
+        <p class='mb-0'>学生端仅提供查询、领用申请、领用记录和缺货提醒入口，不开放库存后台维护。</p>
+      </div>
+      <a href='student-consumables.php' class='btn btn-outline-secondary btn-sm'>我的耗材</a>
+    </div>
+  </div>
+</div>
+
+<div class='row mb-4'>
+  <div class='col-md-3 col-sm-6 mb-3 mb-md-0'>
+    <div class='card h-100'><div class='card-body'>
+      <div class='smallgray text-uppercase'>在库物料</div>
+      <div class='display-4 mb-2'>{{ smartlabLotSummary.lot_count ?: 0 }}</div>
+      <div class='smallgray'>物料记录</div>
+    </div></div>
+  </div>
+  <div class='col-md-3 col-sm-6 mb-3 mb-md-0'>
+    <div class='card h-100'><div class='card-body'>
+      <div class='smallgray text-uppercase'>低库存</div>
+      <div class='display-4 mb-2'>{{ smartlabLotSummary.low_stock_lot_count ?: 0 }}</div>
+      <div class='smallgray'>需要提醒或申请补充</div>
+    </div></div>
+  </div>
+  <div class='col-md-3 col-sm-6 mb-3 mb-md-0'>
+    <div class='card h-100'><div class='card-body'>
+      <div class='smallgray text-uppercase'>近效期</div>
+      <div class='display-4 mb-2'>{{ smartlabLotSummary.expiring_lot_count ?: 0 }}</div>
+      <div class='smallgray'>30 天内到期</div>
+    </div></div>
+  </div>
+  <div class='col-md-3 col-sm-6'>
+    <div class='card h-100'><div class='card-body'>
+      <div class='smallgray text-uppercase'>我的耗材</div>
+      <div class='display-4 mb-2'>{{ smartlabMyConsumablesArr|length }}</div>
+      <a href='student-consumables.php' class='small'>打开个人清单</a>
+    </div></div>
+  </div>
+</div>
+
+<div class='card mb-4'>
+  <div class='card-body'>
+    <form action='student-inventory.php' method='get' class='mb-3'>
+      <div class='d-flex justify-content-between align-items-end flex-wrap mb-2'>
+        <label for='student-inventory-search' class='font-weight-bold mb-0'>库存查询</label>
+        {% if smartlabInventorySearch %}
+          <a href='student-inventory.php' class='smallgray'>清除筛选</a>
+        {% endif %}
+      </div>
+      <div class='input-group'>
+        <input id='student-inventory-search' class='form-control' type='search' name='q' value='{{ smartlabInventorySearch }}' placeholder='按试剂、抗体、引物、试剂盒、耗材、批号或位置搜索' />
+        <div class='input-group-append'>
+          <button type='submit' class='btn btn-primary'>
+            <i class='fas fa-magnifying-glass mr-1'></i>查询
+          </button>
+        </div>
+      </div>
+    {% if smartlabInventorySearch %}
+        <div class='smallgray mt-2'>已按“{{ smartlabInventorySearch }}”筛选，当前第 {{ smartlabInventoryPage }} / {{ smartlabInventoryPageCount }} 页，共 {{ smartlabInventoryLotCount }} 条库存物料。</div>
+      {% endif %}
+    </form>
+    {% set categoryLabels = {
+      'reagent': '试剂',
+      'antibody': '抗体',
+      'primer': '引物',
+      'kit': '试剂盒',
+      'consumable': '耗材',
+      'other': '其他',
+      'key_material': '关键材料'
+    } %}
+    <div class='table-responsive'>
+      <table class='table table-hover'>
+        <thead>
+          <tr>
+            <th>名称</th>
+            <th>批号</th>
+            <th>数量</th>
+            <th>位置</th>
+            <th>状态</th>
+            <th>领用申请</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lot in smartlabLotsArr %}
+            <tr>
+              <td>
+                <div class='font-weight-bold'>{{ lot.material_name ?: lot.item_title }}</div>
+                <div class='smallgray'>
+                  {% if lot.category %}
+                    <span class='badge badge-light mr-1'>{{ categoryLabels[lot.category]|default(lot.category) }}</span>
+                  {% endif %}
+                  {% if lot.brand %}{{ lot.brand }}{% endif %}
+                  {% if lot.catalog_no %}{% if lot.brand %} · {% endif %}{{ lot.catalog_no }}{% endif %}
+                  {% if lot.specification %}{% if lot.brand or lot.catalog_no %} · {% endif %}{{ lot.specification }}{% endif %}
+                </div>
+              </td>
+              <td>{{ lot.lot_no }}</td>
+              <td>{{ lot.quantity is not null ? lot.quantity ~ ' ' ~ lot.unit : '未登记' }}</td>
+              <td>{{ lot.location_label ?: '未登记' }}</td>
+              <td>
+                {% if lot.quantity is not null and lot.quantity <= 2 %}
+                  <span class='badge badge-warning'>低库存</span>
+                {% else %}
+                  <span class='badge badge-light'>可申请</span>
+                {% endif %}
+              </td>
+              <td style='min-width: 320px'>
+                <form method='post' action='student-inventory.php' class='mb-0'>
+                  {{ App.Session.get('csrf')|csrf }}
+                  <input type='hidden' name='smartlab_action' value='request_use' />
+                  <input type='hidden' name='lot_id' value='{{ lot.id }}' />
+                  <div class='form-row align-items-end'>
+                    <div class='col-4'>
+                      <label class='sr-only' for='request-quantity-{{ lot.id }}'>数量</label>
+                      <input id='request-quantity-{{ lot.id }}' class='form-control form-control-sm' type='number' step='0.0001' min='0.0001' name='quantity' placeholder='数量' required />
+                    </div>
+                    <div class='col-5'>
+                      <label class='sr-only' for='request-experiment-{{ lot.id }}'>关联实验</label>
+                      <select id='request-experiment-{{ lot.id }}' class='form-control form-control-sm' name='experiment_id'>
+                        <option value=''>不关联实验</option>
+                        {% for experiment in smartlabAvailableExperimentsArr %}
+                          <option value='{{ experiment.id }}'>#{{ experiment.id }} {{ experiment.title }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class='col-3'>
+                      <button type='submit' class='btn btn-outline-primary btn-sm btn-block'>申请</button>
+                    </div>
+                  </div>
+                  <label class='sr-only' for='request-note-{{ lot.id }}'>用途说明</label>
+                  <input id='request-note-{{ lot.id }}' class='form-control form-control-sm mt-2' name='note' placeholder='用途说明，例如 qPCR 试剂领用' />
+                </form>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan='6'><div class='alert alert-info mb-0'>当前没有匹配的库存物料。</div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if smartlabInventoryPageCount > 1 %}
+      {% set searchSuffix = smartlabInventorySearch ? '&q=' ~ smartlabInventorySearch|url_encode : '' %}
+      <div class='d-flex justify-content-between align-items-center flex-wrap mt-3'>
+        <div class='smallgray'>第 {{ smartlabInventoryPage }} 页，共 {{ smartlabInventoryPageCount }} 页，每页 {{ smartlabInventoryPageSize }} 条。</div>
+        <div class='btn-group' role='group' aria-label='库存分页'>
+          <a class='btn btn-outline-secondary btn-sm {{ smartlabInventoryPage <= 1 ? 'disabled' }}' href='student-inventory.php?page={{ smartlabInventoryPage - 1 }}{{ searchSuffix }}' {% if smartlabInventoryPage <= 1 %}tabindex='-1' aria-disabled='true'{% endif %}>上一页</a>
+          <a class='btn btn-outline-secondary btn-sm {{ smartlabInventoryPage >= smartlabInventoryPageCount ? 'disabled' }}' href='student-inventory.php?page={{ smartlabInventoryPage + 1 }}{{ searchSuffix }}' {% if smartlabInventoryPage >= smartlabInventoryPageCount %}tabindex='-1' aria-disabled='true'{% endif %}>下一页</a>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class='card'>
+  <div class='card-body'>
+    <h4 class='mb-3'>最近领用记录</h4>
+    <div class='list-group list-group-flush'>
+      {% for txn in smartlabRecentTransactionsArr %}
+        <div class='list-group-item px-0'>
+          <div class='font-weight-bold'>{{ txn.material_name }} · {{ txn.txn_type }}</div>
+          <div class='smallgray'>
+            {{ txn.quantity }} {{ txn.unit }}
+            {% if txn.material_brand %} · {{ txn.material_brand }}{% endif %}
+            {% if txn.catalog_no %} · {{ txn.catalog_no }}{% endif %}
+            · {{ txn.lot_no }}
+            · <span title='{{ txn.occurred_at }}' class='relative-moment'></span>
+          </div>
+        </div>
+      {% else %}
+        <div class='alert alert-info mb-0'>暂无领用记录。</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endblock body %}

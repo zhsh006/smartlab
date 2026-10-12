@@ -1,0 +1,922 @@
+/*
+object-assign
+(c) Sindre Sorhus
+@license MIT
+*/
+
+/* @license
+Papa Parse
+v5.3.2
+https://github.com/mholt/PapaParse
+License: MIT
+*/
+
+/*!
+	Copyright (c) 2018 Jed Watson.
+	Licensed under the MIT License (MIT), see
+	http://jedwatson.github.io/classnames
+*/
+
+/*!
+
+JSZip v3.10.1 - A JavaScript class for generating and reading zip files
+<http://stuartk.com/jszip>
+
+(c) 2009-2016 Stuart Knightley <stuart [at] stuartk.com>
+Dual licenced under the MIT license or GPLv3. See https://raw.github.com/Stuk/jszip/main/LICENSE.markdown.
+
+JSZip uses the library pako released under the MIT license :
+https://github.com/nodeca/pako/blob/main/LICENSE
+*/
+
+/*!
+ *    Copyright 2015-2016 Thomas Rosenau
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+
+/*!
+ * 3dmol v2.5.4
+ * JavaScript/TypeScript molecular visualization library
+ * Author: David Koes and contributors
+ */
+
+/*!
+ * The buffer module from node.js, for the browser.
+ *
+ * @author   Feross Aboukhadijeh <feross@feross.org> <http://feross.org>
+ * @license  MIT
+ */
+
+/*!
+ * This file is part of the "malle" library
+ * Copyright 2021, 2022 Nicolas CARPi @ Deltablot
+ * License MIT
+ * https://github.com/deltablot/malle
+ */
+
+/*!
+ * clipboard.js v2.0.11
+ * https://clipboardjs.com/
+ *
+ * Licensed MIT © Zeno Rocha
+ */
+
+/*!
+ * jQuery JavaScript Library v3.7.1
+ * https://jquery.com/
+ *
+ * Copyright OpenJS Foundation and other contributors
+ * Released under the MIT license
+ * https://jquery.org/license
+ *
+ * Date: 2023-08-28T13:37Z
+ */
+
+/*!
+ * jQuery UI :data 1.14.2
+ * https://jqueryui.com
+ *
+ * Copyright OpenJS Foundation and other contributors
+ * Released under the MIT license.
+ * https://jquery.org/license
+ */
+
+/*!
+ * jQuery UI Autocomplete 1.14.2
+ * https://jqueryui.com
+ *
+ * Copyright OpenJS Foundation and other contributors
+ * Released under the MIT license.
+ * https://jquery.org/license
+ */
+
+/*!
+ * jQuery UI Keycode 1.14.2
+ * https://jqueryui.com
+ *
+ * Copyright OpenJS Foundation and other contributors
+ * Released under the MIT license.
+ * https://jquery.org/license
+ */
+
+/*!
+ * jQuery UI Menu 1.14.2
+ * https://jqueryui.com
+ *
+ * Copyright OpenJS Foundation and other contributors
+ * Released under the MIT license.
+ * https://jquery.org/license
+ */
+
+/*!
+ * jQuery UI Mouse 1.14.2
+ * https://jqueryui.com
+ *
+ * Copyright OpenJS Foundation and other contributors
+ * Released under the MIT license.
+ * https://jquery.org/license
+ */
+
+/*!
+ * jQuery UI Position 1.14.2
+ * https://jqueryui.com
+ *
+ * Copyright OpenJS Foundation and other contributors
+ * Released under the MIT license.
+ * https://jquery.org/license
+ *
+ * https://api.jqueryui.com/position/
+ */
+
+/*!
+ * jQuery UI Scroll Parent 1.14.2
+ * https://jqueryui.com
+ *
+ * Copyright OpenJS Foundation and other contributors
+ * Released under the MIT license.
+ * https://jquery.org/license
+ */
+
+/*!
+ * jQuery UI Sortable 1.14.2
+ * https://jqueryui.com
+ *
+ * Copyright OpenJS Foundation and other contributors
+ * Released under the MIT license.
+ * https://jquery.org/license
+ */
+
+/*!
+ * jQuery UI Unique ID 1.14.2
+ * https://jqueryui.com
+ *
+ * Copyright OpenJS Foundation and other contributors
+ * Released under the MIT license.
+ * https://jquery.org/license
+ */
+
+/*!
+ * jQuery UI Widget 1.14.2
+ * https://jqueryui.com
+ *
+ * Copyright OpenJS Foundation and other contributors
+ * Released under the MIT license.
+ * https://jquery.org/license
+ */
+
+/*!
+ * jsoneditor.js
+ *
+ * @brief
+ * JSONEditor is a web-based tool to view, edit, format, and validate JSON.
+ * It has various modes such as a tree editor, a code editor, and a plain text
+ * editor.
+ *
+ * Supported browsers: Chrome, Firefox, Safari, Edge
+ *
+ * @license
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy
+ * of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ *
+ * Copyright (c) 2011-2025 Jos de Jong, http://jsoneditoronline.org
+ *
+ * @author  Jos de Jong, <wjosdejong@gmail.com>
+ * @version 10.4.2
+ * @date    2025-10-15
+ */
+
+/*!
+ *************************************************************************
+ *
+ *  mhchemParser.ts
+ *  4.2.1
+ *
+ *  Parser for the \ce command and \pu command for MathJax and Co.
+ *
+ *  mhchem's \ce is a tool for writing beautiful chemical equations easily.
+ *  mhchem's \pu is a tool for writing physical units easily.
+ *
+ *  ----------------------------------------------------------------------
+ *
+ *  Copyright (c) 2015-2023 Martin Hensel
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  ----------------------------------------------------------------------
+ *
+ *  https://github.com/mhchem/mhchemParser
+ *
+ */
+
+/*!
+Copyright (C) 2013-2015 by Andrea Giammarchi - @WebReflection
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+*/
+
+/*! *****************************************************************************
+Copyright (c) Microsoft Corporation.
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+***************************************************************************** */
+
+/*! ../../../../colors */
+
+/*! ../../../colors */
+
+/*! ../../WebGL */
+
+/*! ../../colors */
+
+/*! ../WebGL */
+
+/*! ../colors */
+
+/*! ../constants/Coloring */
+
+/*! ../constants/Shading */
+
+/*! ../constants/Sides */
+
+/*! ../constants/SpriteAlignment */
+
+/*! ../constants/TextureConstants */
+
+/*! ../core */
+
+/*! ../core/Texture */
+
+/*! ../materials */
+
+/*! ../materials/LineBasicMaterial */
+
+/*! ../math */
+
+/*! ../shapes */
+
+/*! ../stickimposter/stickimposterFragmentShader.partial.frag */
+
+/*! ../utilities */
+
+/*! ../utils/common */
+
+/*! ./../constants/Coloring */
+
+/*! ./../constants/Shading */
+
+/*! ./../constants/Sides */
+
+/*! ./3Dmol */
+
+/*! ./BCIF */
+
+/*! ./CDJSON */
+
+/*! ./CIF */
+
+/*! ./CUBE */
+
+/*! ./Camera */
+
+/*! ./Coloring */
+
+/*! ./Cylinder */
+
+/*! ./EventDispatcher */
+
+/*! ./Fog */
+
+/*! ./GLDraw */
+
+/*! ./GLModel */
+
+/*! ./GLShape */
+
+/*! ./GLViewer */
+
+/*! ./GRO */
+
+/*! ./Geometry */
+
+/*! ./Gradient */
+
+/*! ./ImposterMaterial */
+
+/*! ./InstancedMaterial */
+
+/*! ./LAMMPSTRJ */
+
+/*! ./Label */
+
+/*! ./Line */
+
+/*! ./LineBasicMaterial */
+
+/*! ./MMTF */
+
+/*! ./MOL2 */
+
+/*! ./Material */
+
+/*! ./Mesh */
+
+/*! ./MeshDoubleLambertMaterial */
+
+/*! ./MeshLambertMaterial */
+
+/*! ./MeshOutlineMaterial */
+
+/*! ./Object3D */
+
+/*! ./PDB */
+
+/*! ./PQR */
+
+/*! ./PRMTOP */
+
+/*! ./Projector */
+
+/*! ./ProteinSurface4 */
+
+/*! ./Quaternion */
+
+/*! ./Raycaster */
+
+/*! ./Renderer */
+
+/*! ./SDF */
+
+/*! ./ShaderType */
+
+/*! ./Shading */
+
+/*! ./Sides */
+
+/*! ./Sphere */
+
+/*! ./SphereImposterMaterial */
+
+/*! ./SphereImposterOutlineMaterial */
+
+/*! ./Sprite */
+
+/*! ./SpriteAlignment */
+
+/*! ./SpriteMaterial */
+
+/*! ./SpritePlugin */
+
+/*! ./StickImposterMaterial */
+
+/*! ./StickImposterOutlineMaterial */
+
+/*! ./Texture */
+
+/*! ./TextureConstants */
+
+/*! ./TextureOperations */
+
+/*! ./Triangle */
+
+/*! ./UVMapping */
+
+/*! ./VASP */
+
+/*! ./Vector2 */
+
+/*! ./VolumeData */
+
+/*! ./VolumetricMaterial */
+
+/*! ./VolumetricRender */
+
+/*! ./WebGL */
+
+/*! ./WebGL/math */
+
+/*! ./WebGL/shapes */
+
+/*! ./XYZ */
+
+/*! ./adler32 */
+
+/*! ./areConnected */
+
+/*! ./assignBackboneHBonds */
+
+/*! ./assignBonds */
+
+/*! ./assignPDBBonds */
+
+/*! ./atomNameToElem */
+
+/*! ./autoload */
+
+/*! ./basic */
+
+/*! ./basic.frag */
+
+/*! ./basic.vert */
+
+/*! ./blur */
+
+/*! ./blur.frag */
+
+/*! ./blur.vert */
+
+/*! ./bondLength */
+
+/*! ./cifutils/category */
+
+/*! ./clone */
+
+/*! ./colors */
+
+/*! ./common */
+
+/*! ./computeSecondaryStructure */
+
+/*! ./constants */
+
+/*! ./constants/Sides */
+
+/*! ./constants/TextureConstants */
+
+/*! ./core */
+
+/*! ./crc32 */
+
+/*! ./data */
+
+/*! ./decoder */
+
+/*! ./encoding */
+
+/*! ./glcartoon */
+
+/*! ./header */
+
+/*! ./inffast */
+
+/*! ./inftrees */
+
+/*! ./instanced */
+
+/*! ./instanced.frag */
+
+/*! ./instanced.vert */
+
+/*! ./isEmpty */
+
+/*! ./lambert */
+
+/*! ./lambert.frag */
+
+/*! ./lambert.vert */
+
+/*! ./lambertdouble */
+
+/*! ./lambertdouble.frag */
+
+/*! ./lambertdouble.vert */
+
+/*! ./lib */
+
+/*! ./lib/deflate */
+
+/*! ./lib/inflate */
+
+/*! ./lib/utils/common */
+
+/*! ./lib/zlib/constants */
+
+/*! ./materials */
+
+/*! ./math */
+
+/*! ./messages */
+
+/*! ./objects */
+
+/*! ./outline */
+
+/*! ./outline.frag */
+
+/*! ./outline.vert */
+
+/*! ./parser */
+
+/*! ./parsers */
+
+/*! ./parsers/CUBE */
+
+/*! ./parsers/VASP */
+
+/*! ./parsers/utils/assignBonds */
+
+/*! ./partialCharges */
+
+/*! ./processSymmetries */
+
+/*! ./screen */
+
+/*! ./screen.frag */
+
+/*! ./screen.vert */
+
+/*! ./screenaa */
+
+/*! ./screenaa.frag */
+
+/*! ./screenaa.vert */
+
+/*! ./shaders */
+
+/*! ./shaders/index */
+
+/*! ./shapes */
+
+/*! ./specs */
+
+/*! ./sphereimposter */
+
+/*! ./sphereimposter.frag */
+
+/*! ./sphereimposter.vert */
+
+/*! ./sphereimposteroutline */
+
+/*! ./sphereimposteroutline.frag */
+
+/*! ./sphereimposteroutline.vert */
+
+/*! ./sprite */
+
+/*! ./sprite.frag */
+
+/*! ./sprite.vert */
+
+/*! ./src/vendor/mmtf.js */
+
+/*! ./ssao */
+
+/*! ./ssao.frag */
+
+/*! ./ssao.vert */
+
+/*! ./standardResidues */
+
+/*! ./stickimposter */
+
+/*! ./stickimposter.partial.frag */
+
+/*! ./stickimposter.vert */
+
+/*! ./stickimposterFragmentShader.partial.frag */
+
+/*! ./stickimposteroutline */
+
+/*! ./stickimposteroutline.partial.frag */
+
+/*! ./stickimposteroutline.vert */
+
+/*! ./text */
+
+/*! ./toString */
+
+/*! ./trees */
+
+/*! ./types */
+
+/*! ./uniforms */
+
+/*! ./utilities */
+
+/*! ./utils */
+
+/*! ./utils/anumToSymbol */
+
+/*! ./utils/assignBonds */
+
+/*! ./utils/assignPDBBonds */
+
+/*! ./utils/atomNameToElem */
+
+/*! ./utils/bondLength */
+
+/*! ./utils/clamp */
+
+/*! ./utils/common */
+
+/*! ./utils/computeSecondaryStructure */
+
+/*! ./utils/conversionMatrix3 */
+
+/*! ./utils/degToRad */
+
+/*! ./utils/getSinglePDB */
+
+/*! ./utils/isEmpty */
+
+/*! ./utils/processSymmetries */
+
+/*! ./utils/strings */
+
+/*! ./validateBonds */
+
+/*! ./volumetric */
+
+/*! ./volumetric.frag */
+
+/*! ./volumetric.vert */
+
+/*! ./zlib/constants */
+
+/*! ./zlib/deflate */
+
+/*! ./zlib/gzheader */
+
+/*! ./zlib/inflate */
+
+/*! ./zlib/messages */
+
+/*! ./zlib/zstream */
+
+/*! @license DOMPurify 3.3.3 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.3.3/LICENSE */
+
+/*! cpexcel.js (C) 2013-present SheetJS -- http://sheetjs.com */
+
+/*! cputils.js (C) 2013-present SheetJS -- http://sheetjs.com */
+
+/*! crc32.js (C) 2014-present SheetJS -- http://sheetjs.com */
+
+/*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
+
+/*! iobuffer */
+
+/*! netcdfjs */
+
+/*! pako */
+
+/*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */
+
+/*! sheetjs (C) 2013-present SheetJS -- http://sheetjs.com */
+
+/*! upng-js */
+
+/*! xlsx.js (C) 2013-present SheetJS -- http://sheetjs.com */
+
+/**
+ * @license
+ * Copyright 2010-2021 Three.js Authors
+ * SPDX-License-Identifier: MIT
+ */
+
+/**
+ * @license
+ * Lodash (Custom Build) <https://lodash.com/>
+ * Build: `lodash modularize exports="es" -o ./`
+ * Copyright OpenJS Foundation and other contributors <https://openjsf.org/>
+ * Released under MIT license <https://lodash.com/license>
+ * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
+ * Copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ */
+
+/**
+ * @license
+ * Lodash <https://lodash.com/>
+ * Copyright OpenJS Foundation and other contributors <https://openjsf.org/>
+ * Released under MIT license <https://lodash.com/license>
+ * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
+ * Copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ */
+
+/**
+ * @license
+ * MIT License
+ * 
+ * Copyright (c) 2014-present, Lee Byron and other contributors.
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+/**
+ * @license React
+ * react-dom.production.min.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/**
+ * @license React
+ * react-is.production.js
+ *
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/**
+ * @license React
+ * react-is.production.min.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/**
+ * @license React
+ * react-jsx-runtime.production.min.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/**
+ * @license React
+ * react.production.min.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/**
+ * @license React
+ * scheduler.production.min.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/**
+ * @license React
+ * use-sync-external-store-shim.production.js
+ *
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/**
+ * @license React
+ * use-sync-external-store-shim/with-selector.production.js
+ *
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/**
+ * @mui/styled-engine v5.16.14
+ *
+ * @license MIT
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/**
+ * Prism: Lightweight, robust, elegant syntax highlighting
+ *
+ * @license MIT <https://opensource.org/licenses/MIT>
+ * @author Lea Verou <https://lea.verou.me>
+ * @namespace
+ * @public
+ */
+
+/** @license React v16.13.1
+ * react-is.production.min.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/** @license React v17.0.2
+ * react-is.production.min.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+/** @license URI.js v4.4.1 (c) 2011 Gary Court. License: http://github.com/garycourt/uri-js */
+
+/**!
+ * @fileOverview Kickass library to create and place poppers near their reference elements.
+ * @version 1.16.1
+ * @license
+ * Copyright (c) 2016 Federico Zivolo and contributors
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+/**!
+ * url-search-params-polyfill
+ *
+ * @author Jerry Bendy (https://github.com/jerrybendy)
+ * @licence MIT
+ */

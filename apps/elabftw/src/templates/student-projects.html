@@ -1,0 +1,263 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class='row mb-4'>
+  <div class='col-12'>
+    <div class='d-flex justify-content-between align-items-start flex-wrap'>
+      <div class='mr-3 mb-3'>
+        <div class='smallgray text-uppercase'>LabSmart Student</div>
+        <h2 class='mb-2'>我的课题</h2>
+        <p class='mb-0'>只展示我参与或负责的课题进展、任务、汇报、阶段成果，以及关联实验和样本。</p>
+      </div>
+      <div class='mb-3'>
+        <button type='button' class='btn btn-outline-primary btn-sm mr-2' data-toggle='collapse' data-target='#createProjectPanel' aria-expanded='false' aria-controls='createProjectPanel'>新增个人课题</button>
+        <a href='experiments.php?scope=1' class='btn btn-primary btn-sm'>记录实验</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class='collapse mb-4' id='createProjectPanel'>
+  <div class='card'>
+    <div class='card-body'>
+      <h3 class='h5 mb-3'>新增个人课题</h3>
+      <form method='post' action='student-projects.php'>
+        {{ App.Session.get('csrf')|csrf }}
+        <input type='hidden' name='smartlab_action' value='create_project' />
+        <div class='row'>
+          <div class='col-md-4 mb-3'>
+            <label for='project-code'>课题编号</label>
+            <input id='project-code' class='form-control' name='code' required placeholder='例如 P-2026-001' />
+          </div>
+          <div class='col-md-8 mb-3'>
+            <label for='project-name'>课题名称</label>
+            <input id='project-name' class='form-control' name='name' required />
+          </div>
+          <div class='col-12 mb-3'>
+            <label for='project-description'>课题概况</label>
+            <textarea id='project-description' class='form-control' name='description' rows='3'></textarea>
+          </div>
+        </div>
+        <button type='submit' class='btn btn-primary'>保存课题</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class='row'>
+  <div class='col-lg-4 mb-4 mb-lg-0'>
+    <div class='card h-100'>
+      <div class='card-body'>
+        <h4 class='mb-3'>参与课题</h4>
+        <div class='list-group list-group-flush'>
+          {% for project in projectsArr %}
+            <a href='student-projects.php?id={{ project.id }}' class='list-group-item px-0 {{ activeProject and activeProject.id == project.id ? 'active' }}'>
+              <div class='d-flex justify-content-between align-items-start'>
+                <div>
+                  <div class='font-weight-bold'>{{ project.name }}</div>
+                  <div class='{{ activeProject and activeProject.id == project.id ? 'text-white-50' : 'smallgray' }}'>{{ project.code ?: ('课题 #' ~ project.id) }} · {{ project.role ?: '成员' }}</div>
+                </div>
+                <span class='badge {{ activeProject and activeProject.id == project.id ? 'badge-light' : 'badge-secondary' }}'>查看</span>
+              </div>
+            </a>
+          {% else %}
+            <div class='alert alert-info mb-0'>当前账号还没有参与课题。</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class='col-lg-8'>
+    {% if activeProject %}
+      <div class='card mb-4'>
+        <div class='card-body'>
+          <div class='d-flex justify-content-between align-items-start flex-wrap'>
+            <div class='mr-3'>
+              <div class='smallgray text-uppercase'>{{ activeProject.code ?: ('课题 #' ~ activeProject.id) }}</div>
+              <h3 class='mb-2 mt-1'>{{ activeProject.name }}</h3>
+              <p class='mb-2'>{{ activeProject.description ?: '暂无课题描述。' }}</p>
+            </div>
+            <span class='badge badge-light px-3 py-2'>{{ activeProject.status ?: '进行中' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class='row mb-4'>
+        <div class='col-md-3 col-sm-6 mb-3 mb-md-0'><div class='card h-100'><div class='card-body'><div class='smallgray text-uppercase'>课题阶段</div><div class='font-weight-bold mt-2'>{{ activeProject.status ?: '进行中' }}</div></div></div></div>
+        <div class='col-md-3 col-sm-6 mb-3 mb-md-0'><div class='card h-100'><div class='card-body'><div class='smallgray text-uppercase'>关联实验</div><div class='display-4 mb-0'>{{ projectExperimentsArr|length }}</div></div></div></div>
+        <div class='col-md-3 col-sm-6 mb-3 mb-md-0'><div class='card h-100'><div class='card-body'><div class='smallgray text-uppercase'>关联样本</div><div class='display-4 mb-0'>{{ projectSamplesArr|length }}</div></div></div></div>
+        <div class='col-md-3 col-sm-6'><div class='card h-100'><div class='card-body'><div class='smallgray text-uppercase'>审核/反馈</div><div class='display-4 mb-0'>{{ projectReviewsArr|length }}</div></div></div></div>
+      </div>
+
+      <div class='card mb-4'>
+        <div class='card-body'>
+          <div class='d-flex justify-content-between align-items-center flex-wrap mb-3'>
+            <h4 class='mb-2'>我的任务与汇报</h4>
+            <div class='mb-2'>
+              <form method='post' action='student-projects.php' class='d-inline-block mr-2 mb-2'>
+                {{ App.Session.get('csrf')|csrf }}
+                <input type='hidden' name='smartlab_action' value='create_result_experiment' />
+                <input type='hidden' name='project_id' value='{{ activeProject.id }}' />
+                <button type='submit' class='btn btn-primary btn-sm'>开始验证实验</button>
+              </form>
+              <button type='button' class='btn btn-outline-primary btn-sm mr-2' data-toggle='collapse' data-target='#projectTaskForm'>添加任务</button>
+              <button type='button' class='btn btn-outline-primary btn-sm mr-2' data-toggle='collapse' data-target='#projectReportForm'>提交汇报</button>
+              <button type='button' class='btn btn-outline-primary btn-sm' data-toggle='collapse' data-target='#projectDeliverableForm'>归档成果</button>
+            </div>
+          </div>
+
+          <div class='collapse mb-3' id='projectTaskForm'>
+            <form method='post' action='student-projects.php' class='border rounded p-3 bg-light'>
+              {{ App.Session.get('csrf')|csrf }}
+              <input type='hidden' name='smartlab_action' value='create_task' />
+              <input type='hidden' name='project_id' value='{{ activeProject.id }}' />
+              <div class='row'>
+                <div class='col-md-5 mb-2'><label for='task-title'>任务标题</label><input id='task-title' class='form-control' name='task_title' required /></div>
+                <div class='col-md-3 mb-2'><label for='task-due-date'>截止日期</label><input id='task-due-date' class='form-control' name='task_due_date' type='date' /></div>
+                <div class='col-md-4 mb-2'><label for='task-priority'>优先级</label><select id='task-priority' class='form-control' name='task_priority'><option value='normal'>普通</option><option value='high'>高</option><option value='low'>低</option></select></div>
+                <div class='col-12 mb-2'><label for='task-description'>任务说明</label><textarea id='task-description' class='form-control' name='task_description' rows='2'></textarea></div>
+              </div>
+              <button type='submit' class='btn btn-primary btn-sm'>保存任务</button>
+            </form>
+          </div>
+
+          <div class='collapse mb-3' id='projectReportForm'>
+            <form method='post' action='student-projects.php' class='border rounded p-3 bg-light'>
+              {{ App.Session.get('csrf')|csrf }}
+              <input type='hidden' name='smartlab_action' value='create_report' />
+              <input type='hidden' name='project_id' value='{{ activeProject.id }}' />
+              <div class='row'>
+                <div class='col-md-4 mb-2'><label for='report-type'>汇报类型</label><select id='report-type' class='form-control' name='report_type'><option value='weekly'>周报</option><option value='monthly'>月报</option><option value='milestone'>阶段汇报</option></select></div>
+                <div class='col-md-8 mb-2'><label for='report-title'>汇报标题</label><input id='report-title' class='form-control' name='report_title' required /></div>
+                <div class='col-12 mb-2'><label for='progress-summary'>本期进展</label><textarea id='progress-summary' class='form-control' name='progress_summary' rows='3' required></textarea></div>
+                <div class='col-md-6 mb-2'><label for='blockers'>问题/风险</label><textarea id='blockers' class='form-control' name='blockers' rows='2'></textarea></div>
+                <div class='col-md-6 mb-2'><label for='next-plan'>下阶段计划</label><textarea id='next-plan' class='form-control' name='next_plan' rows='2'></textarea></div>
+              </div>
+              <button type='submit' class='btn btn-primary btn-sm'>提交汇报</button>
+            </form>
+          </div>
+
+          <div class='collapse mb-3' id='projectDeliverableForm'>
+            <form method='post' action='student-projects.php' class='border rounded p-3 bg-light'>
+              {{ App.Session.get('csrf')|csrf }}
+              <input type='hidden' name='smartlab_action' value='create_deliverable' />
+              <input type='hidden' name='project_id' value='{{ activeProject.id }}' />
+              <div class='row'>
+                <div class='col-md-4 mb-2'><label for='deliverable-type'>成果类型</label><select id='deliverable-type' class='form-control' name='deliverable_type'><option value='data'>数据</option><option value='figure'>图表</option><option value='protocol'>方案/SOP</option><option value='paper'>论文材料</option><option value='meeting'>会议材料</option><option value='other'>其他</option></select></div>
+                <div class='col-md-8 mb-2'><label for='deliverable-title'>成果标题</label><input id='deliverable-title' class='form-control' name='deliverable_title' required /></div>
+                <div class='col-md-6 mb-2'><label for='deliverable-link'>链接/实验记录地址</label><input id='deliverable-link' class='form-control' name='link_url' placeholder='可填 eLabFTW 记录、附件或外部链接' /></div>
+                <div class='col-md-6 mb-2'><label for='deliverable-note'>说明</label><input id='deliverable-note' class='form-control' name='deliverable_note' /></div>
+              </div>
+              <button type='submit' class='btn btn-primary btn-sm'>归档成果</button>
+            </form>
+          </div>
+
+          <div class='row'>
+            <div class='col-md-4 mb-3 mb-md-0'>
+              <div class='border rounded p-3 h-100'>
+                <div class='d-flex justify-content-between'><div class='font-weight-bold'>我的任务</div><span class='badge badge-light'>{{ projectTasksArr|length }}</span></div>
+                {% for task in projectTasksArr %}
+                  <div class='border-top pt-2 mt-2'>
+                    <div class='font-weight-bold'>{{ task.title }}</div>
+                    <div class='smallgray'>{{ task.due_date ? ('截止 ' ~ task.due_date|date('Y-m-d')) : '未设置截止日期' }} · {{ task.priority == 'high' ? '高优先级' : task.priority == 'low' ? '低优先级' : '普通' }}</div>
+                    {% if task.description %}<div class='small mt-1'>{{ task.description }}</div>{% endif %}
+                    <form method='post' action='student-projects.php' class='mt-2 d-flex'>
+                      {{ App.Session.get('csrf')|csrf }}
+                      <input type='hidden' name='smartlab_action' value='update_task_status' />
+                      <input type='hidden' name='project_id' value='{{ activeProject.id }}' />
+                      <input type='hidden' name='task_id' value='{{ task.id }}' />
+                      <select class='form-control form-control-sm mr-2' name='task_status'>
+                        <option value='todo' {{ task.status == 'todo' ? 'selected' }}>待处理</option>
+                        <option value='doing' {{ task.status == 'doing' ? 'selected' }}>进行中</option>
+                        <option value='blocked' {{ task.status == 'blocked' ? 'selected' }}>受阻</option>
+                        <option value='done' {{ task.status == 'done' ? 'selected' }}>已完成</option>
+                      </select>
+                      <button type='submit' class='btn btn-outline-primary btn-sm text-nowrap'>更新</button>
+                    </form>
+                  </div>
+                {% else %}
+                  <div class='smallgray mt-2'>暂无任务，点击“添加任务”开始记录。</div>
+                {% endfor %}
+              </div>
+            </div>
+            <div class='col-md-4 mb-3 mb-md-0'>
+              <div class='border rounded p-3 h-100'>
+                <div class='d-flex justify-content-between'><div class='font-weight-bold'>周报/月报</div><span class='badge badge-light'>{{ projectReportsArr|length }}</span></div>
+                {% for report in projectReportsArr|slice(0, 3) %}
+                  <div class='border-top pt-2 mt-2'>
+                    <div class='font-weight-bold'>{{ report.title }}</div>
+                    <div class='smallgray'>{{ report.report_type == 'monthly' ? '月报' : report.report_type == 'milestone' ? '阶段汇报' : '周报' }} · {{ report.created_at|date('Y-m-d H:i') }}</div>
+                    <div class='small mt-1'>{{ report.progress_summary }}</div>
+                    {% if report.blockers %}<div class='small text-warning mt-1'>问题：{{ report.blockers }}</div>{% endif %}
+                  </div>
+                {% else %}
+                  <div class='smallgray mt-2'>暂无汇报，点击“提交汇报”记录进展。</div>
+                {% endfor %}
+              </div>
+            </div>
+            <div class='col-md-4'>
+              <div class='border rounded p-3 h-100'>
+                <div class='d-flex justify-content-between'><div class='font-weight-bold'>阶段成果</div><span class='badge badge-light'>{{ projectDeliverablesArr|length }}</span></div>
+                {% for deliverable in projectDeliverablesArr|slice(0, 4) %}
+                  <div class='border-top pt-2 mt-2'>
+                    <div class='font-weight-bold'>
+                      {% if deliverable.link_url %}<a href='{{ deliverable.link_url }}'>{{ deliverable.title }}</a>{% else %}{{ deliverable.title }}{% endif %}
+                    </div>
+                    <div class='smallgray'>{{ deliverable.deliverable_type }} · {{ deliverable.created_at|date('Y-m-d') }}</div>
+                    {% if deliverable.note %}<div class='small mt-1'>{{ deliverable.note }}</div>{% endif %}
+                  </div>
+                {% else %}
+                  <div class='smallgray mt-2'>暂无成果，点击“归档成果”保存数据、图表或材料。</div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class='row'>
+        <div class='col-lg-6 mb-4 mb-lg-0'>
+          <div class='card h-100'><div class='card-body'>
+            <div class='d-flex justify-content-between align-items-start mb-3'>
+              <h4 class='mb-0'>关联实验</h4>
+              <a href='experiments.php?scope=1' class='btn btn-outline-secondary btn-sm'>我的实验</a>
+            </div>
+            <div class='list-group list-group-flush'>
+              {% for experiment in projectExperimentsArr %}
+                <a href='experiments.php?mode=view&amp;id={{ experiment.id }}' class='list-group-item px-0'>
+                  <div class='font-weight-bold'>{{ experiment.title }}</div>
+                  <div class='smallgray'><span title='{{ experiment.modified_at }}' class='relative-moment'></span></div>
+                </a>
+              {% else %}
+                <div class='alert alert-info mb-0'>暂无关联实验。</div>
+              {% endfor %}
+            </div>
+          </div></div>
+        </div>
+        <div class='col-lg-6'>
+          <div class='card h-100'><div class='card-body'>
+            <div class='d-flex justify-content-between align-items-start mb-3'>
+              <h4 class='mb-0'>关联样本</h4>
+              <a href='samples.php' class='btn btn-outline-secondary btn-sm'>我的样本</a>
+            </div>
+            <div class='list-group list-group-flush'>
+              {% for sample in projectSamplesArr %}
+                <a href='samples.php?id={{ sample.id }}' class='list-group-item px-0'>
+                  <div class='font-weight-bold'>{{ sample.code }}{% if sample.name %} · {{ sample.name }}{% endif %}</div>
+                  <div class='smallgray'>{{ sample.sample_type ?: '样本' }} · {{ sample.status ?: '进行中' }}</div>
+                </a>
+              {% else %}
+                <div class='alert alert-info mb-0'>暂无关联样本。</div>
+              {% endfor %}
+            </div>
+          </div></div>
+        </div>
+      </div>
+    {% else %}
+      <div class='alert alert-info'>你还没有参与课题。后续导师端建立课题并添加成员后，这里会显示个人课题进展。</div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock body %}

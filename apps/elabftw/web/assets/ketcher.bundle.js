@@ -1,0 +1,2 @@
+/*! For license information please see ketcher.bundle.js.LICENSE.txt */
+(globalThis.webpackChunkelabftw=globalThis.webpackChunkelabftw||[]).push([[445],{96631(e,i,t){"use strict";t.d(i,{default:()=>a});var s=t(33447),r=t(28642),c=t(62021);const n=new r.knP("/indigo/v2"),a=()=>(0,c.jsx)("div",{className:"ketcher-editor-container",children:(0,c.jsx)(s.KE,{staticResourcesUrl:JSON.stringify("/"),structServiceProvider:n,onInit:e=>{window.ketcher=e}})})},96132(){}}]);

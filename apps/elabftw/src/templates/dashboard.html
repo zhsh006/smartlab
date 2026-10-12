@@ -1,0 +1,575 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class='d-flex justify-content-between align-items-start flex-wrap mb-4'>
+  <div class='mr-3 mb-2'>
+    <div class='smallgray text-uppercase'>SmartLab V3</div>
+    <h2 class='mb-1 mt-2'>系统首页总览</h2>
+  </div>
+  <div class='text-right mb-2'>
+    <div class='smallgray'>{{ "now"|date("Y-m-d") }}　星期{{ "now"|date("w") == 0 ? "日" : "now"|date("w") == 1 ? "一" : "now"|date("w") == 2 ? "二" : "now"|date("w") == 3 ? "三" : "now"|date("w") == 4 ? "四" : "now"|date("w") == 5 ? "五" : "六" }}</div>
+    <span class='badge badge-light px-3 py-2 mt-2'>{{ smartlabPortalRoleLabel }}</span>
+  </div>
+</div>
+<div class='row mb-4'>
+  {% set metricCards = [
+    {'title': '今日实验记录', 'value': smartlabOverview.today_experiment_count ?: 0, 'hint': '较昨日 ' ~ ((smartlabOverview.today_experiment_count ?: 0) - (smartlabOverview.yesterday_experiment_count ?: 0)), 'href': 'experiments.php?scope=1', 'icon': 'fas fa-flask-vial', 'class': 'primary'},
+    {'title': '待解析数据', 'value': smartlabOverview.experiment_without_upload_count ?: 0, 'hint': '原始附件待补齐', 'href': 'smartlab-upload.php', 'icon': 'fas fa-database', 'class': 'success'},
+    {'title': '疑似异常', 'value': smartlabOverview.low_stock_count ?: 0, 'hint': '流程/资源风险', 'href': 'smartlab-breakpoint.php', 'icon': 'fas fa-triangle-exclamation', 'class': 'warning'},
+    {'title': '待审核', 'value': smartlabOverview.pending_review_count ?: 0, 'hint': '导师确认任务', 'href': smartlabIsStudentView ? 'smartlab-review.php' : 'reviews.php', 'icon': 'fas fa-user-check', 'class': 'purple'},
+    {'title': '模板调用', 'value': smartlabOverview.template_count ?: 0, 'hint': '可用实验模板', 'href': 'smartlab-templates.php', 'icon': 'fas fa-file-lines', 'class': 'info'}
+  ] %}
+  {% for card in metricCards %}
+    <div class='col-xl col-md-4 col-sm-6 mb-3'>
+      <a class='card h-100 text-decoration-none color-strong' href='{{ card.href }}'>
+        <div class='card-body d-flex align-items-center'>
+          <div class='mr-3 rounded d-flex align-items-center justify-content-center bg-light' style='width:56px;height:56px;'>
+            <i class='{{ card.icon }} fa-lg color-blue'></i>
+          </div>
+          <div>
+            <div class='font-weight-bold'>{{ card.title }}</div>
+            <div class='display-4 my-1'>{{ card.value }}</div>
+            <div class='smallgray'>{{ card.hint }}</div>
+          </div>
+        </div>
+      </a>
+    </div>
+  {% endfor %}
+</div>
+<div class='row mb-4'>
+  <div class='col-xl-8 mb-3 mb-xl-0'>
+    <div class='card h-100'>
+      <div class='card-body'>
+        <div class='d-flex justify-content-between align-items-center mb-3'>
+          <h4 class='mb-0'>核心流程</h4>
+          <a href='smartlab-upload.php' class='small'>查看流程详情 <i class='fas fa-angle-right ml-1'></i></a>
+        </div>
+        <div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.5rem'>
+          {% set flowSteps = [
+            {'n': '01', 'title': '采集模块', 'href': 'smartlab-upload.php', 'icon': 'fas fa-upload', 'c': 'primary'},
+            {'n': '02', 'title': '记录/数字化档案', 'href': 'smartlab-recognition.php', 'icon': 'fas fa-camera-retro', 'c': 'primary'},
+            {'n': '03', 'title': '断点识别模块', 'href': 'smartlab-breakpoint.php', 'icon': 'fas fa-magnifying-glass-chart', 'c': 'success'},
+            {'n': '04', 'title': '跳步识别模块', 'href': 'smartlab-jump.php', 'icon': 'fas fa-chart-line', 'c': 'warning'},
+            {'n': '05', 'title': '模板补全/草稿', 'href': 'smartlab-templates.php', 'icon': 'fas fa-puzzle-piece', 'c': 'info'}
+          ] %}
+          {% for step in flowSteps %}
+            <a href='{{ step.href }}' class='text-decoration-none color-strong'>
+              <div class='border rounded h-100 text-center p-3 bg-light'>
+                <i class='{{ step.icon }} fa-2x color-blue mb-3'></i>
+                <div class='font-weight-bold'>{{ step.title }}</div>
+                <div class='small color-blue mt-2'>{{ step.n }}</div>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class='col-xl-4'>
+    <div class='card mb-3'>
+      <div class='card-body'>
+        <div class='d-flex justify-content-between align-items-center mb-2'>
+          <h4 class='mb-0'>系统提醒</h4>
+          <a href='{{ smartlabIsStudentView ? 'smartlab-review.php' : 'reviews.php' }}' class='small'>全部 <i class='fas fa-angle-right ml-1'></i></a>
+        </div>
+        {% set alerts = smartlabPendingReviewsArr|default([])|slice(0, 3) %}
+        {% for alert in alerts %}
+          <a href='{{ smartlabIsStudentView ? 'smartlab-review.php' : 'reviews.php' }}' class='d-block border rounded p-2 mb-2 text-decoration-none color-strong'>
+            <div class='font-weight-bold color-warning'>{{ alert.project_code ?: '未绑定项目' }} · 待处理审核</div>
+            <div class='smallgray mt-1'>{{ alert.entity_label ?: '待审核对象' }} 需要导师确认。</div>
+          </a>
+        {% else %}
+          <div class='border rounded p-2 mb-2'>
+            <div class='font-weight-bold color-warning'>qPCR批次 A03 待补全步骤</div>
+            <div class='smallgray mt-1'>存在疑似断点，请进入断点识别确认。</div>
+          </div>
+          <div class='border rounded p-2'>
+            <div class='font-weight-bold color-danger'>ELISA记录出现数值跳变</div>
+            <div class='smallgray mt-1'>建议进入跳步识别复核实验流程。</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class='card'>
+      <div class='card-body'>
+        <h4 class='mb-3'>算法服务状态</h4>
+        {% for service in ['OCR', '目标检测', '语义分析', '断点识别', '跳步识别', '模板补全'] %}
+          <div class='d-flex justify-content-between align-items-center border-bottom py-2'>
+            <span><i class='fas fa-circle-check color-blue mr-2'></i>{{ service }}</span>
+            <span class='text-success'>● 在线</span>
+          </div>
+        {% endfor %}
+        <div class='smallgray mt-3'>更新时间：2026-06-04 10:25:30 <a href='smartlab-algorithms.php' class='float-right'>刷新</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% if smartlabIsMentorView %}
+  <div class='row mb-4'>
+    <div class='col-md-3 col-sm-6 mb-3 mb-md-0'>
+      <div class='card h-100'>
+        <div class='card-body'>
+          <div class='smallgray text-uppercase'>项目</div>
+          <div class='display-4 mb-2'>{{ smartlabOverview.project_count ?: 0 }}</div>
+          <a href='projects.php' class='small'>查看项目闭环</a>
+        </div>
+      </div>
+    </div>
+    <div class='col-md-3 col-sm-6 mb-3 mb-md-0'>
+      <div class='card h-100'>
+        <div class='card-body'>
+          <div class='smallgray text-uppercase'>样本</div>
+          <div class='display-4 mb-2'>{{ smartlabOverview.sample_count ?: 0 }}</div>
+          <a href='samples.php' class='small'>查看实体对象</a>
+        </div>
+      </div>
+    </div>
+    <div class='col-md-3 col-sm-6 mb-3 mb-md-0'>
+      <div class='card h-100'>
+        <div class='card-body'>
+          <div class='smallgray text-uppercase'>待处理审核</div>
+          <div class='display-4 mb-2'>{{ smartlabOverview.pending_review_count ?: 0 }}</div>
+          <a href='projects.php' class='small'>在项目中处理</a>
+        </div>
+      </div>
+    </div>
+    <div class='col-md-3 col-sm-6'>
+      <div class='card h-100'>
+        <div class='card-body'>
+          <div class='smallgray text-uppercase'>低库存风险</div>
+          <div class='display-4 mb-2'>{{ smartlabOverview.low_stock_count ?: 0 }}</div>
+          <a href='inventory.php' class='small'>检查库存预警</a>
+        </div>
+      </div>
+    </div>
+  </div>
+{% elseif smartlabIsAssistantView %}
+  <div class='row mb-4'>
+    <div class='col-md-3 col-sm-6 mb-3 mb-md-0'>
+      <div class='card h-100'>
+        <div class='card-body'>
+          <div class='smallgray text-uppercase'>样本</div>
+          <div class='display-4 mb-2'>{{ smartlabOverview.sample_count ?: 0 }}</div>
+          <a href='samples.php' class='small'>进入样本工作台</a>
+        </div>
+      </div>
+    </div>
+    <div class='col-md-3 col-sm-6 mb-3 mb-md-0'>
+      <div class='card h-100'>
+        <div class='card-body'>
+          <div class='smallgray text-uppercase'>待处理审核</div>
+          <div class='display-4 mb-2'>{{ smartlabOverview.pending_review_count ?: 0 }}</div>
+          <a href='reviews.php' class='small'>进入审核中心</a>
+        </div>
+      </div>
+    </div>
+    <div class='col-md-3 col-sm-6 mb-3 mb-md-0'>
+      <div class='card h-100'>
+        <div class='card-body'>
+          <div class='smallgray text-uppercase'>低库存风险</div>
+          <div class='display-4 mb-2'>{{ smartlabOverview.low_stock_count ?: 0 }}</div>
+          <a href='inventory.php' class='small'>检查库存预警</a>
+        </div>
+      </div>
+    </div>
+    <div class='col-md-3 col-sm-6'>
+      <div class='card h-100'>
+        <div class='card-body'>
+          <div class='smallgray text-uppercase'>预约与资源</div>
+          <div class='display-4 mb-2'>{{ smartlabOverview.upcoming_booking_count ?: 0 }}</div>
+          <a href='scheduler.php' class='small'>查看近期预约</a>
+        </div>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <div class='row mb-4'>
+    <div class='col-md-3 col-sm-6 mb-3 mb-md-0'>
+      <div class='card h-100'>
+        <div class='card-body'>
+          <div class='smallgray text-uppercase'>我的实验</div>
+          <div class='display-4 mb-2'>{{ smartlabMyExperimentsArr|length }}</div>
+          <a href='experiments.php?scope=1' class='small'>打开实验记录</a>
+        </div>
+      </div>
+    </div>
+    <div class='col-md-3 col-sm-6 mb-3 mb-md-0'>
+      <div class='card h-100'>
+        <div class='card-body'>
+          <div class='smallgray text-uppercase'>我的样本</div>
+          <div class='display-4 mb-2'>{{ smartlabMySamplesArr|length }}</div>
+          <a href='samples.php' class='small'>查看样本对象</a>
+        </div>
+      </div>
+    </div>
+    <div class='col-md-3 col-sm-6 mb-3 mb-md-0'>
+      <div class='card h-100'>
+        <div class='card-body'>
+          <div class='smallgray text-uppercase'>待处理请求</div>
+          <div class='display-4 mb-2'>{{ requestActionsArr|length }}</div>
+          <a href='experiments.php?scope=1' class='small'>处理我的任务</a>
+        </div>
+      </div>
+    </div>
+    <div class='col-md-3 col-sm-6'>
+      <div class='card h-100'>
+        <div class='card-body'>
+          <div class='smallgray text-uppercase'>今日预约</div>
+          <div class='display-4 mb-2'>{{ bookingsArr|filter(b => b.userid == App.Users.userData.userid)|length }}</div>
+          <a href='student-tools.php' class='small'>打开科研工具</a>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}
+{% if not smartlabIsStudentView %}
+<div class='row mb-4'>
+  <div class='col-12'>
+    <div class='card'>
+      <div class='card-body'>
+        <div class='smallgray text-uppercase'>生物实验规范层</div>
+        <h4 class='mt-2'>Assay Pack 标准实验体系 V2</h4>
+        <p class='mb-3'>{{ smartlabIsMentorView ? '导师端查看标准实验体系覆盖情况和实验结果，不在这里维护对象字典。' : '助理端维护 Assay Pack 所需对象字典、图片分析和实验支持工具，学生端执行具体实验。' }}</p>
+        <div class='row'>
+          <div class='col-lg-4 mb-3'>
+            <div class='border rounded h-100 p-3 bg-light'>
+              <div class='smallgray text-uppercase'>实验包</div>
+              <div class='font-weight-bold mt-2'>qPCR</div>
+              <div class='smallgray mt-2'>第一批已启用的标准包，包含结构化结果表、Ct/ΔCt/Fold Change 字段和质控提醒。</div>
+              <div class='d-flex flex-wrap mt-3'>
+                {% if smartlabIsStudentView %}
+                  <form method='post' action='create-assay-pack.php' class='mr-2 mb-2'>
+                    {{ App.Session.get('csrf')|csrf }}
+                    <input type='hidden' name='pack' value='qpcr' />
+                    <input type='hidden' name='pack_mode' value='quick' />
+                    <button type='submit' class='btn btn-primary btn-sm'>qPCR 快速模式</button>
+                  </form>
+                  <form method='post' action='create-assay-pack.php' class='mb-2'>
+                    {{ App.Session.get('csrf')|csrf }}
+                    <input type='hidden' name='pack' value='qpcr' />
+                    <input type='hidden' name='pack_mode' value='standard' />
+                    <button type='submit' class='btn btn-outline-primary btn-sm'>qPCR 标准模式</button>
+                  </form>
+                {% else %}
+                  <a href='experiments.php' class='btn btn-outline-primary btn-sm'>查看实验结果</a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          <div class='col-lg-8'>
+            <div class='d-flex justify-content-end mb-3'>
+              {% if smartlabIsAssistantView %}
+                <a href='assay-catalog.php' class='btn btn-outline-secondary btn-sm'>管理对象字典</a>
+                <a href='experiments.php' class='btn btn-outline-primary btn-sm ml-2'>查看实验记录</a>
+              {% elseif smartlabIsMentorView %}
+                <a href='assay-catalog.php?smartlab_view=mentor' class='btn btn-outline-secondary btn-sm'>查看对象覆盖</a>
+                <a href='experiments.php?scope=2' class='btn btn-outline-primary btn-sm ml-2'>查看团队实验</a>
+              {% endif %}
+            </div>
+            <div class='row'>
+              <div class='col-md-4 mb-3'>
+                <div class='border rounded h-100 p-3 bg-light'>
+                  <div class='smallgray text-uppercase'>实验包</div>
+                  <div class='font-weight-bold mt-2'>Western Blot</div>
+                  <div class='smallgray mt-2'>抗体、图像、灰度值和结论联动。</div>
+                  <div class='d-flex flex-wrap mt-3'>
+                    {% if smartlabIsStudentView %}
+                      <form method='post' action='create-assay-pack.php' class='mr-2 mb-2'>
+                        {{ App.Session.get('csrf')|csrf }}
+                        <input type='hidden' name='pack' value='western_blot' />
+                        <input type='hidden' name='pack_mode' value='quick' />
+                        <button type='submit' class='btn btn-primary btn-sm'>WB 快速模式</button>
+                      </form>
+                      <form method='post' action='create-assay-pack.php' class='mb-2'>
+                        {{ App.Session.get('csrf')|csrf }}
+                        <input type='hidden' name='pack' value='western_blot' />
+                        <input type='hidden' name='pack_mode' value='standard' />
+                        <button type='submit' class='btn btn-outline-primary btn-sm'>WB 标准模式</button>
+                      </form>
+                    {% else %}
+                      <a href='experiments.php' class='btn btn-outline-primary btn-sm'>查看实验结果</a>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              <div class='col-md-4 mb-3'>
+                <div class='border rounded h-100 p-3 bg-light'>
+                  <div class='smallgray text-uppercase'>实验包</div>
+                  <div class='font-weight-bold mt-2'>Immunofluorescence</div>
+                  <div class='smallgray mt-2'>染色流程、图像上传、荧光定量和质控提示。</div>
+                  <div class='d-flex flex-wrap mt-3'>
+                    {% if smartlabIsStudentView %}
+                      <form method='post' action='create-assay-pack.php' class='mr-2 mb-2'>
+                        {{ App.Session.get('csrf')|csrf }}
+                        <input type='hidden' name='pack' value='if' />
+                        <input type='hidden' name='pack_mode' value='quick' />
+                        <button type='submit' class='btn btn-primary btn-sm'>IF 快速模式</button>
+                      </form>
+                      <form method='post' action='create-assay-pack.php' class='mb-2'>
+                        {{ App.Session.get('csrf')|csrf }}
+                        <input type='hidden' name='pack' value='if' />
+                        <input type='hidden' name='pack_mode' value='standard' />
+                        <button type='submit' class='btn btn-outline-primary btn-sm'>IF 标准模式</button>
+                      </form>
+                    {% else %}
+                      <a href='experiments.php' class='btn btn-outline-primary btn-sm'>查看实验结果</a>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              <div class='col-md-4 mb-3'>
+                <div class='border rounded h-100 p-3 bg-light'>
+                  <div class='smallgray text-uppercase'>实验包</div>
+                  <div class='font-weight-bold mt-2'>IHC</div>
+                  <div class='smallgray mt-2'>病理评分、定位描述和代表图归档。</div>
+                  <div class='d-flex flex-wrap mt-3'>
+                    {% if smartlabIsStudentView %}
+                      <form method='post' action='create-assay-pack.php' class='mr-2 mb-2'>
+                        {{ App.Session.get('csrf')|csrf }}
+                        <input type='hidden' name='pack' value='ihc' />
+                        <input type='hidden' name='pack_mode' value='quick' />
+                        <button type='submit' class='btn btn-primary btn-sm'>IHC 快速模式</button>
+                      </form>
+                      <form method='post' action='create-assay-pack.php' class='mb-2'>
+                        {{ App.Session.get('csrf')|csrf }}
+                        <input type='hidden' name='pack' value='ihc' />
+                        <input type='hidden' name='pack_mode' value='standard' />
+                        <button type='submit' class='btn btn-outline-primary btn-sm'>IHC 标准模式</button>
+                      </form>
+                    {% else %}
+                      <a href='experiments.php' class='btn btn-outline-primary btn-sm'>查看实验结果</a>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+<div class='row mb-4'>
+  <div class='col-lg-7 mb-3 mb-lg-0'>
+    <div class='card border-0 shadow-sm h-100'>
+      <div class='card-body'>
+        <div class='d-flex justify-content-between align-items-start mb-3'>
+          <div>
+            <div class='smallgray text-uppercase'>{{ smartlabIsMentorView ? '团队焦点' : smartlabIsAssistantView ? '运营焦点' : '我的焦点' }}</div>
+            <h4 class='mb-0 mt-2'>{{ smartlabIsMentorView ? '项目与审核全局视图' : smartlabIsAssistantView ? '审核与样本处理进度' : '实验与送审进度' }}</h4>
+          </div>
+          <a href='{{ smartlabIsMentorView ? 'projects.php' : smartlabIsAssistantView ? 'reviews.php' : 'smartlab-review.php' }}' class='btn btn-outline-secondary btn-sm'>{{ smartlabIsMentorView ? '进入项目中心' : smartlabIsAssistantView ? '进入审核中心' : '进入审核状态' }}</a>
+        </div>
+        {% if smartlabIsMentorView %}
+          <div class='list-group list-group-flush'>
+            {% for project in smartlabProjectSnapshotsArr %}
+              <a href='projects.php?id={{ project.id }}' class='list-group-item px-0'>
+                <div class='d-flex justify-content-between align-items-start flex-wrap'>
+                  <div class='mr-3'>
+                    <div class='smallgray text-uppercase'>{{ project.code ?: '未命名项目' }}</div>
+                    <div class='font-weight-bold mt-1'>{{ project.name }}</div>
+                    <div class='smallgray mt-1'>{{ project.experiment_count }} 个实验 · {{ project.sample_count }} 个样本 · {{ project.pending_review_count }} 个待处理审核</div>
+                  </div>
+                  <span class='badge badge-light mt-1'>{{ project.status ?: '进行中' }}</span>
+                </div>
+              </a>
+            {% else %}
+              <div class='alert alert-info mb-0'>当前团队还没有项目，可先从项目中心开始建立课题闭环。</div>
+            {% endfor %}
+          </div>
+        {% elseif smartlabIsAssistantView %}
+          <div class='list-group list-group-flush'>
+            {% for review in smartlabPendingReviewsArr %}
+              {% set reviewLink = 'reviews.php' %}
+              {% if review.entity_type == 'experiment' %}
+                {% set reviewLink = 'experiments.php?mode=view&id=' ~ review.entity_id %}
+              {% elseif review.entity_type == 'sample' %}
+                {% set reviewLink = 'samples.php?id=' ~ review.entity_id %}
+              {% elseif review.entity_type == 'item' %}
+                {% set reviewLink = 'database.php?mode=view&id=' ~ review.entity_id %}
+              {% endif %}
+              <a href='{{ reviewLink }}' class='list-group-item px-0'>
+                <div class='smallgray text-uppercase'>{{ review.project_code ?: '未绑定项目' }} · {{ review.entity_label ?: '待审核对象' }}</div>
+                <div class='font-weight-bold mt-1'>{{ review.requester_name ?: '未知提交人' }} 的对象等待处理</div>
+                <div class='smallgray mt-1'>审核人：{{ review.assignee_name ?: '未分配' }} · 点击直达对象</div>
+              </a>
+            {% else %}
+              <div class='alert alert-info mb-0'>当前没有待处理审核。</div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class='list-group list-group-flush'>
+            {% for experiment in smartlabMyExperimentsArr %}
+              <a href='experiments.php?mode=view&amp;id={{ experiment.id }}' class='list-group-item px-0'>
+                <div class='smallgray text-uppercase'>{{ experiment.project_code ?: '未绑定项目' }}</div>
+                <div class='font-weight-bold mt-1'>{{ experiment.title }}</div>
+                <div class='smallgray mt-1'><span title='{{ experiment.modified_at }}' class='relative-moment'></span></div>
+              </a>
+            {% else %}
+              <div class='alert alert-info mb-0'>你名下还没有实验记录，可直接从这里创建第一条实验。</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class='col-lg-5'>
+    <div class='card border-0 shadow-sm h-100'>
+      <div class='card-body'>
+        <div class='d-flex justify-content-between align-items-start mb-3'>
+          <div>
+            <div class='smallgray text-uppercase'>{{ smartlabIsMentorView ? '待办' : smartlabIsAssistantView ? '近期样本' : '我的样本' }}</div>
+            <h4 class='mb-0 mt-2'>{{ smartlabIsMentorView ? '优先处理项' : smartlabIsAssistantView ? '样本处理队列' : '近期样本对象' }}</h4>
+          </div>
+          <a href='{{ smartlabIsMentorView ? 'projects.php' : 'samples.php' }}' class='btn btn-outline-secondary btn-sm'>{{ smartlabIsMentorView ? '进入项目' : smartlabIsAssistantView ? '进入样本工作台' : '查看样本' }}</a>
+        </div>
+        <div class='list-group list-group-flush'>
+          {% if smartlabIsMentorView %}
+            {% for review in smartlabPendingReviewsArr %}
+              {% set reviewLink = review.project_id ? ('projects.php?id=' ~ review.project_id) : 'projects.php' %}
+              {% if not review.project_id and review.entity_type == 'experiment' %}
+                {% set reviewLink = 'experiments.php?mode=view&id=' ~ review.entity_id %}
+              {% elseif not review.project_id and review.entity_type == 'sample' %}
+                {% set reviewLink = 'samples.php?id=' ~ review.entity_id %}
+              {% elseif not review.project_id and review.entity_type == 'item' %}
+                {% set reviewLink = 'database.php?mode=view&id=' ~ review.entity_id %}
+              {% endif %}
+              <a href='{{ reviewLink }}' class='list-group-item px-0'>
+                <div class='smallgray text-uppercase'>{{ review.project_code ?: '未绑定项目' }} · {{ review.entity_label ?: '待审核对象' }}</div>
+                <div class='font-weight-bold mt-1'>{{ review.requester_name ?: '未知提交人' }} 提交了待处理审核</div>
+                <div class='smallgray mt-1'>审核人：{{ review.assignee_name ?: '未分配' }} · 点击进入项目处理</div>
+              </a>
+            {% else %}
+              <div class='alert alert-info mb-0'>当前没有待处理审核。</div>
+            {% endfor %}
+          {% elseif smartlabIsAssistantView %}
+            {% for event in smartlabRecentSampleEventsArr %}
+              <a href='samples.php?id={{ event.sample_id }}' class='list-group-item px-0'>
+                <div class='smallgray text-uppercase'>{{ event.project_code ?: '未绑定项目' }} · {{ event.event_type }}</div>
+                <div class='font-weight-bold mt-1'>{{ event.sample_code }}{% if event.sample_name %} · {{ event.sample_name }}{% endif %}</div>
+                <div class='smallgray mt-1'>
+                  {{ event.actor_name ?: '未知操作者' }}
+                  {% if event.note %}
+                    · {{ event.note }}
+                  {% endif %}
+                </div>
+              </a>
+            {% else %}
+              <div class='alert alert-info mb-0'>当前没有待处理样本事件。</div>
+            {% endfor %}
+          {% else %}
+            {% for sample in smartlabMySamplesArr %}
+              <a href='samples.php?id={{ sample.id }}' class='list-group-item px-0'>
+                <div class='smallgray text-uppercase'>{{ sample.project_code ?: '未绑定项目' }} · {{ sample.sample_type ?: '样本' }}</div>
+                <div class='font-weight-bold mt-1'>{{ sample.code }}{% if sample.name %} · {{ sample.name }}{% endif %}</div>
+                <div class='smallgray mt-1'>状态：{{ sample.status ?: '进行中' }}</div>
+              </a>
+            {% else %}
+              <div class='alert alert-info mb-0'>你名下暂时没有样本对象。</div>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class='row mb-4'>
+  <div class='col-12'>
+    <div class='card border-0 shadow-sm'>
+      <div class='card-body'>
+        <div class='d-flex justify-content-between align-items-start mb-3'>
+          <div>
+            <div class='smallgray text-uppercase'>样本事件流</div>
+            <h4 class='mb-0 mt-2'>最近实体变化</h4>
+          </div>
+          <a href='samples.php' class='btn btn-outline-secondary btn-sm'>进入样本中心</a>
+        </div>
+        <div class='list-group list-group-flush'>
+          {% for event in smartlabRecentSampleEventsArr %}
+            <a href='samples.php?id={{ event.sample_id }}' class='list-group-item px-0'>
+              <div class='d-flex justify-content-between align-items-start flex-wrap'>
+                <div class='mr-3'>
+                  <div class='smallgray text-uppercase'>{{ event.project_code ?: '未绑定项目' }} · {{ event.event_type }}</div>
+                  <div class='font-weight-bold mt-1'>{{ event.sample_code }}{% if event.sample_name %} · {{ event.sample_name }}{% endif %}</div>
+                  <div class='smallgray mt-1'>
+                    {{ event.actor_name ?: '未知操作者' }}
+                    {% if event.experiment_id %}
+                      · 关联实验 {{ event.experiment_title ?: '实验记录' }}
+                    {% endif %}
+                    {% if event.note %}
+                      · {{ event.note }}
+                    {% endif %}
+                  </div>
+                </div>
+                <div class='smallgray text-nowrap'><span title='{{ event.occurred_at }}' class='relative-moment'></span></div>
+              </div>
+            </a>
+          {% else %}
+            <div class='alert alert-info mb-0'>当前还没有样本事件流。</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% if smartlabIsStudentView %}
+  <div class='row mb-4'>
+    <div class='col-lg-6 mb-3 mb-lg-0'>
+      <div class='card border-0 shadow-sm h-100'>
+        <div class='card-body'>
+          <div class='d-flex justify-content-between align-items-start mb-3'>
+            <div>
+              <div class='smallgray text-uppercase'>我的任务</div>
+              <h4 class='mb-0 mt-2'>待处理请求</h4>
+            </div>
+            <a href='experiments.php' class='btn btn-outline-secondary btn-sm'>进入实验中心</a>
+          </div>
+          <div class='list-group list-group-flush'>
+            {% for requestAction in requestActionsArr %}
+              <a href='{{ requestAction.entity_page }}?mode=view&id={{ requestAction.entity_id }}' class='list-group-item px-0'>
+                <div class='smallgray text-uppercase'>{{ requestAction.action }}</div>
+                <div class='font-weight-bold mt-1'>{{ requestAction.entity_title ?: '待处理对象' }}</div>
+                <div class='smallgray mt-1'>来自 {{ requestAction.requester_firstname ?: '团队成员' }}</div>
+              </a>
+            {% else %}
+              <div class='alert alert-info mb-0'>当前没有指向你的待处理请求。</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class='col-lg-6'>
+      <div class='card border-0 shadow-sm h-100'>
+        <div class='card-body'>
+          <div class='d-flex justify-content-between align-items-start mb-3'>
+            <div>
+              <div class='smallgray text-uppercase'>我的预约</div>
+              <h4 class='mb-0 mt-2'>近期仪器与资源预约</h4>
+            </div>
+            <a href='scheduler.php' class='btn btn-outline-secondary btn-sm'>打开预约日历</a>
+          </div>
+          <div class='list-group list-group-flush'>
+            {% for booking in bookingsArr|filter(b => b.userid == App.Users.userData.userid)|slice(0, 6) %}
+              <a href='scheduler.php?items[]={{ booking.items_id }}&amp;start={{ booking.start|url_encode }}' class='list-group-item px-0'>
+                <div class='smallgray text-uppercase'>{{ booking.items_category_title ?: '资源预约' }}</div>
+                <div class='font-weight-bold mt-1'>{{ booking.item_title ?: booking.title_only ?: '未命名预约' }}</div>
+                <div class='smallgray mt-1'>
+                  {{ booking.title_only ?: '无备注' }}
+                  {% if booking.experiment_title %}
+                    · 关联实验 {{ booking.experiment_title }}
+                  {% endif %}
+                </div>
+                <div class='smallgray mt-1'><span title='{{ booking.start|date('Y-m-d H:i:s') }}' class='relative-moment'></span></div>
+              </a>
+            {% else %}
+              <div class='alert alert-info mb-0'>你当前没有近期预约。</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}
+{% endblock body %}
