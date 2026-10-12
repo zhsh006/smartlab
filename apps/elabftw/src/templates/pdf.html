@@ -57,6 +57,7 @@
   </div>
   {% endif %}
 
+{% if bench|default(null) and bench.print_bench_only %}{% include 'bench-pdf.html' %}{% endif %}
 {{ body|raw }}
 
 {% if smartlabAssayPack|default([]) %}

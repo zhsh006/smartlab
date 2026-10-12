@@ -51,6 +51,12 @@ final class ExperimentsController extends AbstractEntityController
     #[Override]
     public function getResponse(): Response
     {
+        if ($this->Entity instanceof Experiments && $this->App->Request->query->getBoolean('bench_evidence')) {
+            $context = (new \Elabftw\Models\SmartlabBenchRecords($this->App->Users))->read((int) $this->Entity->id);
+            $files = array();
+            foreach ($context['uploads'] as $file) { $files[] = array('id' => (int) $file['id'], 'name' => $file['real_name'], 'url' => $file['url'], 'own_upload' => (int) ($file['userid'] ?? 0) === (int) $this->App->Users->userid); }
+            return new \Symfony\Component\HttpFoundation\JsonResponse(array('files' => $files));
+        }
         if ($this->Entity instanceof Experiments
             && $this->App->Request->query->getAlpha('mode') === 'edit'
             && !$this->isStudentExperimentOperator()) {
@@ -186,6 +192,7 @@ final class ExperimentsController extends AbstractEntityController
             'smartlabLotsArr' => $SmartlabExperiments->readLots($this->Entity->id ?? 0),
             'smartlabAvailableLotsArr' => $SmartlabExperiments->readAvailableLots(),
             'smartlabAssayPackArr' => $SmartlabExperiments->readAssayPack($this->Entity->id ?? 0),
+            'bench' => (new \Elabftw\Models\SmartlabBenchRecords($this->App->Users))->read((int) $this->Entity->id, $this->App->Request->query->getInt('bench_submission') ?: null),
             'smartlabAvailableAssayPacksArr' => $SmartlabExperiments->getAvailableAssayPacks(),
             'smartlabAssayPresetCatalogArr' => $SmartlabExperiments->getAssayPresetCatalog(),
             'smartlabAssayObjectCatalogArr' => $SmartlabExperiments->getAssayObjectCatalog(),
@@ -201,6 +208,30 @@ final class ExperimentsController extends AbstractEntityController
     {
         $experimentId = (int) ($this->Entity->id ?? 0);
         $action = trim($this->App->Request->request->getString('smartlab_action'));
+        $this->Entity->canOrExplode(\Elabftw\Enums\AccessType::Write);
+        $Bench = new \Elabftw\Models\SmartlabBenchRecords($this->App->Users);
+        if ($action === 'bench_save') {
+            try {
+                $record = $Bench->save($experimentId, $this->App->Request->request->all());
+                if ($this->App->Request->request->getBoolean('bench_ajax')) {
+                    return new \Symfony\Component\HttpFoundation\JsonResponse(array('ok' => true, 'revision' => (int) $record['revision'], 'state' => $record['data']['state']));
+                }
+                return new RedirectResponse(sprintf('/experiments.php?mode=view&id=%d#bench-%s', $experimentId, str_replace('.', '-', $record['record_key'])));
+            } catch (\Elabftw\Exceptions\AppException $e) {
+                if ($this->App->Request->request->getBoolean('bench_ajax')) {
+                    return new \Symfony\Component\HttpFoundation\JsonResponse(array('ok' => false, 'message' => $e->getMessage()), 422);
+                }
+                throw $e;
+            }
+        }
+        if ($action === 'bench_choose_template') {
+            $key = $this->App->Request->request->getString('pack_key');
+            if (!isset(\Elabftw\Models\SmartlabBenchRecords::templates()[$key])) { throw new \Elabftw\Exceptions\AppException('请选择有效的实验模板。'); }
+            $existing = new SmartlabExperiments($this->App->Users);
+            if ($existing->readAssayPack($experimentId)['pack_key']) { throw new \Elabftw\Exceptions\AppException('记录已经有实验类型，请保留现有类型及历史。'); }
+            $existing->initializeAssayPack($experimentId, $key);
+            return new RedirectResponse(sprintf('/experiments.php?mode=view&id=%d#bench-plan', $experimentId));
+        }
         $SmartlabExperiments = new SmartlabExperiments($this->App->Users);
 
         if ($action === 'link_project') {
@@ -230,6 +261,13 @@ final class ExperimentsController extends AbstractEntityController
                 $this->App->Request->request->all('key_upload_ids'),
             );
             if ($projectId > 0) {
+                $benchMode = $this->App->Request->request->getString('bench_submit_mode');
+                if ($this->App->Request->request->getBoolean('notebook_manual') && !in_array($benchMode, array('formal', 'guidance'), true)) { throw new \Elabftw\Exceptions\AppException('请选择请求指导或正式审核。'); }
+                if ($benchMode === 'formal') {
+                    $missing = $Bench->read($experimentId)['missing'];
+                    if ($missing) { throw new \Elabftw\Exceptions\AppException('正式送审前请补充：' . implode('、', $missing)); }
+                }
+                if ($benchMode === 'guidance' && $comment === '') { throw new \Elabftw\Exceptions\AppException('请说明希望导师指导的问题。'); }
                 if ($this->App->Request->request->getBoolean('notebook_manual')) {
                     $this->Entity->canOrExplode(\Elabftw\Enums\AccessType::Write);
                     $allowedProjects = array_merge($SmartlabExperiments->readProjects($experimentId), $SmartlabExperiments->readAvailableProjects($experimentId));
@@ -246,8 +284,19 @@ final class ExperimentsController extends AbstractEntityController
                     $this->App->Session->getFlashBag()->add('ko', '请先完成实验计划、样本材料确认、原始数据上传和结果确认，再提交导师审核。');
                     return new RedirectResponse(sprintf('/experiments.php?mode=view&id=%d', $experimentId));
                 }
+                $submissionDb = \Elabftw\Elabftw\Db::getConnection();
+                $submissionDb->q('START TRANSACTION');
+                try {
                 $SmartlabExperiments->submitReview($experimentId, $projectId, $comment, $reportTitle, $studentSummary, $discussionPoints, $keyUploadIds);
-                $this->App->Session->getFlashBag()->add('ok', '实验已生成汇报材料，并提交到导师端。');
+                if (in_array($benchMode, array('formal', 'guidance'), true)) {
+                    $flowQuery = \Elabftw\Elabftw\Db::getConnection()->prepare('SELECT id FROM smartlab_review_flows WHERE entity_type="experiment" AND entity_id=:id AND project_id=:project AND status="submitted" ORDER BY id DESC LIMIT 1');
+                    $flowQuery->bindValue(':id', $experimentId, \PDO::PARAM_INT); $flowQuery->bindValue(':project', $projectId, \PDO::PARAM_INT);
+                    \Elabftw\Elabftw\Db::getConnection()->execute($flowQuery);
+                    $Bench->recordSubmission($experimentId, (int) $flowQuery->fetchColumn(), $benchMode, $comment);
+                }
+                $submissionDb->q('COMMIT');
+                } catch (\Throwable $e) { $submissionDb->q('ROLLBACK'); throw $e; }
+                $this->App->Session->getFlashBag()->add('ok', '当前版本已提交给导师，并保留提交记录。');
             }
         }
 

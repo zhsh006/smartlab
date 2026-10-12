@@ -1470,9 +1470,13 @@ final class SmartlabExperiments extends AbstractSmartlabModel
         );
     }
 
-    public function saveAssayPack(int $experimentId, array $input): void
+    public function saveAssayPack(int $experimentId, array $input, bool $initializing = false): void
     {
         $this->assertExperimentInTeam($experimentId);
+        $Entity = new Experiments($this->Users, $experimentId);
+        $Entity->readOne(); $Entity->canOrExplode(\Elabftw\Enums\AccessType::Write);
+        if ($Entity->isReadOnly) { throw new \Elabftw\Exceptions\AppException('记录已锁定或只读。'); }
+        $Bench = new SmartlabBenchRecords($this->Users);
 
         $packKey = trim((string) ($input['pack_key'] ?? ''));
         if (!in_array($packKey, $this->getSupportedAssayPackKeys(), true)) {
@@ -1547,6 +1551,7 @@ final class SmartlabExperiments extends AbstractSmartlabModel
                 $this->Db->execute($insertReq);
             }
         }
+        $Bench->recordParameters($experimentId, $packKey, $payload, $results, $initializing);
     }
 
     public function initializeAssayPack(int $experimentId, string $packKey, string $packMode = 'quick', array $initialInput = array()): void
@@ -1591,6 +1596,7 @@ final class SmartlabExperiments extends AbstractSmartlabModel
         $this->saveAssayPack(
             $experimentId,
             array_replace($defaults, $packDefaults),
+            true,
         );
 
         // Generate and persist experiment_code for new assay-pack experiments

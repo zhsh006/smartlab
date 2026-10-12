@@ -97,18 +97,20 @@ final class SmartlabDashboard extends AbstractSmartlabModel
 
     public function readNotebookContext(array $ids): array
     {
+        new SmartlabBenchRecords($this->Users);
         $ids = array_values(array_filter(array_map('intval', $ids), static fn(int $id): bool => $id > 0));
         if ($ids === array()) { return array(); }
         $sql = 'SELECT e.id, COUNT(DISTINCT u.id) AS upload_count,
             GROUP_CONCAT(DISTINCT CONCAT(p.code, " · ", p.name) SEPARATOR "、") AS project_label,
-            COALESCE(rf.status, "") AS review_status
+            COALESCE(rf.status, "") AS review_status,
+            (SELECT JSON_UNQUOTE(JSON_EXTRACT(b.payload, "$.mode")) FROM smartlab_bench_records b WHERE b.experiment_id=e.id AND b.record_key=CONCAT("submission.",rf.id) ORDER BY b.revision DESC LIMIT 1) AS review_mode
             FROM experiments e
-            LEFT JOIN uploads u ON u.item_id = e.id AND u.type = "experiments"
+            LEFT JOIN uploads u ON u.item_id = e.id AND u.type = "experiments" AND u.state = 1
             LEFT JOIN smartlab_project_entities pe ON pe.entity_type = "experiment" AND pe.entity_id = e.id
             LEFT JOIN smartlab_projects p ON p.id = pe.project_id AND p.team_id = e.team
             LEFT JOIN smartlab_review_flows rf ON rf.id = (SELECT MAX(r.id) FROM smartlab_review_flows r WHERE r.entity_type = "experiment" AND r.entity_id = e.id)
             WHERE e.team = :team AND e.id IN (' . implode(',', $ids) . ')
-            GROUP BY e.id, rf.status';
+            GROUP BY e.id, rf.status, rf.id';
         $query = $this->Db->prepare($sql);
         $query->bindValue(':team', $this->Users->team, PDO::PARAM_INT);
         $this->Db->execute($query);

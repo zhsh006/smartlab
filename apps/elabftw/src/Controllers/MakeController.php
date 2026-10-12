@@ -199,7 +199,7 @@ final class MakeController extends AbstractController
         $log = App::getDefaultLogger();
         $classification = Classification::tryFrom($this->Request->query->getInt('classification', Classification::None->value)) ?? Classification::None;
         if (count($this->entityArr) === 1) {
-            return (new MakePdf($log, $this->getMpdfProvider(), $this->requester, $this->entityArr, $this->shouldIncludeChangelog(), $classification))->getResponse();
+            return (new MakePdf($log, $this->getMpdfProvider(), $this->requester, $this->entityArr, $this->shouldIncludeChangelog(), $classification))->setBenchSubmission($this->Request->query->getInt('bench_submission'))->getResponse();
         }
         return (new MakeMultiPdf($log, $this->getMpdfProvider(), $this->requester, $this->entityArr, $this->shouldIncludeChangelog()))->getResponse();
     }

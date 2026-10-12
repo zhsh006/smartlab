@@ -41,6 +41,8 @@ try {
     if ($projectId > 0) {
         $Projects->readOneForCurrentUser($projectId);
     }
+    $packKey = $Request->request->getString('pack_key');
+    if (!isset(\Elabftw\Models\SmartlabBenchRecords::templates()[$packKey])) { throw new AppException('请选择实验记录模板。'); }
     $newId = (new Experiments($App->Users))->create(
         title: $title,
         date: $date,
@@ -51,8 +53,9 @@ try {
         $Projects->addEntity($projectId, 'experiment', $newId);
     }
 
-    $App->Session->getFlashBag()->add('ok', '空白实验已创建。');
-    $Response = new RedirectResponse(sprintf('/experiments.php?mode=edit&id=%d', $newId));
+    (new \Elabftw\Models\SmartlabExperiments($App->Users))->initializeAssayPack($newId, $packKey);
+    $App->Session->getFlashBag()->add('ok', '实验模板已创建，请确认计划并记录实际操作。');
+    $Response = new RedirectResponse(sprintf('/experiments.php?mode=view&id=%d#bench-plan', $newId));
 } catch (AppException $e) {
     $Response = $e->getResponseFromException($App);
 } catch (Exception $e) {

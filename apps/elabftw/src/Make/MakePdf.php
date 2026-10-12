@@ -66,6 +66,14 @@ class MakePdf extends AbstractMakePdf
 
     private bool $pdfa;
 
+    private ?int $benchSubmission = null;
+
+    public function setBenchSubmission(int $flowId): self
+    {
+        $this->benchSubmission = $flowId > 0 ? $flowId : null;
+        return $this;
+    }
+
     public function __construct(
         private LoggerInterface $log,
         MpdfProviderInterface $mpdfProvider,
@@ -269,8 +277,16 @@ class MakePdf extends AbstractMakePdf
 
         $body = $this->getBody();
         $smartlabAssayPack = $this->readSmartlabAssayPackForPdf();
+        $bench = $this->Entity->entityType === EntityType::Experiments ? (new \Elabftw\Models\SmartlabBenchRecords($this->requester))->read((int) $this->Entity->id, $this->benchSubmission) : null;
+        $pdfEntity = $this->Entity->entityData;
+        if ($bench && $bench['print_bench_only']) { $smartlabAssayPack = array(); }
+        if ($bench && $bench['snapshot']) {
+            $body = $bench['snapshot_entity']['body_html'] ?? '';
+            $pdfEntity = array_replace($pdfEntity, $bench['snapshot_entity']);
+            $smartlabAssayPack = array();
+        }
         $entityText = json_encode($this->Entity->entityData, JSON_UNESCAPED_UNICODE);
-        $useCjk = (int) $this->requester->userData['cjk_fonts'] === 1
+        $useCjk = $bench !== null || (int) $this->requester->userData['cjk_fonts'] === 1
             || $smartlabAssayPack !== array()
             || $this->containsCjk($body)
             || ($entityText !== false && $this->containsCjk($entityText));
@@ -280,8 +296,8 @@ class MakePdf extends AbstractMakePdf
             'changes' => $Changelog->readAllWithAbsoluteUrls(),
             'classification' => $this->classification->toHuman(),
             'css' => $this->getCss(),
-            'date' => $date->format('Y-m-d'),
-            'entityData' => $this->Entity->entityData,
+            'date' => $bench && $bench['snapshot'] ? $pdfEntity['date'] : $date->format('Y-m-d'),
+            'entityData' => $pdfEntity,
             'includeChangelog' => $this->includeChangelog,
             'ghsImagesPath' => self::GHS_FOLDER,
             'includeFiles' => $this->includeAttachments,
@@ -296,6 +312,7 @@ class MakePdf extends AbstractMakePdf
             'localDate' => $localDate ?? '',
             'pdfSig' => $this->requester->userData['pdf_sig'],
             'smartlabAssayPack' => $smartlabAssayPack,
+            'bench' => $bench,
             // TODO fix for templates
             'linkBaseUrl' => $baseUrls,
             'url' => sprintf('%s/%s?mode=view&id=%d', $siteUrl, $this->Entity->entityType->toPage(), $this->Entity->id ?? 0),

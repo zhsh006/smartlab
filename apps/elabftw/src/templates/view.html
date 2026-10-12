@@ -4,10 +4,10 @@
 
 {% if Entity.entityType.value == 'experiments' %}
   <div class='ls-record-actions'><a href='dashboard.php'>← 返回实验列表</a><div>
-    {% if smartlabCanManageExperiments %}<a class='btn btn-primary btn-sm' href='experiments.php?mode=edit&id={{ Entity.id }}'>编辑记录</a>{% endif %}
-    <a class='btn btn-outline-secondary btn-sm' href='make.php?type=experiments&id={{ Entity.id }}&format=pdf'>导出 PDF</a>
+    {% if smartlabCanManageExperiments %}<a class='btn btn-primary btn-sm' href='experiments.php?mode=edit&id={{ Entity.id }}'>补充文字</a>{% endif %}
+    <a class='btn btn-outline-secondary btn-sm' href='make.php?type=experiments&id={{ Entity.id }}&format=pdf{{ bench.snapshot ? '&bench_submission=' ~ bench.submission.record_key|replace({'submission.':''}) }}'>导出 PDF</a>
   </div></div>
-  <nav class='ls-record-tabs' aria-label='实验记录内容'><a href='#body_view'>过程记录</a><a href='#filesDiv'>原始附件</a><a href='#ls-record-parameters' data-ls-open='ls-record-parameters'>参数与结果</a><a href='#ls-record-review'>导师意见与送审</a></nav>
+  <nav class='ls-record-tabs' aria-label='实验记录内容'><a href='#bench-plan'>计划与分组</a><a href='#bench-steps'>操作记录</a><a href='#bench-result'>结果与结论</a><a href='#filesDiv'>原始附件</a><a href='#bench-history'>留痕与修改</a><a href='#ls-record-review'>导师意见与送审</a></nav>
 {% endif %}
 
 
@@ -119,7 +119,7 @@
   </div>
 
   {% if Entity.entityType.value == 'experiments' %}
-    {% set smartlabExperimentEditable = smartlabCanManageExperiments %}
+    {% set smartlabExperimentEditable = smartlabCanManageExperiments and not Entity.isReadOnly and not bench.snapshot %}
     <div id='experiment-workflow' class='card border-0 shadow-sm my-3'>
       <div class='card-body'>
 
@@ -142,18 +142,19 @@
         {% endif %}
 
 
+        {% include 'bench-notebook.html' %}
         <section id='ls-record-review' class='ls-panel p-3 mb-3'>
           <h3 class='h5'>导师意见与送审</h3>
           {% if smartlabExperimentEditable %}
-          <p class='smallgray'>记录当前进展，说明需要导师查看的问题。辅助分析不是送审的必经步骤。</p>
+          <p class='smallgray'>中途可以请求指导；正式审核需确认关键操作、结果与原始证据。</p>
           <form method='post' action='experiments.php?mode=view&id={{ Entity.id }}'>
             {{ App.Session.get('csrf')|csrf }}<input type='hidden' name='smartlab_action' value='submit_review'><input type='hidden' name='notebook_manual' value='1'>
             <label for='ls-review-project'>所属课题</label><select id='ls-review-project' name='project_id' class='form-control mb-3' required><option value=''>请选择课题</option>
               {% for project in smartlabProjectsArr|default([]) %}<option value='{{ project.id }}'>{{ project.code }} · {{ project.name }}</option>{% endfor %}
               {% for project in smartlabAvailableProjectsArr|default([]) %}<option value='{{ project.id }}'>{{ project.code }} · {{ project.name }}</option>{% endfor %}
             </select>
-            <label for='ls-review-comment'>希望导师检查什么？</label><textarea id='ls-review-comment' name='review_comment' class='form-control mb-3' rows='3' required placeholder='说明实验进展、当前结果或需要指导的问题。'></textarea>
-            <button class='btn btn-primary' type='submit'>提交当前记录给导师</button>
+            <label for='bench-submit-mode'>提交用途</label><select id='bench-submit-mode' name='bench_submit_mode' class='form-control mb-3'><option value='guidance'>中途请求指导</option><option value='formal'>提交正式审核</option></select><label for='ls-review-comment'>希望导师检查什么？可注明对应步骤</label><textarea id='ls-review-comment' name='review_comment' class='form-control mb-3' rows='3' required placeholder='说明实验进展、当前结果或需要指导的问题。'></textarea>
+            <button class='btn btn-primary' type='submit'>提交当前版本给导师</button>
           </form>
           {% else %}<p class='smallgray'>在下方查看反馈，或进入导师待办处理本次提交。</p><a class='btn btn-outline-primary btn-sm' href='reviews.php'>打开导师待办</a>{% endif %}
         </section>
@@ -194,180 +195,14 @@
 
         <hr>
 
+        {% if not bench.snapshot %}
+        {% set smartlabWorkflow = smartlabAssayPackArr.workflow|default({}) %}
         <div id='experiment-assay-pack' class='card border-0 bg-light mb-4'>
           <div class='card-body'>
             <div class='smallgray text-uppercase mb-1'>Structured record</div>
             <h3 class='mb-3'>结构化实验记录</h3>
-            {% if smartlabAssayPackArr.pack_key == 'western_blot' %}
-              <div class='alert alert-info py-2 mb-3 d-flex justify-content-between align-items-center flex-wrap'>
-                <div class='mr-3'>智能工作流已接入当前 WB 记录：采集/记录、智能识别、断点识别、跳步识别和模板补全会在本页直接展示。</div>
-                <a class='btn btn-outline-primary btn-sm mt-2 mt-md-0' href='#smartlab-wb-workflow'>查看智能工作流</a>
-              </div>
-            {% endif %}
-            {% if smartlabAssayPackArr.pack_key %}
-              <p class='smallgray mb-3'>这里先完成实验计划、样本与材料确认，后续数据和分析不在第一步前置显示。</p>
-            {% else %}
-              <p class='smallgray mb-3'>请选择实验记录类型，系统会自动建立计划并进入样本与材料确认。</p>
-            {% endif %}
+            <p class='smallgray'>实验类型的完整参数表。这里保存的参数也会记录修订；实际执行情况请在上方操作记录中确认。</p>
             {% set smartlabWorkflow = smartlabAssayPackArr.workflow|default({}) %}
-            <div class='border rounded bg-white p-3 mb-3'>
-              <div class='d-flex justify-content-between align-items-start flex-wrap mb-2'>
-                <div>
-                  <div class='smallgray text-uppercase'>Student workflow</div>
-                  <div class='font-weight-bold'>实验流程：准备样本与材料后打印操作单，完成实验后上传原始数据，进入智能识别与断点检查，再回填结果并进行智能检测。</div>
-                </div>
-                <div class='d-flex flex-wrap'>
-                  {% if smartlabWorkflow.can_print_bench_sheet|default(false) %}
-                    <a class='btn btn-outline-primary btn-sm mb-2' href='make.php?type=experiments&amp;id={{ Entity.id }}&amp;format=pdf' target='_blank' rel='noopener'>打印操作单</a>
-                  {% else %}
-                    <button class='btn btn-outline-primary btn-sm mb-2' type='button' disabled>打印操作单</button>
-                  {% endif %}
-                  {% if smartlabWorkflow.can_print_bench_sheet|default(false) and not smartlabWorkflow.has_raw_data|default(false) %}
-                    <a class='btn btn-primary btn-sm mb-2 ml-2' href='experiments.php?mode=view&amp;id={{ Entity.id }}&amp;smartlab_step=upload' data-smartlab-step-link='upload'>上传原始数据</a>
-                  {% elseif smartlabWorkflow.has_raw_data|default(false) and not smartlabWorkflow.has_recognition_evidence|default(false) %}
-                    <a class='btn btn-primary btn-sm mb-2 ml-2' href='experiments.php?mode=view&amp;id={{ Entity.id }}&amp;smartlab_step=recognize' data-smartlab-step-link='recognize'>打开 WB 智能识别</a>
-                  {% elseif smartlabWorkflow.has_recognition_evidence|default(false) and not smartlabWorkflow.has_recognized_results|default(false) %}
-                    <a class='btn btn-primary btn-sm mb-2 ml-2' href='experiments.php?mode=view&amp;id={{ Entity.id }}&amp;smartlab_step=results' data-smartlab-step-link='results'>结果回填确认</a>
-                  {% elseif smartlabWorkflow.can_submit_review|default(false) and not smartlabWorkflow.has_submitted_review|default(false) %}
-                    <a class='btn btn-success btn-sm mb-2 ml-2' href='smartlab-upload.php?experiment_id={{ Entity.id }}'>进行智能检测</a>
-                  {% endif %}
-                </div>
-              </div>
-              <div class='d-flex flex-wrap align-items-center'>
-                {% for step in smartlabWorkflow.steps|default([]) %}
-                  <button class='badge badge-light border mr-2 mb-2 px-2 py-2 {{ step.done ? 'border-success text-success' : (step.active ? 'border-primary text-primary' : 'text-muted') }}' type='button' data-smartlab-step-link='{{ step.key }}'>
-                    {{ loop.index }}. {{ step.label }} · {{ step.done ? '已完成' : (step.active ? '当前步骤' : '待完成') }}
-                  </button>
-                  {% if step.key == 'submit' and smartlabExperimentEditable %}
-                    <div class='w-100'></div>
-                    <div id='smartlab-submit-review' class='border rounded bg-light p-2 mb-2 text-dark' style='max-width: 46rem;' data-smartlab-step-panel='submit'>
-                      <div class='smallgray text-uppercase mb-2'>进行智能检测</div>
-                      <div class='mb-2'>当前实验记录已完成结果回填。请进入智能检测，按“原始记录上传 → 智能识别 → 断点识别 → 跳步识别 → 模板补全/草稿”完成检查；导师审核提交放在模板补全/草稿页。</div>
-                      <a class='btn btn-success btn-sm' href='smartlab-upload.php?experiment_id={{ Entity.id }}'>进入智能检测</a>
-                    </div>
-                  {% endif %}
-                {% endfor %}
-              </div>
-              <div class='smallgray mt-2'>实验准备完成后可打印操作单；实验结束后进入编辑页，在附件区上传原始数据。</div>
-              {% if not smartlabWorkflow.can_print_bench_sheet|default(false) %}
-                <div class='alert alert-warning mt-2 mb-0 py-2' data-smartlab-workflow-alert>先完成实验计划和样本与材料确认，系统就会放开打印。</div>
-              {% elseif not smartlabWorkflow.has_raw_data|default(false) %}
-                <div class='alert alert-info mt-2 mb-0 py-2' data-smartlab-workflow-alert>操作单已可打印。实验结束后点击“上传原始数据”，把 WB 原图、曝光图或仪器导出文件传到附件区。</div>
-              {% elseif not smartlabWorkflow.has_recognition_evidence|default(false) %}
-                <div class='alert alert-warning mt-2 mb-0 py-2' data-smartlab-workflow-alert>已上传原始数据。下一步请打开 WB 智能识别，完成 lane/ROI 识别、原图关联和断点检查。</div>
-              {% elseif not smartlabWorkflow.has_recognized_results|default(false) %}
-                <div class='alert alert-warning mt-2 mb-0 py-2' data-smartlab-workflow-alert>智能识别与断点检查已完成。下一步请回填 WB 结构化结果并保存记录。</div>
-              {% elseif smartlabWorkflow.can_submit_review|default(false) and not smartlabWorkflow.has_submitted_review|default(false) %}
-                <div class='alert alert-success mt-2 mb-0 py-2' data-smartlab-workflow-alert>结果已回填。点击“进行智能检测”，按“原始记录上传 → 智能识别 → 断点识别 → 跳步识别 → 模板补全/草稿”完成检查后，在模板补全/草稿页提交导师审核。</div>
-              {% endif %}
-              {% set smartlabWorkflowDemo = smartlabWorkflow.workflow_demo|default(smartlabWorkflow.patent_demo|default({})) %}
-              {% if smartlabAssayPackArr.pack_key == 'western_blot' and smartlabWorkflowDemo.modules|default([]) %}
-                <div id='smartlab-wb-workflow' data-ls-uploads='{{ smartlabWorkflow.upload_count|default(0) }}' class='border rounded bg-white p-3 mt-3'>
-                  <div class='d-flex justify-content-between align-items-start flex-wrap mb-3'>
-                    <div class='mr-3'>
-                      <div class='smallgray text-uppercase mb-1'>Workflow visibility</div>
-                      <h4 class='mb-1'>WB 智能工作流</h4>
-                      <div class='smallgray'>当前 Western Blot 记录把采集、记录、智能识别、断点识别、跳步识别和模板补全直接映射到五步实验流程。</div>
-                    </div>
-                    <div class='d-flex flex-wrap mt-2 mt-lg-0'>
-                      <a class='btn btn-outline-primary btn-sm mb-2 mr-2' href='smartlab-jump.php?experiment_id={{ Entity.id }}'>跳步识别</a>
-                      <a class='btn btn-outline-primary btn-sm mb-2' href='smartlab-templates.php?experiment_id={{ Entity.id }}'>模板补全</a>
-                    </div>
-                  </div>
-                  <div class='row'>
-                    {% for item in smartlabWorkflowDemo.summary|default([]) %}
-                      <div class='col-lg-3 col-md-6 mb-2'>
-                        {% set smartlabWbSummaryKey = item.label == '附件证据' ? 'uploads' : (item.label == '识别证据' ? 'recognition' : (item.label == '结构化结果' ? 'results' : (item.label == '待补全项' ? 'missing' : ''))) %}
-                        <div class='border rounded p-2 h-100 {{ item.tone == 'success' ? 'border-success' : (item.tone == 'warning' ? 'border-warning' : '') }}' {% if smartlabWbSummaryKey %}data-smartlab-wb-summary='{{ smartlabWbSummaryKey }}'{% endif %}>
-                          <div class='smallgray'>{{ item.label }}</div>
-                          <div class='font-weight-bold {{ item.tone == 'success' ? 'text-success' : (item.tone == 'warning' ? 'text-warning' : '') }}'>{{ item.value }}</div>
-                        </div>
-                      </div>
-                    {% endfor %}
-                  </div>
-                  <div class='row mt-2'>
-                    <div class='col-lg-6 mb-3'>
-                      <div class='smallgray text-uppercase mb-2'>模块链路</div>
-                      <div class='list-group list-group-flush'>
-                        {% for module in smartlabWorkflowDemo.modules|default([]) %}
-                          {% set smartlabWbModuleKey = module.label == '采集模块' ? 'upload' : (module.label == '记录模块' ? 'record' : (module.label == '断点识别模块' ? 'breakpoint' : (module.label == '跳步识别模块' ? 'jump' : (module.label == '模板补全模块' ? 'templates' : '')))) %}
-                          <div class='list-group-item px-0 py-2' {% if smartlabWbModuleKey %}data-smartlab-wb-module='{{ smartlabWbModuleKey }}'{% endif %}>
-                            <div class='d-flex justify-content-between align-items-start flex-wrap'>
-                              <div class='font-weight-bold small mr-3 {{ module.tone == 'success' ? 'text-success' : (module.tone == 'warning' ? 'text-warning' : '') }}'>{{ module.label }}</div>
-                              <div class='smallgray flex-fill'>{{ module.detail }}</div>
-                            </div>
-                          </div>
-                        {% endfor %}
-                      </div>
-                    </div>
-                    <div class='col-lg-6 mb-3'>
-                      <div class='smallgray text-uppercase mb-2'>模板补全预览</div>
-                      <div class='table-responsive'>
-                        <table class='table table-sm table-bordered bg-white mb-2'>
-                          <thead>
-                            <tr>
-                              <th>步骤</th>
-                              <th>WB 字段</th>
-                              <th>状态</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {% for step in smartlabWorkflowDemo.template_steps|default([]) %}
-                              <tr data-smartlab-wb-step='{{ step.num }}'>
-                                <td class='font-weight-bold'>{{ step.num }} · {{ step.label }}<div class='smallgray'>{{ step.detail }}</div></td>
-                                <td>{{ step.status }}</td>
-                                <td><span class='badge {{ step.tone == 'success' ? 'badge-success' : (step.tone == 'warning' ? 'badge-warning' : 'badge-light') }}'>{{ step.tone == 'success' ? '已识别' : (step.tone == 'warning' ? '推理补全' : '待补全') }}</span></td>
-                              </tr>
-                            {% endfor %}
-                          </tbody>
-                        </table>
-                      </div>
-                      <div class='alert {{ smartlabWorkflowDemo.gap_tone|default('warning') == 'success' ? 'alert-success' : 'alert-warning' }} mb-0 py-2'>{{ smartlabWorkflowDemo.gap_message }}</div>
-                    </div>
-                  </div>
-                </div>
-              {% endif %}
-            </div>
-            {% if smartlabIsMentorView %}
-              <div class='border rounded bg-white p-3 mb-3'>
-                <div class='smallgray text-uppercase mb-2'>Breakpoint / jump review</div>
-                <div class='list-group list-group-flush'>
-                  {% for check in smartlabWorkflow.mentor_checks|default([]) %}
-                    <div class='list-group-item px-0 py-2'>
-                      <div class='d-flex justify-content-between align-items-start flex-wrap'>
-                        <div class='font-weight-bold small mr-3 {{ check.tone == 'success' ? 'text-success' : (check.tone == 'warning' ? 'text-warning' : '') }}'>{{ check.label }}</div>
-                        <div class='smallgray flex-fill'>{{ check.message }}</div>
-                      </div>
-                    </div>
-                  {% endfor %}
-                </div>
-              </div>
-            {% endif %}
-            <div id='smartlab-bench-sheet' class='d-none'>
-              <h2>实验操作单</h2>
-              <p>实验编号：#{{ Entity.id }}　实验名称：{{ Entity.entityData.title }}</p>
-              <p>实验类型：{{ smartlabAssayPackArr.pack_key ?: '未选择' }}　操作者：{{ smartlabAssayPackArr.payload.cover.operator_name ?: '未填写' }}　日期：{{ smartlabAssayPackArr.payload.cover.run_date ?: Entity.entityData.date|date('Y-m-d') }}</p>
-              <h3>基本信息</h3>
-              <table>
-                <tr><th>实验目的</th><td>{{ smartlabAssayPackArr.payload.cover.objective ?: '未填写' }}</td></tr>
-                <tr><th>样本来源</th><td>{{ smartlabAssayPackArr.payload.cover.sample_source ?: smartlabAssayPackArr.payload.sample.sample_origin ?: smartlabAssayPackArr.payload.sample.tissue_id ?: '未填写' }}</td></tr>
-              </table>
-              <h3>关键样本与材料</h3>
-              <table>
-                {% for item in smartlabWorkflow.required_materials|default([]) %}
-                  <tr><th>{{ item.label }}</th><td>{{ item.value ?: '待补齐' }}</td></tr>
-                {% else %}
-                  <tr><th>状态</th><td>请先选择实验类型并保存结构化记录。</td></tr>
-                {% endfor %}
-              </table>
-              <h3>现场记录栏</h3>
-              <table>
-                <tr><th>开始时间</th><td></td><th>结束时间</th><td></td></tr>
-                <tr><th>异常情况</th><td colspan='3'></td></tr>
-                <tr><th>操作者签名</th><td></td><th>复核人</th><td></td></tr>
-              </table>
-            </div>
-
             <form method='post' action='experiments.php?mode=view&id={{ Entity.id }}'>
               {{ App.Session.get('csrf')|csrf }}
               <input type='hidden' name='smartlab_action' value='save_assay_pack' />
@@ -1939,6 +1774,7 @@
             </script> #}
           </div>
         </div>
+        {% endif %}
 
 		        <div id='experiment-materials' class='row d-none' aria-hidden='true' hidden>
 		          <div class='col-lg-6 mb-3'>
@@ -2232,7 +2068,7 @@
   {% endif %}
 
   {# BODY (show only if not empty) #}
-  {% set body = Entity.entityData.body_html %}
+  {% set body = bench.snapshot|default(false) ? bench.snapshot_entity.body_html|default('') : Entity.entityData.body_html %}
   {% if body != '' %}
       <div {% if Entity.entityData.hide_main_text %}hidden='hidden'{% endif %}>
         <h3 data-action='toggle-next' data-opened-icon='fa-caret-down' data-closed-icon='fa-caret-right' class='d-inline togglable-section-title' tabindex='0' role='button' aria-expanded='true' aria-controls='body_view'><i class='fas fa-caret-down fa-fw mr-2'></i>{{ 'Main text'|trans }}</h3>

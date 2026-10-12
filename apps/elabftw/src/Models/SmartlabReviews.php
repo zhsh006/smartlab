@@ -22,6 +22,7 @@ final class SmartlabReviews extends AbstractSmartlabModel
     public function __construct(Users $Users)
     {
         parent::__construct($Users);
+        new SmartlabBenchRecords($Users);
     }
 
     public function readAll(bool $mineOnly = false, bool $history = false): array
@@ -34,6 +35,7 @@ final class SmartlabReviews extends AbstractSmartlabModel
                 rf.entity_type,
                 rf.entity_id,
                 e.title AS experiment_title,
+                (SELECT JSON_UNQUOTE(JSON_EXTRACT(b.payload, "$.mode")) FROM smartlab_bench_records b WHERE b.experiment_id=rf.entity_id AND b.record_key=CONCAT("submission.",rf.id) ORDER BY b.revision DESC LIMIT 1) AS bench_mode,
                 rf.status,
                 rf.created_at,
                 p.code AS project_code,
@@ -70,6 +72,7 @@ final class SmartlabReviews extends AbstractSmartlabModel
     public function applyDecision(int $flowId, string $decision, string $comment): void
     {
         $task = $this->getTaskForUpdate($flowId);
+        if (mb_strlen($comment) > 4000 || ($decision !== 'approve' && trim($comment) === '')) { throw new \Elabftw\Exceptions\AppException('请填写具体反馈，最多 4000 个字符。'); }
         if ((int) $task['assignee_userid'] !== (int) $this->Users->userid && !$this->Users->isAdmin) {
             throw new UnauthorizedException();
         }
@@ -130,6 +133,7 @@ final class SmartlabReviews extends AbstractSmartlabModel
         $req->bindValue(':flow_id', $flowId, PDO::PARAM_INT);
         $req->bindValue(':team', $this->Users->team, PDO::PARAM_INT);
         $this->Db->execute($req);
+        if ($task['entity_type'] === 'experiment') { (new SmartlabBenchRecords($this->Users))->recordFeedback((int) $task['entity_id'], $flowId, $decision, $comment); }
     }
 
     /**
@@ -140,7 +144,9 @@ final class SmartlabReviews extends AbstractSmartlabModel
         $sql = 'SELECT
                 rt.id AS task_id,
                 rt.assignee_userid,
-                rf.id AS flow_id
+                rf.id AS flow_id,
+                rf.entity_id,
+                rf.entity_type
             FROM smartlab_review_tasks AS rt
             INNER JOIN smartlab_review_flows AS rf ON rf.id = rt.flow_id
             LEFT JOIN smartlab_projects AS p ON p.id = rf.project_id

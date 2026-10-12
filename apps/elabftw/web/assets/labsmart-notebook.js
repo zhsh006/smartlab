@@ -8,10 +8,10 @@
   }
   document.addEventListener('DOMContentLoaded',function(){
     disclosure(document.getElementById('topToolbar'),'更多记录操作');
-    var parameters=disclosure(document.getElementById('experiment-assay-pack'),'实验参数与结构化结果（按需填写）','ls-record-parameters');
+    var parameters=disclosure(document.getElementById('experiment-assay-pack'),'完整参数表与既有结果','ls-record-parameters');
     disclosure(document.getElementById('smartlab-wb-workflow'),'辅助检查与证据详情（可选）','ls-record-checks');
     var body=document.getElementById('body_view'),workflow=document.getElementById('experiment-workflow');
-    if(body&&workflow)workflow.parentNode.insertBefore(body.parentNode,workflow);
+    if(body&&workflow)disclosure(body.parentNode,'补充文字与既有正文');
     ['extraFieldsDiv','permissionsDiv','linksDiv','stepsDiv'].forEach(function(id){
       var panel=document.getElementById(id);if(!panel)return;
       var heading=panel.previousElementSibling;if(!heading||heading.tagName!=='H3')return;

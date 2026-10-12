@@ -1,8 +1,8 @@
 # SmartLab
 
-LabSmart 基于 eLabFTW，面向师生的日常实验记录与导师协作。2026-10-12 版以实验记录、课题和待办为主入口，自动识别及检查作为按需展开的辅助工具。
+LabSmart 基于 eLabFTW，面向师生的日常实验记录与导师协作。2026-10-12 现场记录版以实验记录、课题和待办为主入口，提供按模板分步记录、关联原始证据、纸质操作单及导师提交版本审核，自动识别及检查作为按需展开的辅助工具。
 
-当前版本与验证记录见 [`docs/release-notebook-20261012.md`](./docs/release-notebook-20261012.md)，本地源码与历史材料位置见 [`docs/local-project-location.md`](./docs/local-project-location.md)。
+当前版本与验证记录见 [`docs/release-bench-20261012.md`](./docs/release-bench-20261012.md)，前一版记录见 [`docs/release-notebook-20261012.md`](./docs/release-notebook-20261012.md)，本地源码与历史材料位置见 [`docs/local-project-location.md`](./docs/local-project-location.md)。
 
 项目仓库创建时间记录见 [`PROJECT_CREATED_2025-06-02.md`](./PROJECT_CREATED_2025-06-02.md)。
 
@@ -20,6 +20,11 @@ LabSmart 基于 eLabFTW，面向师生的日常实验记录与导师协作。202
 ## 核心功能
 
 - 学生端实验项目和实验记录创建。
+- WB、qPCR、免疫荧光、免疫组化、ELISA 基础步骤模板与结构化现场记录。
+- 自动保存草稿、明确确认实际操作、补录及纸质转录、字段修订历史。
+- 五列 CSV 结果导入与按步骤关联原始附件。
+- 请求指导与正式审核分开，提交时保存当时的记录及附件引用。
+- 带编号与二维码的可打印操作单，兼顾实验台旁手写。
 - 原始记录、仪器结果、实验图片和数据表上传归档。
 - qPCR、ELISA、Western blot、免疫荧光等实验结果识别与展示。
 - 实验事件序列构建和逻辑断点识别。

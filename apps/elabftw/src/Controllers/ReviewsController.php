@@ -41,7 +41,10 @@ final class ReviewsController extends AbstractHtmlController
 
             if ($flowId > 0 && !empty($decision)) {
                 $Reviews = new SmartlabReviews($this->app->Users);
-                $Reviews->applyDecision($flowId, $decision, $comment);
+                $Db = \Elabftw\Elabftw\Db::getConnection();
+                $Db->q('START TRANSACTION');
+                try { $Reviews->applyDecision($flowId, $decision, $comment); $Db->q('COMMIT'); }
+                catch (\Throwable $e) { $Db->q('ROLLBACK'); throw $e; }
                 $this->app->Session->getFlashBag()->add('ok', '审核结果已保存。');
             }
 
