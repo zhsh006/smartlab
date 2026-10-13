@@ -45,6 +45,7 @@ final class SmartlabExperiments extends AbstractSmartlabModel
     {
         $sql = 'SELECT
                 pe.id AS link_id,
+                p.id AS id,
                 p.id AS project_id,
                 p.code,
                 p.name,

@@ -1,6 +1,6 @@
 # LabSmart 实验现场记录版
 
-版本：`bench-20261012`；部署日期：2026-10-12。源代码位于 `C:\Users\zhsh0\Documents\LabSmart\apps\elabftw`。访问入口：<http://172.18.21.142:3180/>。
+版本：`bench-20261012`；首次部署日期：2026-10-12，2026-10-13 已补齐页面验收并修复发现的问题。源代码位于 `C:\Users\zhsh0\Documents\LabSmart\apps\elabftw`。访问入口：<http://172.18.21.142:3180/>。补充记录见 `release-bench-20261013-fixes.md`。
 
 ## 行为
 
@@ -25,9 +25,9 @@
 - 原生附件存储验收通过：CSV 原字节完整、证据关联、0 数值保留；验收附件随后可恢复删除。
 - 实际运行应用导出的中文操作单成功，A4 三页，逐页检查字体、表格、确认标记和手写空间。
 - 登录页面 HTTP 200；运行文件摘要与发布清单一致；保留容器配置与数据卷。
-- 浏览器验收遇到工具点击不生效，已完成早期创建及草稿界面检查，但最终上传自动关联、CSV 导入按钮及导师完整点击流程尚未完成浏览器验收。以上后台验收不能代替这些界面检查。
+- 2026-10-13 补齐真实页面验收：CSV 导入及刷新后保留 0 值、图片上传后自动关联指定步骤、纸质转录、缺项拦截、中途指导、正式审核、导师只读提交版本、退回意见返回学生端。修复了验收发现的缓存权限、上传刷新、课题编号和提交提示等问题。
 
-可复用事务验收脚本为 `tools/validate-bench-workflow.php`，在运行应用容器中执行 `php validate-bench-workflow.php /elabftw`。需有既有的种子学生、课题及附件元数据；脚本只新增事务内验收记录，退出前回滚并核实无实验残留。此次单独创建的界面验收实验已移入可恢复回收站，空测试课题在备份后清除。
+可复用事务验收脚本为 `tools/validate-bench-workflow.php`，在运行应用容器中以网页进程用户执行：`docker exec --user nginx labsmart-patent-23-web php /tmp/validate-bench-workflow.php /elabftw`（先复制脚本到容器）。需有既有的种子学生、课题及附件元数据；脚本只新增事务内验收记录，退出前回滚并核实无实验残留。此次单独创建的界面验收实验已移入可恢复回收站，空测试课题在备份后清除。所有应用 PHP 验收、导出及缓存预热均应使用网页进程用户，避免 root 创建无法被网页进程维护的私有缓存。
 
 ## 发布与回退
 
@@ -36,5 +36,7 @@
 Composer 使用 authoritative class map，Docker 构建需运行 `deploy/bench-register-autoload.php` 注册新模型。在基础镜像启动前 PHP 配置仍有环境占位符，构建阶段的注册命令使用 `php -n`；应用正常运行使用原配置。
 
 原版容器 `labsmart-patent-23-web-before-bench-20261012` 保留为停止状态；发布目录 `deploy.py rollback` 可恢复它。最终调整前一版容器为 `labsmart-patent-23-web-before-bench-ui4-20261012`，`deploy-ui4.py rollback` 可仅撤回最后调整。旧容器均禁止自动重启。
+
+2026-10-13 修复部署的最后一步回退为 `deploy-ui8.py rollback`，对应备份容器 `labsmart-patent-23-web-before-bench-ui8-20261013`；该回退仅撤销最后的误报修正，完整恢复前一日应用可使用 `deploy-ui5.py rollback`。验收记录备份为 `bench-20261013-fixtures.json`（仅管理员可读）。
 
 回退程序会恢复旧容器并继续使用原数据库与附件卷；新增记录表保留。数据库整体恢复应另行评估，不能覆盖部署后产生的真实记录。

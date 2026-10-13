@@ -46,7 +46,14 @@
         return;
       }
       uploadFiles(dropzone.getAttribute('action'), files).then(function () {
-        window.location.reload();
+        // Step recording may need to save its evidence association before a full reload.
+        var complete = new CustomEvent('smartlab-upload-complete', {
+          cancelable: true,
+          detail: { filenames: files.map(function (file) { return file.name; }) },
+        });
+        if (document.dispatchEvent(complete)) {
+          window.location.reload();
+        }
       }).catch(function (error) {
         window.alert(error.message || '上传失败');
       }).finally(function () {

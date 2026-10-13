@@ -2,9 +2,17 @@
 declare(strict_types=1);
 // Integration acceptance: requires seeded students, a project, and upload metadata.
 // Creates only transaction fixtures; verifies rollback before successful completion.
-// Usage in the application container: php validate-bench-workflow.php /elabftw
+// Usage: docker exec --user nginx CONTAINER php validate-bench-workflow.php /elabftw
 $appRoot = rtrim($argv[1] ?? '/elabftw', '/');
 $changes = rtrim($argv[2] ?? $appRoot, '/') . '/';
+// A filesystem probe works even when the optional PHP POSIX extension is absent.
+$cacheProbe = tempnam($appRoot . '/cache', 'bench-owner-check-');
+if ($cacheProbe === false) { throw new RuntimeException('Application cache is not writable; repair its owner before acceptance.'); }
+try { $sameCacheOwner = fileowner($cacheProbe) === fileowner($appRoot . '/cache'); }
+finally { unlink($cacheProbe); }
+if (!$sameCacheOwner) {
+    throw new RuntimeException('Run application checks as the cache owner: docker exec --user nginx CONTAINER php validate-bench-workflow.php /elabftw');
+}
 chdir($appRoot); require $appRoot . '/vendor/autoload.php';
 require $changes.'src/Models/SmartlabBenchRecords.php';
 require $changes.'src/Models/SmartlabExperiments.php';
@@ -25,8 +33,11 @@ function expectFailure(callable $test):void{try{$test();}catch(\Elabftw\Exceptio
 $db->q('START TRANSACTION');
 try{
  $experiment=new \Elabftw\Models\Experiments($student);
- $id=$experiment->create(title:'[事务验收] 实验现场记录',body:'<p>验收用补充记录</p>');
+ $id=$experiment->create(title:'[事务验收] 实验现场记录',body:'');
  $assay->initializeAssayPack($id,'western_blot');
+ $assay->linkProject($id,(int)$candidate['project_id']);
+ $linked=$assay->readProjects($id);
+ if ((int)$linked[0]['id'] !== (int)$candidate['project_id'] || (int)$linked[0]['project_id'] !== (int)$candidate['project_id']) { throw new \RuntimeException('Linked project dropdown/authorization ID differs'); }
  $record=$bench->save($id,array('record_key'=>'plan','record_state'=>'confirmed','objective'=>'验证现场记录与版本审核','expected_revision'=>0));
  expectFailure(fn()=>$bench->save($id,array('record_key'=>'plan','record_state'=>'confirmed','objective'=>'冲突输入','expected_revision'=>0)));
  expectFailure(fn()=>$bench->save($id,array('record_key'=>'step.prepare','record_state'=>'confirmed','expected_revision'=>0)));
@@ -50,6 +61,7 @@ try{
  $assay->submitReview($id,(int)$candidate['project_id'],'请检查统一记录');
  $flow=$db->q('SELECT id FROM smartlab_review_flows WHERE entity_type="experiment" AND entity_id='.$id.' ORDER BY id DESC LIMIT 1')->fetchColumn();
  $bench->recordSubmission($id,(int)$flow,'formal','请检查统一记录');
+ if ($bench->read($id)['changed_keys'] !== []) { throw new \RuntimeException('Unchanged empty body or attachment metadata was incorrectly flagged'); }
  $bench->save($id,array('record_key'=>'result','record_state'=>'confirmed','summary'=>'提交后补充','conclusion'=>'修订结论','evidence_ids'=>[$uploadId],'expected_revision'=>1));
  $snapshot=$bench->read($id,(int)$flow);
  if($snapshot['result']['data']['fields']['conclusion']!=='验收完成'||!$snapshot['changed_keys']){throw new \RuntimeException('Submission snapshot changed with live record');}

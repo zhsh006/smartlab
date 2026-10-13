@@ -1,6 +1,6 @@
 {% macro evidence(bench, record, id) %}
 <details class='bench-evidence'><summary>关联本步照片或原始文件（{{ record.data.evidence_ids|default([])|length }}）</summary>
-{% for upload in bench.uploads %}<label class='bench-file-option'><input type='checkbox' name='evidence_ids[]' value='{{ upload.id }}' {{ upload.id in record.data.evidence_ids|default([]) ? 'checked' }}> {{ upload.real_name }}</label>{% else %}<p class='smallgray'>先在“原始附件”上传，再回到本步选择文件。</p>{% endfor %}
+{% for upload in bench.uploads %}<label class='bench-file-option'><input type='checkbox' name='evidence_ids[]' value='{{ upload.id }}' {{ upload.id in record.data.evidence_ids|default([]) ? 'checked' }}> {{ upload.real_name }}</label>{% else %}<p class='smallgray'>可在本步上传文件，或选择已有附件作为原始证据。</p>{% endfor %}
 <button class='btn btn-outline-primary btn-sm' type='button' data-bench-upload>为本步上传文件或照片</button> <button class='bench-inline-action' type='button' data-bench-refresh-evidence>刷新附件列表</button> <a href='#filesDiv'>查看全部原始附件</a></details>
 {% endmacro %}
 {% macro attachments(bench, record) %}
@@ -41,4 +41,4 @@
 {% for event in bench.history %}<article><div class='bench-record-meta'>{{ (event.recorded_at ~ ' UTC')|date('Y-m-d H:i:s','Asia/Shanghai') }} · {{ event.actor_name }} · {{ event.record_key == 'plan' ? '实验计划' : event.record_key == 'result' ? '结果与结论' : event.record_key == 'parameters' ? '完整参数表' : event.record_key|replace({'step.':'操作：','submission.':'提交：','feedback.':'导师反馈：'}) }} · 修订 {{ event.revision }} · {{ event.data.state|default('') == 'draft' ? '草稿' : event.event_type == 'submitted' ? '已提交' : '已保存' }}</div>{% if event.occurred_at %}<p>声明操作时间：{{ (event.occurred_at ~ ' UTC')|date('Y-m-d H:i','Asia/Shanghai') }} · {{ event.entry_mode == 'live' ? '在线确认' : event.entry_mode == 'paper' ? '纸质转录' : '补录' }}</p>{% endif %}
 {% if event.data.entry_reason|default('') %}<p>{{ event.data.entry_reason }}</p>{% endif %}<details><summary>查看此次字段变化与关联证据</summary>{% for change in event.changes %}<p><strong>{{ change.field }}</strong><br>原值：{{ change.before is iterable ? change.before|json_encode : change.before ?: '未填写' }}<br>新值：{{ change.after is iterable ? change.after|json_encode : change.after ?: '未填写' }}</p>{% endfor %}{{ _self.attachments(bench,event) }}{% if event.data.comment|default('') %}<p>{{ event.data.comment }}</p>{% endif %}</details></article>{% else %}<p class='smallgray'>此实验尚未产生现场记录历史。既有正文修订仍可从记录操作中查看。</p>{% endfor %}</details>
 </section>
-<script defer src='/assets/labsmart-bench.js?v=bench-20261012-4'></script>
+<script defer src='/assets/labsmart-bench.js?v=bench-20261013-4'></script>

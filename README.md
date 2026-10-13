@@ -4,6 +4,8 @@ LabSmart 基于 eLabFTW，面向师生的日常实验记录与导师协作。202
 
 当前版本与验证记录见 [`docs/release-bench-20261012.md`](./docs/release-bench-20261012.md)，前一版记录见 [`docs/release-notebook-20261012.md`](./docs/release-notebook-20261012.md)，本地源码与历史材料位置见 [`docs/local-project-location.md`](./docs/local-project-location.md)。
 
+2026-10-13 的运行修复及页面验收见 [`docs/release-bench-20261013-fixes.md`](./docs/release-bench-20261013-fixes.md)。
+
 项目仓库创建时间记录见 [`PROJECT_CREATED_2025-06-02.md`](./PROJECT_CREATED_2025-06-02.md)。
 
 说明：SmartLab 负责医学科研训练业务、专利功能页面、数据链路、算法服务适配和部署交付。

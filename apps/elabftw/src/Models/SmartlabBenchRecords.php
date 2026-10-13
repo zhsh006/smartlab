@@ -163,8 +163,9 @@ final class SmartlabBenchRecords extends AbstractSmartlabModel
         if ($submission) {
             $submittedIds = array_map('intval', $submission['data']['record_ids']);
             foreach ($current as $key => $row) { if (!str_starts_with($key, 'submission.') && !str_starts_with($key, 'feedback.') && !in_array((int) $row['id'], $submittedIds, true)) { $changed[] = $key; } }
-            foreach ($submission['data']['entity'] ?? array() as $key => $value) { if (($entity->entityData[$key] ?? '') !== $value) $changed[] = 'entity.' . $key; }
-            $signature = static fn(array $file): array => array_intersect_key($file, array_flip(array('id','long_name','real_name','hash','filesize')));
+            foreach ($submission['data']['entity'] ?? array() as $key => $value) { if ((string) ($entity->entityData[$key] ?? '') !== (string) ($value ?? '')) $changed[] = 'entity.' . $key; }
+            // JSON and database rows can use different key order and scalar types.
+            $signature = static fn(array $file): array => array('id' => (int) $file['id'], 'long_name' => (string) ($file['long_name'] ?? ''), 'real_name' => (string) ($file['real_name'] ?? ''), 'hash' => (string) ($file['hash'] ?? ''), 'filesize' => (int) ($file['filesize'] ?? 0));
             $oldFiles = array_map($signature, $submission['data']['uploads'] ?? array());
             $newFiles = array_map($signature, $entity->entityData['uploads'] ?? array());
             usort($oldFiles, static fn(array $a,array $b):int => (int)$a['id'] <=> (int)$b['id']);

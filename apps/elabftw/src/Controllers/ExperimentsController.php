@@ -71,6 +71,15 @@ final class ExperimentsController extends AbstractEntityController
                 $this->App->Session->getFlashBag()->add('ko', '助理端和导师端不执行实验录入或提交流程。');
                 return new RedirectResponse(sprintf('/experiments.php?mode=view&id=%d', (int) $this->Entity->id));
             }
+            if ($this->App->Request->request->getBoolean('bench_submit_ajax')
+                && $this->App->Request->request->getString('smartlab_action') === 'submit_review') {
+                try {
+                    $response = $this->handleSmartlabPost();
+                    return new \Symfony\Component\HttpFoundation\JsonResponse(array('ok' => true, 'redirect' => $response->headers->get('Location') ?? sprintf('/experiments.php?mode=view&id=%d', (int) $this->Entity->id)));
+                } catch (\Elabftw\Exceptions\AppException $e) {
+                    return new \Symfony\Component\HttpFoundation\JsonResponse(array('ok' => false, 'message' => $e->getMessage()), 422);
+                }
+            }
             return $this->handleSmartlabPost();
         }
 

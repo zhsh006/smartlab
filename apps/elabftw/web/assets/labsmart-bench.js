@@ -109,7 +109,37 @@
         } catch (e) { importStatus.textContent = e.message; } finally { csvInput.value = ''; }
       });
     });
+    var reviewForm = document.querySelector('[data-bench-submit]');
+    if (reviewForm) reviewForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      var button = reviewForm.querySelector('button[type=submit]'), status = reviewForm.querySelector('[data-bench-submit-status]');
+      button.disabled = true; status.textContent = '正在保存当前记录并提交…';
+      try {
+        await flushDrafts();
+        var data = new FormData(reviewForm); data.set('bench_submit_ajax', '1');
+        var response = await fetch(reviewForm.action, {method:'POST',body:data,credentials:'same-origin'});
+        var result;
+        try { result = await response.json(); } catch (_) { throw new Error('未能提交，请检查连接或重新登录。当前输入仍保留在页面。'); }
+        if (!response.ok || !result.ok) throw new Error(result.message || '提交失败，请检查记录。');
+        window.location.href = result.redirect;
+      } catch (error) {
+        status.textContent = error.message;
+        var checklist = document.querySelector('.bench-checklist'); if (checklist) checklist.open = true;
+      } finally { button.disabled = false; }
+    });
     window.addEventListener('beforeunload', function (event) { if (pendingForms.some(function (entry) { return entry.pending(); })) { event.preventDefault(); event.returnValue = ''; } });
+    document.addEventListener('smartlab-upload-complete', function (event) {
+      if (!uploadTarget) return;
+      event.preventDefault();
+      var target = uploadTarget;
+      uploadNames = new Set(event.detail.filenames);
+      refreshEvidence().then(flushDrafts).then(function () {
+        window.location.hash = 'bench-' + target.dataset.benchKey.replace('.', '-');
+        window.location.reload();
+      }).catch(function (error) {
+        target.querySelector('[data-bench-save-status]').textContent = '文件已上传，步骤关联未保存：' + error.message + ' 请刷新附件列表后重新保存。';
+      });
+    });
     var filesPanel=document.getElementById('filesDiv');
     document.addEventListener('change',function(event){if(uploadTarget && event.target.type==='file' && !event.target.matches('[data-bench-csv]')) uploadNames=new Set(Array.from(event.target.files||[]).map(function(file){return file.name;}));},true);
     var globalUploader=document.querySelector('[data-smartlab-open-upload-dialog]');
