@@ -1,0 +1,13 @@
+<view wx:if="{{exp}}">
+  <view class="card"><view class="h2">{{exp.title}}</view><view class="muted">{{exp.template}} · {{exp.date}} · 附件 {{exp.uploads}}</view></view>
+  <view class="card"><view class="label" style="font-weight:600">实验目的</view><view>{{exp.objective || '未记录'}}</view></view>
+  <view class="card">
+    <view style="font-weight:600">阶段</view>
+    <view class="step" wx:for="{{exp.steps}}" wx:key="label">
+      <view class="dot {{item.state === 'confirmed' ? 'done' : ''}}">{{item.state === 'confirmed' ? '✓' : ''}}</view>
+      <view>{{item.label}}</view>
+    </view>
+  </view>
+  <view class="card"><view style="font-weight:600">结果与结论</view><view>{{exp.summary || '未记录'}}</view><view class="muted">{{exp.conclusion}}</view></view>
+</view>
+<view class="err" wx:if="{{err}}">{{err}}</view>

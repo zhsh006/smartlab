@@ -1,0 +1,6 @@
+<view class="card">
+  <view class="h2">我的</view>
+  <view class="muted" wx:if="{{user}}">{{user.name}}<view>{{user.email}}</view></view>
+  <view class="err" wx:if="{{err}}">{{err}}</view>
+  <button class="btn-ghost" bindtap="logout">退出登录</button>
+</view>

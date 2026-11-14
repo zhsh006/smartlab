@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block body %}
+<link rel='stylesheet' media='all' href='/assets/labsmart-record.css?v=v3-batch1'>
+<div class='ls-page-header'>
+  <div><h2>我的空间</h2><p>把本台仪器电脑的原始文件同步到这里（类似网盘）；需要时再关联到某次实验。文件只有你本人可见。</p></div>
+  <div class='drive-usage smallgray'>共 {{ space.usage.n }} 个文件 · {{ (space.usage.bytes / 1048576)|number_format(1) }} MB</div>
+</div>
+
+<nav class='drive-breadcrumb' aria-label='目录'>
+  {% for crumb in space.breadcrumb %}
+    {% if not loop.last %}<a href='smartlab-drive.php{% if crumb.path %}?path={{ crumb.path|url_encode }}{% endif %}'>{{ crumb.name }}</a><i class='fas fa-angle-right mx-1'></i>
+    {% else %}<span class='drive-crumb-current'>{{ crumb.name }}</span>{% endif %}
+  {% endfor %}
+</nav>
+
+<section class='ls-panel'>
+  <div class='ls-panel-heading'><h3>文件夹与文件</h3><span class='smallgray'>先建立本地一致的文件夹结构，再同步原始文件</span></div>
+
+  <div class='drive-toolbar'>
+    <form method='post' action='smartlab-drive.php' class='drive-inline-form'>
+      {{ App.Session.get('csrf')|csrf }}
+      <input type='hidden' name='action' value='mkdir'>
+      <input type='hidden' name='path' value='{{ space.path }}'>
+      <input type='text' name='name' class='form-control' placeholder='新文件夹名称' maxlength='255' required>
+      <button class='btn btn-outline-primary' type='submit'><i class='fas fa-folder-plus mr-1'></i>新建文件夹</button>
+    </form>
+    <form method='post' action='smartlab-drive.php' enctype='multipart/form-data' class='drive-inline-form'>
+      {{ App.Session.get('csrf')|csrf }}
+      <input type='hidden' name='action' value='upload'>
+      <input type='hidden' name='path' value='{{ space.path }}'>
+      <label class='sl-drop'><i class='fas fa-file-arrow-up'></i><span data-sl-drop-label>选择要上传的文件…</span><input type='file' name='files[]' multiple required onchange="this.closest('.sl-drop').querySelector('[data-sl-drop-label]').textContent=Array.from(this.files).map(function(f){return f.name}).join('、').slice(0,48)"></label>
+      <button class='btn btn-primary' type='submit'><i class='fas fa-upload mr-1'></i>上传到当前目录</button>
+    </form>
+  </div>
+
+  {% if space.folders|length %}
+  <div class='drive-folders'>
+    {% for folder in space.folders %}
+    <a class='drive-folder' href='smartlab-drive.php?path={{ folder.path|url_encode }}'><i class='fas fa-folder'></i>{{ folder.name }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class='table-responsive'><table class='ls-table drive-table'>
+    <thead><tr><th>文件</th><th>大小</th><th>来源设备</th><th>修改时间</th><th>操作</th></tr></thead>
+    <tbody>
+    {% for file in space.files %}
+      <tr>
+        <td><i class='far fa-file mr-1'></i>{{ file.original_name }}</td>
+        <td>{{ file.size_label }}</td>
+        <td>{{ file.source_device|default('—') }}{% if file.source_path|default('') %}<div class='smallgray drive-src' title='{{ file.source_path }}'>{{ file.source_path }}</div>{% endif %}</td>
+        <td>{{ file.modified_label }}</td>
+        <td class='drive-actions'>
+          <a class='btn btn-sm btn-outline-secondary' href='{{ file.url }}'><i class='fas fa-download'></i></a>
+          <form method='post' action='smartlab-drive.php' class='drive-link-form'>
+            {{ App.Session.get('csrf')|csrf }}
+            <input type='hidden' name='action' value='link'>
+            <input type='hidden' name='path' value='{{ file.path }}'>
+            <select name='experiment_id' class='form-control form-control-sm' required><option value=''>关联到实验…</option>{% for experiment in experiments %}<option value='{{ experiment.id }}'>{{ experiment.title }}</option>{% endfor %}</select>
+            <button class='btn btn-sm btn-outline-primary' type='submit'>关联</button>
+          </form>
+          <form method='post' action='smartlab-drive.php' class='drive-del-form' onsubmit="return confirm('确定删除该文件？');">
+            {{ App.Session.get('csrf')|csrf }}
+            <input type='hidden' name='action' value='delete'>
+            <input type='hidden' name='path' value='{{ file.path }}'>
+            <button class='btn btn-sm btn-outline-danger' type='submit'><i class='fas fa-trash'></i></button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan='5'><div class='ls-empty'><strong>这个目录还没有文件</strong>在仪器电脑上用桌面应用登录后即可同步，或在此直接上传。</div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+<section class='ls-panel'>
+  <div class='ls-panel-heading'><h3>已连接的设备（{{ devices|length }}）</h3><span class='smallgray'>在仪器电脑打开 SmartLab 桌面应用，用本账号登录即可同步</span></div>
+  {% if devices|length %}
+  <div class='table-responsive'><table class='ls-table'>
+    <thead><tr><th>设备</th><th>最近使用</th><th>连接时间</th><th></th></tr></thead>
+    <tbody>
+    {% for device in devices %}
+      <tr>
+        <td>{{ device.name }}</td>
+        <td>{{ device.last_seen_at ? (device.last_seen_at ~ ' UTC')|date('m-d H:i','Asia/Shanghai') : '尚未使用' }}</td>
+        <td>{{ device.created_at ? (device.created_at ~ ' UTC')|date('m-d H:i','Asia/Shanghai') : '' }}</td>
+        <td><form method='post' action='smartlab-drive.php' onsubmit="return confirm('断开该设备？');">{{ App.Session.get('csrf')|csrf }}<input type='hidden' name='action' value='revoke_device'><input type='hidden' name='device_id' value='{{ device.id }}'><button class='btn btn-sm btn-outline-danger' type='submit'>断开</button></form></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <div class='ls-empty'><strong>还没有设备连接</strong>在仪器电脑双击 SmartLab 桌面应用，用你的邮箱和密码登录即可。</div>
+  {% endif %}
+</section>
+{% endblock %}

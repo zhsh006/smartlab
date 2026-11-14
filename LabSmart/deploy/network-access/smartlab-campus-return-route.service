@@ -1,0 +1,13 @@
+[Unit]
+Description=Return route to the SmartLab owner's campus Wi-Fi laptop
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/ip route replace 172.22.96.88/32 via 172.18.21.254 dev eno2np1
+ExecStop=-/usr/sbin/ip route del 172.22.96.88/32 via 172.18.21.254 dev eno2np1
+
+[Install]
+WantedBy=multi-user.target

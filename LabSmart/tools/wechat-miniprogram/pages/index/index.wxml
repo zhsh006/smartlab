@@ -1,0 +1,23 @@
+<view class="card" wx:if="{{!loggedIn}}">
+  <view class="h2">登录 LabSmart</view>
+  <view class="muted">首次使用请用你的账号登录，之后可长期保持。</view>
+  <view class="field"><view class="label">邮箱</view><input type="text" placeholder="you@lab.com" value="{{email}}" bindinput="onEmail" /></view>
+  <view class="field"><view class="label">密码</view><input password placeholder="密码" value="{{password}}" bindinput="onPassword" /></view>
+  <button class="btn-primary" loading="{{busy}}" bindtap="login">登录</button>
+  <view class="err" wx:if="{{err}}">{{err}}</view>
+</view>
+
+<view wx:else>
+  <view class="card qr-title">
+    <view class="h2">扫一扫登录</view>
+    <view class="muted">扫描电脑端（Web / Agent）显示的二维码，即可用本账号登录。</view>
+    <button class="btn-primary" bindtap="scan">打开扫一扫</button>
+    <view class="muted" wx:if="{{user}}">当前账号：{{user.name}}</view>
+    <view wx:if="{{message}}" class="muted" style="color:#1a7f4b;margin-top:16rpx;">{{message}}</view>
+    <view class="err" wx:if="{{err}}">{{err}}</view>
+  </view>
+  <view class="card">
+    <view class="muted">也可以在电脑上打开「扫码登录」页面，用微信扫描即可。</view>
+    <button class="btn-ghost" bindtap="logout">退出登录</button>
+  </view>
+</view>

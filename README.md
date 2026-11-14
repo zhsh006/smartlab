@@ -1,65 +1,30 @@
-# SmartLab
+# SmartLab 项目资料
 
-LabSmart 基于 eLabFTW，面向师生的日常实验记录与导师协作。2026-10-12 现场记录版以实验记录、课题和待办为主入口，提供按模板分步记录、关联原始证据、纸质操作单及导师提交版本审核，自动识别及检查作为按需展开的辅助工具。
+目标存放位置：`C:\项目汇总\smartlab`。
 
-当前版本与验证记录见 [`docs/release-bench-20261012.md`](./docs/release-bench-20261012.md)，前一版记录见 [`docs/release-notebook-20261012.md`](./docs/release-notebook-20261012.md)，本地源码与历史材料位置见 [`docs/local-project-location.md`](./docs/local-project-location.md)。
+请在上述 smartlab 文件夹内解压本压缩包；包内不再嵌套同名 smartlab 文件夹。
 
-2026-10-13 的运行修复及页面验收见 [`docs/release-bench-20261013-fixes.md`](./docs/release-bench-20261013-fixes.md)。
+## 内容
 
-项目仓库创建时间记录见 [`PROJECT_CREATED_2025-06-02.md`](./PROJECT_CREATED_2025-06-02.md)。
+- `SmartLab_开发需求与实施规格_V1.0.md`：26 章需求与实施规格，62 条验收用例，作为交给技术人员的主文档。
+- `prototype/smartlab-preview.html`：此前的交互演示页面，可用浏览器打开；属于设计探索，尚未通过最终页面验收。
+- `prototype/smartlab-ui-qa.js`：演示页面检查脚本，保留供技术人员参考；执行环境需由技术人员核对。
+- `design/`：此前生成的两张 SmartLab 界面设计图。
 
-说明：SmartLab 负责医学科研训练业务、专利功能页面、数据链路、算法服务适配和部署交付。
+## 当前状态
 
-## 目录结构
+本包保存目前可取得的 SmartLab 设计与开发交接资料。演示界面不代表已完成正式系统；正式账号、数据库、文件服务和后端源码尚未在本次任务中开发。现有 Tingan LabSmart V2 的源码与生产数据没有包含在本包中，技术人员需按开发规格核对实际仓库和部署。
 
-- `apps/`：Web 应用源码与 SmartLab 定制代码。
-- `deploy/`：本地和服务器部署文件。
-- `database/`：SmartLab 数据库扩展 SQL。
-- `tools/`：数据库初始化、数据导入和验收辅助脚本。
-- `docs/`：架构、数据模型和研发说明。
-- `figtest/`：专利图、运行截图、开发资料和证明材料。
+当前云端任务不能直接写入用户 Windows C 盘，解压到目标目录需要在本地完成。
 
-## 核心功能
+## 部署（h3clab 服务器）
 
-- 学生端实验项目和实验记录创建。
-- WB、qPCR、免疫荧光、免疫组化、ELISA 基础步骤模板与结构化现场记录。
-- 自动保存草稿、明确确认实际操作、补录及纸质转录、字段修订历史。
-- 五列 CSV 结果导入与按步骤关联原始附件。
-- 请求指导与正式审核分开，提交时保存当时的记录及附件引用。
-- 带编号与二维码的可打印操作单，兼顾实验台旁手写。
-- 原始记录、仪器结果、实验图片和数据表上传归档。
-- qPCR、ELISA、Western blot、免疫荧光等实验结果识别与展示。
-- 实验事件序列构建和逻辑断点识别。
-- 前后实验记录对比、跳步识别和缺失步骤推理。
-- 实验模板补全和过程草稿生成。
-- 导师端审核、反馈和闭环归档。
-- 图像分析 worker 与算法服务健康检查。
+2026-10-15 起，本项目以 **h3clab** 服务器上的实例为准（本机 Windows 不再作为部署环境）：
 
-## 本地运行
+- 服务器目录：`/home/h3clab/smartlab-workbench`
+- 应用地址：`https://172.18.21.142:3159`（局域网）
+- 部署说明：`LabSmart/deploy/h3clab/README.md`
+- 部署与验证记录：`LabSmart/docs/h3clab-deployment-20261015.md`
+- 源码更新后重建：`cd /home/h3clab/smartlab-workbench/LabSmart && bash deploy/h3clab/deploy.sh`
 
-```bash
-npm install
-npm run elab:up
-```
-
-地址：`https://127.0.0.1:3159`
-
-初始化 SmartLab 扩展表和种子数据：
-
-```bash
-npm run elab:phase1:apply
-npm run elab:phase1:seed
-```
-
-停止容器：
-
-```bash
-npm run elab:down
-```
-
-## 开发说明
-
-- SmartLab 的业务页面、控制器、模型和模板统一在 Web 应用源码内维护。
-- 数据库扩展统一放在 `database/`。
-- 部署镜像通过 `deploy/local/Dockerfile` 从本仓库源码构建。
-- 审查员版 V2 自主研发证明材料位于 `figtest/`。
+服务器上另有既有 SmartLab 实例（`smartlab-previews`、`smartlab-v4`、`/srv/smartlab-v5` 线上系统），本项目与它们使用不同目录、容器、数据库和端口，互不影响。

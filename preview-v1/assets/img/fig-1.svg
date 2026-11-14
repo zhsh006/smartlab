@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="340" viewBox="0 0 480 340" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="480" height="340" fill="#ffffff"/>
+  <text x="24" y="30" font-size="14" font-weight="700" fill="#253858">GAD67 / β-actin（相对表达）</text>
+  <text x="24" y="47" font-size="10.5" fill="#8494ab">演示数据，非真实实验结果</text>
+  <g stroke="#eef1f5" stroke-width="1">
+    <line x1="70" y1="280" x2="445" y2="280"/>
+    <line x1="70" y1="225" x2="445" y2="225"/>
+    <line x1="70" y1="170" x2="445" y2="170"/>
+    <line x1="70" y1="115" x2="445" y2="115"/>
+    <line x1="70" y1="60" x2="445" y2="60"/>
+  </g>
+  <g font-size="10" fill="#9aa8bb" text-anchor="end">
+    <text x="60" y="284">0</text>
+    <text x="60" y="229">0.3</text>
+    <text x="60" y="174">0.6</text>
+    <text x="60" y="119">0.9</text>
+    <text x="60" y="64">1.2</text>
+  </g>
+  <g>
+    <rect x="103" y="97" width="64" height="183" fill="#94a3b8"/>
+    <rect x="223" y="203" width="64" height="77" fill="#e2705d"/>
+    <rect x="343" y="137" width="64" height="143" fill="#2563eb"/>
+  </g>
+  <g stroke="#334155" stroke-width="1.4">
+    <line x1="135" y1="79" x2="135" y2="97"/><line x1="129" y1="79" x2="141" y2="79"/>
+    <line x1="255" y1="188" x2="255" y2="203"/><line x1="249" y1="188" x2="261" y2="188"/>
+    <line x1="375" y1="115" x2="375" y2="137"/><line x1="369" y1="115" x2="381" y2="115"/>
+  </g>
+  <g fill="#ffffff" stroke="#253858" stroke-width="1.1">
+    <circle cx="123" cy="126" r="2.6"/><circle cx="135" cy="97" r="2.6"/><circle cx="147" cy="112" r="2.6"/>
+    <circle cx="243" cy="225" r="2.6"/><circle cx="255" cy="203" r="2.6"/><circle cx="267" cy="218" r="2.6"/>
+    <circle cx="363" cy="168" r="2.6"/><circle cx="375" cy="137" r="2.6"/><circle cx="387" cy="155" r="2.6"/>
+  </g>
+  <g font-size="11.5" fill="#4d596b" text-anchor="middle">
+    <text x="135" y="300">WT</text>
+    <text x="255" y="300">5xFAD</text>
+    <text x="375" y="300">5xFAD+PCN</text>
+  </g>
+  <text x="24" y="326" font-size="10.5" fill="#8494ab">n=3，均值 ± SEM（演示数据）</text>
+  <text x="456" y="326" font-size="10" fill="#c3cfdd" text-anchor="end">Figure 1 · V2</text>
+</svg>

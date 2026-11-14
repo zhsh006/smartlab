@@ -1,0 +1,198 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="SmartLab V1 评审预览：实验工作台（P01）">
+<title>实验工作台 - SmartLab 评审预览</title>
+<link rel="icon" href="assets/img/favicon.ico" sizes="any">
+<link rel="stylesheet" media="all" href="assets/vendor.min.css">
+<link rel="stylesheet" media="all" href="assets/elabftw.min.css">
+<link rel="stylesheet" media="all" href="assets/smartlab-head.css">
+<link rel="stylesheet" media="all" href="assets/labsmart-notebook.css">
+<link rel="stylesheet" media="all" href="assets/preview.css">
+</head>
+<body class="ls-simple ls-authenticated">
+<div id="container" class="container-fluid">
+
+<nav aria-label="主菜单" class="navbar navbar-expand-lg navbar-dark">
+  <a href="index.html" class="logo-header" title="回到实验工作台">
+    <span class="smartlab-brand-mark"><i class="fas fa-snowflake"></i></span>
+    <span>
+      <span class="smartlab-brand-title">LabSmart</span>
+      <span class="smartlab-brand-subtitle">实验记录与导师协作</span>
+    </span>
+  </a>
+  <div class="collapse navbar-collapse" id="main-nav">
+    <div class="navbar-nav">
+      <a class="nav-item nav-link active" href="index.html"><i class="fas fa-flask fa-fw"></i>实验工作台</a>
+      <a class="nav-item nav-link" href="#"><i class="fas fa-folder-open fa-fw"></i>课题与计划</a>
+      <a class="nav-item nav-link" href="#"><i class="fas fa-box-archive fa-fw"></i>实验档案</a>
+      <a class="nav-item nav-link" href="#"><i class="fas fa-chart-line fa-fw"></i>汇报与讨论</a>
+    </div>
+    <details class="ls-nav-tools"><summary>常用工具</summary>
+      <a href="#">样本</a>
+      <a href="#">实验材料字典</a>
+      <a href="#">库存与耗材</a>
+      <a href="#">仪器预约</a>
+    </details>
+  </div>
+</nav>
+
+<div class="smartlab-topbar">
+  <div class="smartlab-topbar-date"><i class="far fa-calendar mr-1"></i>2026-10-13</div>
+  <div class="nav-item dropdown">
+    <button class="btn nav-link" type="button" data-pv-dropdown aria-label="通知"><i class="far fa-bell"></i></button>
+    <div class="dropdown-menu dropdown-menu-right">
+      <span class="dropdown-header">通知</span>
+      <div class="notification p-3">导师在「第 3 周期汇报」中留了 1 条意见。</div>
+    </div>
+  </div>
+  <div class="nav-item dropdown">
+    <button class="btn nav-link border-0" type="button" data-pv-dropdown aria-label="用户菜单"><span class="initials">演A</span></button>
+    <div class="dropdown-menu dropdown-menu-right">
+      <h6 class="dropdown-header">已登录：演示学生 A<br>海马抑制性环路研究</h6>
+      <div class="dropdown-divider"></div>
+      <a class="dropdown-item" href="#"><i class="fas fa-user fa-fw"></i>个人资料</a>
+      <a class="dropdown-item" href="#"><i class="fas fa-cogs fa-fw"></i>设置</a>
+      <div class="dropdown-divider"></div>
+      <a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt fa-fw"></i>退出登录</a>
+    </div>
+  </div>
+</div>
+
+<div id="realContainer" class="real-container">
+
+  <div class="pv-demo-strip">
+    <span><i class="fas fa-circle-info"></i>评审预览 · P01 实验工作台（演示数据，非真实实验结果）</span>
+    <span>下一屏：<a href="wb-record.html">P04 WB 快速记录 →</a></span>
+  </div>
+
+  <div class="ls-page-header">
+    <div>
+      <h2>实验工作台</h2>
+      <p>直接继续正在进行的实验；记录自动保存，导师可随时查看。</p>
+    </div>
+    <a class="btn btn-primary" href="#"><i class="fas fa-plus mr-1"></i>新建实验</a>
+  </div>
+
+  <div class="pv-toolbar">
+    <label class="sr-only" for="pv-project">当前项目</label>
+    <select id="pv-project" class="form-control pv-project-select">
+      <option selected>项目：海马抑制性环路研究</option>
+      <option>项目：全部项目</option>
+    </select>
+    <label class="sr-only" for="pv-search">搜索</label>
+    <input id="pv-search" type="search" class="form-control" placeholder="搜索实验、样本或编号，例如 WB-20261013-001">
+    <span class="pv-toolbar-hint smallgray">默认显示本人负责的进行中与暂停实验</span>
+  </div>
+
+  <div class="pv-section-heading"><h3>正在进行的实验</h3><span class="smallgray">2 个</span></div>
+
+  <article class="pv-exp-card">
+    <div class="pv-exp-top">
+      <div>
+        <a class="pv-exp-title" href="wb-record.html">WB：GAD67（5xFAD 海马）</a>
+        <div class="pv-exp-meta">WB-20261013-001 · 海马抑制性环路研究 · 负责人：演示学生 A</div>
+      </div>
+      <span class="pv-status is-running">进行中 · 第 2 天</span>
+    </div>
+    <p class="pv-exp-question"><span class="pv-q-label">研究问题</span>PCN 处理是否改善 5xFAD 小鼠海马 GAD67 的表达？</p>
+    <div class="pv-exp-grid">
+      <div><span class="pv-label">当前阶段</span><span class="pv-value">一抗孵育（4 °C 过夜）</span></div>
+      <div><span class="pv-label">最后记录</span><span class="pv-value">今天 14:32 · 上样量 20 → 25 μg <span class="pv-state is-overridden">本次已改</span></span></div>
+    </div>
+    <div class="pv-exp-row">
+      <span class="pv-label">样本／分组</span>
+      <span class="pv-chip">HPC-001 · WT</span>
+      <span class="pv-chip">HPC-002 · 5xFAD</span>
+      <span class="pv-chip">HPC-003 · 5xFAD+PCN</span>
+      <span class="pv-chip ghost">Marker</span>
+    </div>
+    <div class="pv-exp-row">
+      <span class="pv-label">方案</span>
+      <span class="pv-value">WB 通用流程 V3 <span class="smallgray">· 带入条件标“未确认”，实际变化单独记录</span></span>
+    </div>
+    <div class="pv-exp-row">
+      <span class="pv-label">最新资料</span>
+      <a class="pv-thumb" href="#" title="现场照片 · 今天 14:30"><img src="assets/img/photo-bench.svg" alt="现场照片"></a>
+      <a class="pv-thumb" href="#" title="纸卡照片 · 今天 09:12"><img src="assets/img/card-paper.svg" alt="纸卡照片"></a>
+      <a class="pv-thumb dashed" href="#" title="尚未上传曝光原图"><i class="fas fa-camera"></i><span>待上传原图</span></a>
+    </div>
+    <div class="pv-exp-actions">
+      <a class="btn btn-primary" href="wb-record.html"><i class="fas fa-play mr-1"></i>继续实验</a>
+      <a class="btn btn-outline-primary" href="wb-record.html#archive">完整档案</a>
+      <span class="smallgray">打开后停留在当前阶段，不新建批次。</span>
+    </div>
+  </article>
+
+  <article class="pv-exp-card">
+    <div class="pv-exp-top">
+      <div>
+        <a class="pv-exp-title" href="wb-record.html">WB：Iba1（5xFAD 海马）</a>
+        <div class="pv-exp-meta">WB-20261007-002 · 海马抑制性环路研究 · 负责人：演示学生 A</div>
+      </div>
+      <span class="pv-status is-paused">暂停 · 待补转膜记录</span>
+    </div>
+    <div class="pv-summary">
+      <div><span class="pv-label">当前阶段</span><span class="pv-value">转膜（已补录）</span></div>
+      <div><span class="pv-label">最后记录</span><span class="pv-value">10-08 10:20 · 转膜条件 300 mA</span></div>
+      <div><span class="pv-label">样本／分组</span><span class="pv-value">HPC-001 / HPC-002 <span class="smallgray">（2 个）</span></span></div>
+    </div>
+    <div class="pv-exp-actions">
+      <a class="btn btn-primary btn-sm" href="wb-record.html"><i class="fas fa-play mr-1"></i>继续实验</a>
+      <a class="btn btn-outline-primary btn-sm" href="wb-record.html#archive">完整档案</a>
+    </div>
+  </article>
+
+  <div class="row pv-lower">
+    <div class="col-lg-8">
+      <section class="ls-panel">
+        <div class="ls-panel-heading">
+          <h3>最近整理的 Figure</h3>
+          <a class="smallgray" href="#">查看全部</a>
+        </div>
+        <div class="pv-figures">
+          <a class="pv-figure" href="#">
+            <img src="assets/img/fig-1.svg" alt="Figure 1 演示图">
+            <div class="pv-figure-body">
+              <strong>Figure 1 · GAD67 表达量化（三组）</strong>
+              <span class="smallgray">V2 · 10-12 整理 · 已用于第 3 周期汇报</span>
+            </div>
+          </a>
+          <a class="pv-figure" href="#">
+            <img src="assets/img/fig-2.svg" alt="Figure 2 演示图">
+            <div class="pv-figure-body">
+              <strong>Figure 2 · 代表性 WB 条带（GAD67 / β-actin）</strong>
+              <span class="smallgray">V1 · 10-11 整理 · 待讨论 n 说明</span>
+            </div>
+          </a>
+        </div>
+      </section>
+    </div>
+    <div class="col-lg-4">
+      <section class="ls-panel">
+        <div class="ls-panel-heading"><h3>本周期汇报</h3></div>
+        <div class="pv-report">
+          <strong>第 3 周期汇报</strong>
+          <div class="smallgray" style="margin-top:4px">10-07 ～ 10-20 · 草稿 · 已选 3 张整理图</div>
+          <a class="btn btn-outline-primary btn-sm" href="#">继续整理</a>
+        </div>
+      </section>
+      <section class="ls-panel">
+        <div class="ls-panel-heading"><h3>最近导师意见</h3></div>
+        <div class="pv-comment">
+          <p>“Figure 2 请补充 n 的说明；下次讨论 PCN 组的变化趋势。”</p>
+          <div class="smallgray">演示导师 · 昨天 18:20 · 针对第 3 周期汇报</div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="pv-footer">演示预览 · 仅用于页面评审 · 数据均为虚构示意，非真实实验结果</div>
+</div>
+
+<script defer src="assets/preview.js"></script>
+</div>
+</body>
+</html>

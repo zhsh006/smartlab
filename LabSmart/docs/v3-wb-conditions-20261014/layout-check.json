@@ -1,0 +1,19 @@
+{
+  "buttons": [
+    {
+      "height": 43.9930534362793,
+      "label": "改了条件"
+    },
+    {
+      "height": 43.9930534362793,
+      "label": "照片 / 文件"
+    },
+    {
+      "height": 43.9930534362793,
+      "label": "完成，确认本次条件"
+    }
+  ],
+  "overflow": false,
+  "textInputs": 0,
+  "width": 390
+}

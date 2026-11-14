@@ -1,0 +1,6 @@
+Twig syntax: passed
+Read-only defaults, one-click actual confirmation, unknown rejection: passed
+Selective edits, explicit blank, evidence merge, annotation-only save, revision conflict: passed
+Reference-change conflict, known-condition carry, finish without report, frozen snapshot: passed
+Twig light form rendering: passed
+Rollback and existing record/history preservation: passed

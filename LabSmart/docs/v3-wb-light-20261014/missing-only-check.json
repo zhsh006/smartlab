@@ -1,0 +1,7 @@
+{
+  "dilution": "1:1000",
+  "primary": "CHECK 演示一抗",
+  "visibleFieldNames": [
+    "incubation"
+  ]
+}

@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block body %}
+<link rel='stylesheet' media='all' href='/assets/labsmart-record.css?v=v3-batch1'>
+<div class='ls-page-header'>
+  <div><h2>待关联数据</h2><p>核对文件，再确认所属实验。不确定时可以稍后处理。</p></div>
+</div>
+
+<div class='dc-layers' hidden>
+  <span class='dc-layer'><i class='fas fa-file-arrow-up'></i>RAW 原始数据</span>
+  <i class='fas fa-arrow-right'></i>
+  <span class='dc-layer'><i class='fas fa-link'></i>LINK 实验关联</span>
+  <i class='fas fa-arrow-right'></i>
+  <span class='dc-layer'><i class='fas fa-table'></i>PARSED 解析数据</span>
+  <i class='fas fa-arrow-right'></i>
+  <span class='dc-layer'><i class='fas fa-chart-line'></i>ANALYSIS 分析结果</span>
+</div>
+
+<section class='ls-panel'>
+  <div class='ls-panel-heading'><h3>待关联数据（{{ pendingPackages|length }}）</h3><span class='smallgray'>原则：宁可待关联，也不擅自归档到错误实验</span></div>
+  <div class='dc-package-list'>
+  {% for package in pendingPackages %}
+  <article class='dc-package'>
+    <div class='dc-package-head'>
+      <div>
+        <div class='dc-package-title'><i class='fas fa-box-open mr-2'></i>{{ package.package_label|default('数据包') }}</div>
+        <div class='dc-package-meta'>来自仪器：{{ package.source_label }} · 检测时间 {{ package.detected_label }}</div>
+      </div>
+      <span class='pv-state is-unknown'>{{ package.integrity_warning ?: '待确认归属' }}</span>
+    </div>
+    <div class='table-responsive'><table class='ls-table dc-file-table'>
+      <thead><tr><th>文件名</th><th>大小</th><th>源文件时间</th></tr></thead>
+      <tbody>{% for file in package.files %}<tr><td>{{ file.name }}{% if file.source_path|default('') %}<div class='smallgray dc-source-path' title='{{ file.source_path }}'>{{ file.source_path_label }}</div>{% endif %}</td><td>{{ file.size_label }}</td><td>{{ file.mtime_label }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    <form method='post' action='smartlab-data.php' class='dc-link-form'>
+      {{ App.Session.get('csrf')|csrf }}
+      <input type='hidden' name='action' value='link_package'>
+      <input type='hidden' name='package_id' value='{{ package.id }}'>
+      <label for='dc-exp-{{ package.id }}'>关联到实验记录</label>
+      <select id='dc-exp-{{ package.id }}' name='experiment_id' class='form-control' required>
+        <option value=''>选择实验记录…</option>
+        {% for experiment in experimentOptions %}<option value='{{ experiment.id }}'>{{ experiment.title }}</option>{% endfor %}
+      </select>
+      <button class='btn btn-primary' type='submit' {{ package.integrity_warning ? 'disabled' }}>确认归属并保存原件</button>
+      <span class='smallgray'>不确定就保持现状，数据包会留在待关联队列里，不会被挂到任何实验。</span>
+    </form>
+  </article>
+  {% else %}
+  <div class='ls-empty'><strong>当前没有需要你确认的数据包</strong>仪器产生新文件后，会出现在配置的数据接收人的待关联列表。</div>
+  {% endfor %}
+  </div>
+</section>
+
+<section class='ls-panel'>
+  <div class='ls-panel-heading'><h3>已关联数据（{{ linkedPackages|length }}）</h3></div>
+  <div class='table-responsive'><table class='ls-table'>
+    <thead><tr><th>数据包</th><th>来源</th><th>检测时间</th><th>归档到</th><th>归档人 / 时间</th></tr></thead>
+    <tbody>
+    {% for package in linkedPackages %}
+      <tr>
+        <td>{{ package.package_label }}{% if package.integrity_warning %}<div class='text-warning'>{{ package.integrity_warning }}</div>{% endif %}</td>
+        <td>{{ package.source_label }}</td>
+        <td>{{ package.detected_label }}</td>
+        <td><a href='smartlab-record.php?id={{ package.experiment_id }}#files'>{{ package.experiment_title|default('—') }}</a></td>
+        <td>{{ package.linked_by_name|default('') }} · {{ package.linked_label }}</td>
+      </tr>
+    {% else %}<tr><td colspan='5'><div class='ls-empty'><strong>还没有已归档的数据包</strong>待关联数据确认后显示在这里。</div></td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+{% if canManageAgents %}<section class='ls-panel'>
+  <div class='ls-panel-heading'><h3>设备接入（Agent）</h3><span class='smallgray'>仪器电脑运行 smartlab-agent.py，用令牌上报数据</span></div>
+  <div class='dc-agents'>
+    {% if agents|length %}
+    <div class='table-responsive'><table class='ls-table'>
+      <thead><tr><th>设备 / Agent</th><th>数据接收人</th><th>最近上报</th><th>创建时间</th></tr></thead>
+      <tbody>
+      {% for agent in agents %}
+        <tr>
+          <td>{{ agent.name }} <span class='pv-state {{ agent.status == 'active' ? 'is-confirmed' : 'is-default' }}'>{{ agent.status == 'active' ? '启用' : agent.status }}</span></td>
+          <td>{{ agent.recipient_name|default('未配置') }}</td>
+          <td>{{ agent.last_seen_at ? (agent.last_seen_at ~ ' UTC')|date('m-d H:i','Asia/Shanghai') : '尚未上报' }}</td>
+          <td>{% if agent.created_at %}{{ (agent.created_at ~ ' UTC')|date('m-d H:i','Asia/Shanghai') }}{% endif %} · {{ agent.created_by_name|default('') }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    <div class='ls-empty'><strong>还没有接入设备</strong>在下面生成一个令牌，配置到仪器电脑上的 Agent 程序。</div>
+    {% endif %}
+    <form method='post' action='smartlab-data.php' class='dc-agent-form'>
+      {{ App.Session.get('csrf')|csrf }}
+      <input type='hidden' name='action' value='create_agent'>
+      <label for='dc-agent-name'>设备名称</label>
+      <input id='dc-agent-name' type='text' name='agent_name' class='form-control' placeholder='例如：CFX96-01 仪器电脑' maxlength='255'>
+      <label for='dc-agent-recipient'>数据接收人</label><select id='dc-agent-recipient' name='recipient_id' class='form-control' required><option value=''>请选择</option>{% for recipient in agentRecipients %}<option value='{{ recipient.userid }}'>{{ recipient.firstname }} {{ recipient.lastname }}</option>{% endfor %}</select>
+      <button class='btn btn-outline-primary' type='submit'><i class='fas fa-plus mr-1'></i>生成接入令牌</button>
+      <span class='smallgray'>新令牌仅在创建时显示一次，请保存到设备配置。现有设备令牌继续有效。</span>
+    </form>
+  </div>
+</section>{% endif %}
+{% endblock %}

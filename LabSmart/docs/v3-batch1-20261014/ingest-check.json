@@ -1,0 +1,11 @@
+{
+  "scope": "Only synthetic local files",
+  "package_id": 9,
+  "same_names_preserved": true,
+  "unique_stored_paths": 2,
+  "both_source_hashes_match": true,
+  "source_files_unchanged": true,
+  "retry_returned_same_package": true,
+  "invalid_hash_rejected_without_publish": true,
+  "status": "linked"
+}

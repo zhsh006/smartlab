@@ -1,0 +1,20 @@
+{
+  "backgroundOpen": false,
+  "bodyFont": "16px",
+  "bodyWidth": 376,
+  "buttons": [
+    {
+      "font": "16px",
+      "height": 44,
+      "text": "确认本步实际操作"
+    },
+    {
+      "font": "16px",
+      "height": 44,
+      "text": "保存草稿"
+    }
+  ],
+  "inputFont": "16px",
+  "menuVisible": "none",
+  "viewport": 390
+}

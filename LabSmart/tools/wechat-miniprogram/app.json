@@ -1,0 +1,26 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/experiments/experiments",
+    "pages/experiment/experiment",
+    "pages/me/me"
+  ],
+  "window": {
+    "navigationBarTitleText": "LabSmart",
+    "navigationBarBackgroundColor": "#0a66c2",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f3f5f8"
+  },
+  "tabBar": {
+    "color": "#66727f",
+    "selectedColor": "#0a66c2",
+    "backgroundColor": "#ffffff",
+    "list": [
+      { "pagePath": "pages/experiments/experiments", "text": "我的实验" },
+      { "pagePath": "pages/index/index", "text": "扫一扫" },
+      { "pagePath": "pages/me/me", "text": "我的" }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

@@ -1,0 +1,296 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>WB 组件测试</title><style>body{font-family:system-ui,Arial,sans-serif;margin:0;background:#f4f6f9;color:#243447}.preview-wrap{max-width:1060px;margin:20px auto;padding:0 16px}.preview-label{background:#fff0d3;padding:12px;font-size:14px;margin-bottom:16px}.form-control{box-sizing:border-box;width:100%;padding:9px 12px;border:1px solid #cad3de;border-radius:5px;background:#fff;color:#243447}.btn{border:1px solid #b9c7d5;border-radius:5px;padding:9px 12px;background:#fff;color:#31475e;cursor:pointer}.btn-primary{background:#1c68a5;color:#fff;border-color:#1c68a5}.smallgray{color:#65778a;font-size:14px}.bench-card{padding:22px;background:white;border:1px solid #e1e7ef;border-radius:10px}.bench-card-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}.bench-card-heading h3{margin:0 0 16px}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}[hidden]{display:none!important}a{color:#1c68a5}label{display:block;margin-bottom:6px}.mb-0{margin-bottom:0}.mt-2{margin-top:8px}/* SmartLab V1（实验工作台 + 快速记录）新增样式，叠加在现有样式之上 */
+/* V3 current experiment workbench. Supporting tasks stay below the experiments. */
+.wb-section-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:24px 0 14px}.wb-section-head h3{font-size:20px;margin:0}
+.wb-experiment-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.wb-experiment-card{padding:22px;background:#fff;border:1px solid var(--ls-line);border-radius:12px;min-width:0}
+.wb-experiment-card h3{font-size:19px;line-height:1.45;margin:6px 0 8px}.wb-experiment-card h3 a{color:#243247}.wb-type{font-size:14px;color:#64748b}.wb-experiment-facts{margin:18px 0;display:grid;gap:10px}.wb-experiment-facts>div{display:grid;grid-template-columns:84px minmax(0,1fr);gap:12px}.wb-experiment-facts dt{font-size:14px;font-weight:400;color:#64748b}.wb-experiment-facts dd{font-size:15px;margin:0;overflow-wrap:anywhere;line-height:1.55}
+.wb-secondary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:24px 0}.wb-secondary>a{display:flex;flex-direction:column;gap:6px;border:1px solid var(--ls-line);border-radius:10px;padding:16px;background:#fff}.wb-secondary span{color:#64748b;font-size:14px}.wb-secondary-lists{display:grid;grid-template-columns:1fr 1fr;gap:24px}.wb-secondary-lists h3{font-size:17px}.wb-secondary-lists p{font-size:14px}.dc-source-path{overflow-wrap:anywhere;max-width:430px}.dc-layers[hidden]{display:none!important}
+@media(max-width:1100px){.wb-experiment-grid{grid-template-columns:1fr}}
+@media(max-width:992px){
+ body.ls-simple{font-size:16px}.ls-simple nav.navbar{display:flex!important;flex-direction:row!important;align-items:center;justify-content:space-between;flex-wrap:wrap!important;padding:10px 16px!important;min-height:64px}
+ .ls-simple nav.navbar .logo-header{width:auto!important;height:44px!important;margin:0!important;padding:0!important;order:0}.ls-simple nav.navbar .smartlab-brand-subtitle{display:none!important}.ls-simple nav.navbar .smartlab-brand-title{font-size:22px!important}
+ .ls-simple nav.navbar .navbar-toggler{display:inline-flex!important;align-items:center;justify-content:center;order:1;margin:0!important;min-width:64px;min-height:44px;color:#2563eb;background:#eef5ff;border:1px solid #dce7fb;font-size:16px}
+ .ls-simple nav.navbar #main-nav{order:2;flex-basis:100%;width:100%}.ls-simple nav.navbar #main-nav.collapse:not(.show){display:none!important}.ls-simple nav.navbar #main-nav.show{display:block!important}.ls-simple nav.navbar #main-nav .navbar-nav{flex-direction:column!important}.ls-simple nav.navbar #main-nav .nav-item{width:100%!important;flex:none!important}.ls-simple nav.navbar #main-nav .nav-link{min-height:44px;font-size:16px!important}
+ .ls-simple .rec-page label,.ls-simple .rec-page p,.ls-simple .rec-page .form-control,.ls-simple .wb-experiment-facts dt,.ls-simple .wb-experiment-facts dd{font-size:16px!important}.ls-simple .rec-page .btn,.ls-simple .wb-actions .btn,.ls-simple .dc-link-form .btn,.ls-simple .rec-page .bench-inline-action{min-height:44px;min-width:44px;font-size:16px!important}
+ .wb-experiment-grid,.wb-secondary,.wb-secondary-lists{grid-template-columns:1fr}.wb-experiment-card{padding:16px}.wb-card-top{gap:8px}.wb-experiment-facts>div{grid-template-columns:84px minmax(0,1fr);gap:8px}.rec-title{font-size:21px}.rec-save{white-space:normal}.rec-step.is-current .rec-step-dot{animation:none}
+}
+/* ---- 状态徽标（诚实显示确认语义） ---- */
+.pv-state{display:inline-block;border-radius:5px;font-size:11.5px;padding:3px 8px;white-space:nowrap;vertical-align:middle;font-weight:500}
+.pv-state.is-default{background:#f0f3f7;color:#596b82}
+.pv-state.is-confirmed{background:#edf8f1;color:#2f7950}
+.pv-state.is-overridden{background:#eff5ff;color:#2563eb}
+.pv-state.is-unknown{background:#fff6e7;color:#966914}
+
+/* ---- 工作台卡片 ---- */
+.wb-list{display:flex;flex-direction:column;gap:16px;padding:18px 22px}
+.wb-card{background:#fff;border:1px solid var(--ls-line);border-radius:12px;padding:20px 22px;transition:border-color .12s}
+.wb-card:hover{border-color:#cfdcf0}
+.wb-card-top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.wb-title{font-size:17px;font-weight:650;color:#1f2c44;letter-spacing:-.2px}
+.wb-title:hover{text-decoration:none;color:#2563eb}
+.wb-meta{color:#718096;font-size:12.5px;margin-top:5px;line-height:1.7}
+.wb-info{display:grid;grid-template-columns:1fr 1.4fr .8fr;gap:8px 24px;margin:14px 0 2px}
+.wb-label{color:#64748b;font-size:12.5px;margin-right:8px;white-space:nowrap}
+.wb-value{color:#243247;font-size:13.5px}
+.wb-actions{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
+@media(max-width:900px){.wb-info{grid-template-columns:1fr}.wb-card-top{flex-direction:column;gap:6px}}
+
+/* ---- 记录页头 ---- */
+.rec-page{padding-top:2px}
+.rec-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin:4px 0 18px;flex-wrap:wrap}
+.rec-title{font-size:24px;margin:8px 0 6px;font-weight:700;letter-spacing:-.3px}
+.rec-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:#718096;font-size:12.5px}
+.rec-code{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:3px 8px;color:#3c5273;font-size:12px}
+.rec-save{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--ls-line);border-radius:999px;padding:8px 14px;font-size:12.5px;color:#526278;white-space:nowrap}
+.rec-save.saving{color:#966914;border-color:#f2d9a8;background:#fffdf5}
+
+/* ---- 背景区 ---- */
+.rec-bg{display:grid;grid-template-columns:1.4fr 1fr;gap:22px}
+.rec-bg-main label{font-size:13.5px;color:#334155;margin-bottom:6px}
+.rec-bg-side .rec-label{display:block;color:#64748b;font-size:12.5px;margin:10px 0 5px}
+.rec-bg-side p{margin:0 0 12px;font-size:13.5px;line-height:1.7;color:#334155}
+.rec-read{font-size:14px;line-height:1.8;color:#334155;white-space:pre-wrap}
+@media(max-width:900px){.rec-bg{grid-template-columns:1fr}}
+
+/* ---- 阶段进度条 ---- */
+.rec-stepper{display:flex;align-items:flex-start;margin:2px 0 18px;padding:20px 22px 14px;background:#fff;border:1px solid var(--ls-line);border-radius:12px;overflow-x:auto}
+.rec-stepper::-webkit-scrollbar{height:6px}
+.rec-stepper::-webkit-scrollbar-thumb{background:#d7dfea;border-radius:3px}
+.rec-step{flex:1;min-width:120px;display:flex;flex-direction:column;align-items:center;background:none;border:0;padding:0;cursor:pointer}
+.rec-step-track{display:flex;align-items:center;width:100%;min-height:30px}
+.rec-step-line{flex:1;height:3px;border-radius:2px}
+.rec-step-line.is-hidden{background:transparent}
+.rec-step-line.is-green{background:#22b573}
+.rec-step-line.is-blue{background:#2563eb}
+.rec-step-line.is-lightblue{background:#bcd4f6}
+.rec-step-line.is-gray{background:#e2e8f0}
+.rec-step-dot{position:relative;flex:0 0 auto;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#fff;border:2px solid #d7dfea;color:#fff;font-size:11.5px;transition:transform .12s}
+.rec-step:hover .rec-step-dot{transform:scale(1.08)}
+.rec-step.is-done .rec-step-dot{background:#22b573;border-color:#22b573}
+.rec-step.is-current .rec-step-dot{background:#2563eb;border-color:#2563eb;animation:recPulse 2.2s infinite}
+.rec-step.is-next .rec-step-dot{width:20px;height:20px;background:#c9dcf8;border-color:#c9dcf8}
+.rec-step.is-next .rec-step-dot::after{content:"";width:6px;height:6px;border-radius:50%;background:#fff}
+.rec-step-label{margin-top:9px;font-size:12.5px;color:#7b8ba6;white-space:normal;line-height:1.4;text-align:center}
+.rec-step.is-done .rec-step-label{color:#4d596b}
+.rec-step.is-next .rec-step-label{color:#8fa6c6}
+.rec-step.is-current .rec-step-label{color:#2563eb;font-weight:600}
+.rec-step.is-selected:not(.is-current) .rec-step-label{font-weight:700;color:#1f2c44}
+@keyframes recPulse{0%{box-shadow:0 0 0 0 rgba(37,99,235,.28)}70%{box-shadow:0 0 0 9px rgba(37,99,235,0)}100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}}
+@media(max-width:900px){.rec-stepper{padding:14px 12px 10px}.rec-step{min-width:124px}}
+
+/* ---- 时间线 ---- */
+.pv-timeline{display:flex;flex-direction:column}
+.pv-tl-item{display:flex;gap:12px;padding:12px 0;border-top:1px solid #eef1f5}
+.pv-tl-item:first-child{border-top:0;padding-top:4px}
+.pv-tl-icon{flex:0 0 30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:12px;background:#f0f3f7;color:#596b82}
+.pv-tl-icon.is-change{background:#eff5ff;color:#2563eb}
+.pv-tl-icon.is-confirm{background:#edf8f1;color:#2f7950}
+.pv-tl-icon.is-retro{background:#fff6e7;color:#966914}
+.pv-tl-icon.is-file{background:#f4f1fb;color:#6d4fc2}
+.pv-tl-body{min-width:0;flex:1}
+.pv-tl-title{font-size:13.5px;color:#2b3648;line-height:1.6;font-weight:500}
+.pv-tl-meta{font-size:12px;color:#8494ab;margin-top:3px;line-height:1.6}
+.pv-tl-note{font-size:12.5px;color:#5b6b82;background:#f8fafc;border-radius:6px;padding:6px 10px;margin-top:6px;line-height:1.6}
+
+/* ---- 文件与上传 ---- */
+.rec-uploads{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.rec-file{display:inline-flex;align-items:center;padding:8px 12px;border:1px solid var(--ls-line);border-radius:8px;font-size:12.5px;color:#3c5273;background:#fff;overflow-wrap:anywhere}
+.rec-file:hover{text-decoration:none;border-color:#bcd3f5;color:#2563eb}
+.rec-drop{min-height:110px;border:1.5px dashed #b7c7de;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#7b8ba6;font-size:13px;background:#fbfcfe;cursor:pointer;text-align:center;padding:16px}
+.rec-drop:hover{border-color:#2563eb;color:#2563eb}
+.rec-drop i{font-size:22px}
+
+/* ---- 模板选择 ---- */
+.rec-template-pick{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.rec-template-pick select{max-width:280px}
+
+/* ---- 档案历史 ---- */
+.rec-history{padding:4px 22px 16px}
+.rec-history-item{border-top:1px solid #eef1f5;padding:12px 0}
+.rec-history-item:first-child{border-top:0}
+.rec-history-item details{font-size:12.5px;margin-top:6px}
+.rec-history-item details p{margin:6px 0 0;color:#5b6b82;line-height:1.7}
+.rec-stage-state{white-space:nowrap}
+.rec-hint{margin-top:12px}
+
+/* ---- 异常勾选 ---- */
+.rec-exception-presets{display:flex;flex-wrap:wrap;gap:8px 16px;margin-bottom:8px}
+.rec-exception-option{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#526278;cursor:pointer;margin:0}
+.rec-exception-option input{margin:0}
+
+/* ---- V3 首页任务台：今天做什么 ---- */
+.tb-grid{display:grid;grid-template-columns:1.1fr 1fr .9fr;gap:18px;margin-bottom:24px}
+@media(max-width:1100px){.tb-grid{grid-template-columns:1fr}}
+.tb-card{background:#fff;border:1px solid var(--ls-line);border-radius:12px;padding:18px 20px}
+.tb-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.tb-card-head h3{font-size:16px;margin:0;font-weight:650}
+.tb-card-head h3 i{color:#2563eb}
+.tb-list{display:flex;flex-direction:column}
+.tb-item{display:flex;align-items:center;gap:12px;padding:11px 2px;border-top:1px solid #eef1f5;color:inherit}
+.tb-item:first-child{border-top:0}
+.tb-item:hover{text-decoration:none;background:#f8faff}
+.tb-item-dot{flex:0 0 9px;height:9px;border-radius:50%;background:#c9dcf8}
+.tb-item-body{flex:1;min-width:0;display:flex;flex-direction:column}
+.tb-item-title{font-size:13.5px;color:#1f2c44;font-weight:600;overflow-wrap:anywhere}
+.tb-item-action{font-size:12.5px;color:#64748b;margin-top:2px}
+.tb-empty{display:flex;flex-direction:column;align-items:center;gap:8px;color:#8494ab;font-size:13px;text-align:center;padding:26px 10px;line-height:1.7}
+.tb-empty i{font-size:20px;color:#b6c4d8}
+.tb-progress{margin:2px 0 10px}
+.tb-progress-top{display:flex;justify-content:space-between;font-size:12.5px;color:#526278;margin-bottom:6px}
+.tb-progress-pct{color:#2563eb;font-weight:600}
+.tb-progress-bar{height:8px;border-radius:99px;background:#eef2f8;overflow:hidden}
+.tb-progress-bar span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#2563eb,#13b8d7)}
+.tb-task{display:flex;align-items:center;gap:10px;padding:9px 2px;border-top:1px solid #eef1f5;font-size:13.5px;color:#334155}
+.tb-task:first-child{border-top:0}
+.tb-task i{color:#b6c4d8;font-size:13px}
+.tb-task.is-done{color:#8494ab;text-decoration:line-through}
+.tb-task.is-done i{color:#22b573;text-decoration:none}
+.tb-task.is-blocked i{color:#e2705d}
+.tb-task-title{flex:1;min-width:0;overflow-wrap:anywhere}
+.tb-task-due{font-size:12px;color:#8494ab;white-space:nowrap}
+.tb-reminder{display:flex;align-items:center;gap:10px;padding:10px 2px;border-top:1px solid #eef1f5;font-size:13px;color:#334155}
+.tb-reminder:first-child{border-top:0}
+.tb-reminder i{color:#f0b429;font-size:13px}
+.tb-reminder.is-soon i{color:#e2705d}
+.tb-reminder-text{flex:1;min-width:0;overflow-wrap:anywhere}
+.tb-reminder-date{font-size:12px;color:#8494ab;white-space:nowrap}
+.tb-recent-head{display:flex;justify-content:space-between;align-items:baseline;margin:6px 0 12px}
+.tb-recent-head h3{font-size:17px;margin:0;font-weight:650}
+.tb-recent-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media(max-width:1100px){.tb-recent-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.tb-recent-grid{grid-template-columns:1fr}}
+.tb-recent-card{display:flex;flex-direction:column;background:#fff;border:1px solid var(--ls-line);border-radius:12px;padding:16px 18px;color:inherit;gap:8px}
+.tb-recent-card:hover{text-decoration:none;border-color:#bcd3f5}
+.tb-recent-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.tb-recent-title{font-size:13.5px;font-weight:600;color:#1f2c44;line-height:1.5}
+.tb-recent-meta{font-size:12px;color:#8494ab}
+.tb-recent-foot{font-size:12.5px;color:#2563eb;margin-top:auto}
+
+/* ---- 数据页：数据包待关联 ---- */
+.dc-layers{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:#fff;border:1px solid var(--ls-line);border-radius:12px;padding:14px 20px;margin-bottom:18px;font-size:13px;color:#526278}
+.dc-layers>i.fa-arrow-right{color:#b6c4d8;font-size:11px}
+.dc-layer i{color:#2563eb;margin-right:6px}
+.dc-package-list{padding:0 18px 6px}
+.dc-package{border:1px solid var(--ls-line);border-radius:10px;padding:16px 18px;margin:16px 0;background:#fff}
+.dc-package-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.dc-package-title{font-size:14.5px;font-weight:600;color:#1f2c44}
+.dc-package-meta{font-size:12.5px;color:#8494ab;margin-top:4px}
+.dc-file-table{margin:10px 0}
+.dc-file-table th,.dc-file-table td{padding:8px 14px;font-size:13px}
+.dc-link-form{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.dc-link-form label{font-size:13px;color:#526278;margin:0;white-space:nowrap}
+.dc-link-form select{max-width:380px;flex:1;min-width:220px}
+.dc-link-form .smallgray{flex-basis:100%;margin:0}
+
+/* ---- 周报工作区 ---- */
+.rp-period{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+.rp-period label{font-size:13.5px;color:#526278;margin:0;white-space:nowrap}
+.rp-period input[type=date]{width:auto;max-width:180px}
+.rp-period-sep{color:#8494ab}
+.rp-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin-bottom:18px}
+@media(max-width:1100px){.rp-grid{grid-template-columns:1fr}}
+.rp-work-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #eef1f5;font-size:13.5px;color:#334155}
+.rp-work-item:first-of-type{border-top:0}
+.rp-work-item>i{color:#22b573;font-size:13px}
+.rp-work-title{flex:1;min-width:0;overflow-wrap:anywhere}
+.rp-figures{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:4px}
+@media(max-width:900px){.rp-figures{grid-template-columns:repeat(2,1fr)}}
+.rp-figure{position:relative;border:1px solid var(--ls-line);border-radius:10px;overflow:hidden;background:#fff;cursor:pointer;display:flex;flex-direction:column;margin:0}
+.rp-figure>input{position:absolute;top:8px;left:8px;z-index:2;width:16px;height:16px;margin:0}
+.rp-figure>img{width:100%;height:96px;object-fit:cover;display:block;background:#f4f6f9}
+.rp-figure-icon{height:96px;display:grid;place-items:center;color:#b6c4d8;font-size:22px;background:#f8fafc}
+.rp-figure-body{padding:8px 10px;font-size:11.5px;color:#526278;line-height:1.5;display:block}
+.rp-figure-body strong{display:block;font-size:12px;color:#243247;word-break:break-all;font-weight:600}
+.rp-figure input:checked~.rp-figure-body{background:#eff5ff}
+.rp-figure:has(input:checked){border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15)}
+.rp-side-card label{font-size:13.5px;color:#334155;margin:14px 0 6px;display:block}
+.rp-side-card label:first-of-type{margin-top:0}
+.rp-view-body{padding:18px 22px}
+.rp-view-meta{font-size:12.5px;color:#8494ab;margin-bottom:12px}
+.rp-view-body h4{font-size:14.5px;margin:16px 0 6px;font-weight:650}
+.rp-view-body p{margin:0;font-size:13.5px;line-height:1.8;color:#334155}
+.rp-view-figures{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:6px}
+@media(max-width:900px){.rp-view-figures{grid-template-columns:repeat(2,1fr)}}
+.rp-view-figure{border:1px solid var(--ls-line);border-radius:10px;overflow:hidden;background:#fff;display:block;color:inherit}
+.rp-view-figure:hover{text-decoration:none;border-color:#bcd3f5}
+.rp-view-figure img{width:100%;height:120px;object-fit:cover;display:block;background:#f4f6f9}
+
+/* ---- 数据页：设备接入 ---- */
+.dc-agents{padding:0 18px 18px}
+.dc-agents .table-responsive{margin-bottom:14px}
+.dc-agents .ls-table td,.dc-agents .ls-table th{padding:10px 14px;font-size:13px}
+.dc-token{display:inline-block;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:3px 8px;font-size:12px;color:#3c5273;word-break:break-all}
+.dc-agent-form{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.dc-agent-form label{font-size:13px;color:#526278;margin:0;white-space:nowrap}
+.dc-agent-form input[type=text]{max-width:280px}
+.dc-agent-form .smallgray{flex-basis:100%;margin:0}
+
+/* Compact mobile record header: retain experiment identity, reduce repeated headings. */
+@media(max-width:992px){.ls-simple .rec-page .rec-head{margin:0 0 12px;gap:10px}.ls-simple .rec-page .rec-title{font-size:20px;margin:6px 0}.ls-simple .rec-page .rec-meta{gap:6px;line-height:1.5}.ls-simple .rec-page #bench-plan{padding:12px 16px;margin-bottom:12px}.ls-simple .rec-page .rec-stepper{padding:12px 10px 8px;margin-bottom:12px}}
+
+/* WB daily use: condition summary first; only changed or unknown values become inputs. */
+.rec-wb-light .rec-step-card{max-width:1080px;margin:0 auto 18px}
+.rec-wb-light .rec-stepper{padding:12px 20px 10px;margin-bottom:14px}.rec-wb-light .rec-tabs{margin-bottom:16px}.rec-wb-light .bench-record-meta{margin-bottom:8px}.rec-wb-light .wb-batch-context{margin-bottom:10px;padding:8px 12px}.rec-wb-light .wb-light-intro{margin-bottom:10px}.rec-wb-light .wb-condition-summary{margin-bottom:14px}.rec-wb-light .wb-annotation-preview{margin-bottom:10px;padding:8px 12px}
+.rec-wb-light .wb-light-intro{font-size:16px;color:#526278;margin:0 0 18px;line-height:1.65}
+.wb-condition-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 28px;margin:0 0 22px;background:#f7f9fc;border:1px solid #e8edf4;border-radius:10px;padding:4px 20px}
+.wb-condition-summary>div{padding:15px 0;min-width:0}.wb-condition-summary dt{font-size:14px;color:#64748b;font-weight:400;margin-bottom:5px}.wb-condition-summary dd{margin:0;display:flex;flex-direction:column;gap:3px;overflow-wrap:anywhere}.wb-condition-summary strong{font-size:19px;font-weight:600;color:#243247;white-space:pre-wrap}.wb-condition-source{font-size:13px;color:#66778d}
+.wb-light-actions{display:flex;flex-wrap:wrap;gap:10px}.wb-light-actions .btn{min-height:46px;font-size:16px;padding:10px 18px}.wb-light-status{font-size:14px!important;color:#66778d;margin:12px 0 0!important;line-height:1.55}
+.wb-annotation-preview{font-size:15px;color:#7d601e;background:#fff8eb;border-radius:8px;padding:10px 14px;line-height:1.6;white-space:pre-wrap}
+.wb-edit-panel{margin-top:20px;padding:18px 20px;border:1px solid #dce5f1;border-radius:10px;background:#fff}.wb-panel-title{font-size:16px;font-weight:600;color:#334155;margin:0 0 12px}.wb-field-picker{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.wb-field-choice{border:1px solid #d8e1ec;background:#f8fafc;border-radius:8px;color:#526278;font-size:14px;padding:9px 12px;min-height:44px}.wb-field-choice[aria-pressed=true]{border-color:#92b5ee;background:#edf4ff;color:#1d56af}.wb-selective-fields{margin:0}.wb-selective-fields label{font-size:15px}.wb-selective-fields .form-control{font-size:16px;min-height:44px}.wb-reference-hint{display:block;font-size:13px;color:#66778d;margin-top:6px}.wb-panel-hint{font-size:14px!important;color:#66778d;margin:12px 0 0!important}
+.wb-batch-context{background:#f8fafc;padding:10px 14px;border-radius:8px;font-size:14px;color:#526278;line-height:1.6}.wb-batch-context>span:first-child{color:#64748b;margin-right:8px}.wb-batch-groups{margin-left:12px;white-space:pre-wrap}.wb-photo-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:14px 0 10px}.wb-photo-actions .btn{min-height:44px;font-size:16px}.wb-annotation-dot{color:#2563eb;font-weight:700}.wb-existing-evidence{margin-top:12px}.wb-other-entry{margin-top:18px;font-size:13px;color:#66778d}.wb-optional-result{max-width:1080px;margin:0 auto 18px}.wb-optional-result>summary{font-size:15px;color:#526278;padding:3px 0}.wb-optional-result[open]>summary{margin-bottom:18px}.rec-wb-light [hidden]{display:none!important}.rec-wb-light #filesDiv{max-width:1080px;margin:0 auto 18px}
+@media(max-width:992px){.wb-condition-source,.wb-light-status,.wb-panel-hint,.wb-other-entry,.wb-optional-result>summary{font-size:16px!important}.wb-condition-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px;padding:0 14px;margin-bottom:14px}.wb-condition-summary>div{padding:12px 0}.wb-condition-summary>div:last-child:nth-child(odd),.wb-condition-summary>[data-wb-summary=groups]{grid-column:1/-1}.wb-condition-summary strong{font-size:20px}.wb-light-actions .btn-primary{flex-basis:100%}.wb-light-actions .btn-outline-secondary{flex:1}.wb-edit-panel{padding:14px}.wb-field-choice{font-size:16px}.wb-batch-groups{display:block;margin-left:0}.rec-wb-light .bench-record-meta{font-size:14px!important;line-height:1.5}.rec-wb-light .wb-light-intro{margin-bottom:10px}}
+@media(max-width:600px){.rec-wb-light{padding-bottom:132px}.rec-wb-light .rec-save{display:none}.rec-wb-light .wb-batch-groups{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rec-wb-light .wb-light-actions{position:fixed;left:0;right:0;bottom:0;z-index:1030;background:#fff;border-top:1px solid #dce5f1;padding:10px 14px calc(10px + env(safe-area-inset-bottom));gap:8px;box-shadow:0 -4px 18px rgba(35,50,71,.05)}.rec-wb-light .wb-selective-fields .form-control{scroll-margin-bottom:140px}}
+/* WB: one shared setup and one completion, with optional changes kept out of the start path. */
+.wb-quick label{font-weight:600}.wb-quick-selectors{display:grid;grid-template-columns:1fr 1fr;gap:20px}.wb-antibody-pick{display:flex;gap:8px;margin-bottom:8px}.wb-antibody-pick select{min-width:0}.wb-quick .form-control,.wb-quick .btn{font-size:16px;min-height:44px}.wb-quick-overview{display:grid;gap:10px;margin:18px 0;padding:15px;background:#f4f8fc;border-radius:8px}.wb-quick-overview strong,.wb-quick-overview span,.wb-quick-overview small{display:block}.wb-quick-overview small{color:#607080}.wb-secondary-pick{margin:4px 0 12px}.wb-quick-progress{display:flex;align-items:center;gap:12px;margin:20px 0}.wb-quick-progress label{margin:0;white-space:nowrap}.wb-quick-progress select{width:auto;max-width:240px}.wb-quick-conditions,.wb-quick-notes{border-top:1px solid #e2e8ef;padding:14px 0}.wb-quick summary{font-weight:600;cursor:pointer;min-height:30px}.wb-quick-condition-list{margin-top:12px}.wb-quick-condition-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid #edf0f4}.wb-quick-condition-row span,.wb-quick-condition-row strong,.wb-quick-condition-row small{display:block;overflow-wrap:anywhere}.wb-quick-condition-row span,.wb-quick-condition-row small{color:#617082;font-size:13px}.wb-quick-condition-row input{grid-column:1/-1}.wb-quick-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.wb-quick-status{margin:10px 0 0}.wb-quick .bench-inline-action{display:inline-block;margin-top:6px;min-height:30px}.wb-quick-conditions[open] summary{margin-bottom:8px}
+@media(max-width:600px){.wb-quick-selectors{grid-template-columns:1fr;gap:12px}.wb-quick-progress{flex-wrap:wrap}.wb-quick-progress [role=status]{flex-basis:100%}.wb-quick{padding-bottom:80px!important}.wb-quick-actions{position:fixed;z-index:20;bottom:0;left:0;right:0;margin:0;padding:10px;background:#fff;box-shadow:0 -2px 10px #00000012;flex-wrap:nowrap;gap:6px}.wb-quick-actions .btn{font-size:14px;padding:9px 10px}.wb-quick-actions .btn-primary{flex:1}.wb-quick-overview{padding:12px}.wb-quick-conditions[open]{scroll-margin-bottom:85px}}
+.wb-method-label{display:block;font-weight:600;margin-bottom:8px}.wb-method-picker{margin-top:8px}.wb-quick-overview{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}.wb-quick .bench-inline-action,.wb-quick .wb-secondary-pick summary,.wb-quick .wb-method-picker summary{min-height:44px;box-sizing:border-box;padding-top:8px}
+</style><div class="preview-wrap"><div class="preview-label">组件预览 · 合成数据 · 未连接数据库，保存操作不可用</div><section class='bench-card wb-quick' data-wb-quick>
+  <div class='bench-card-heading'><h3>本次 WB</h3><span class='pv-state is-default' data-wb-batch-state>随做随记</span></div>
+    <form action='smartlab-record.php?id=999' method='post' data-wb-setup>
+    <input type="hidden" name="csrf" value="COMPONENT_PREVIEW"><input type='hidden' name='smartlab_action' value='wb_setup'><input type='hidden' name='expected_revision' value='1'><input type='hidden' name='catalog_token' value='COMPONENT_PREVIEW'>
+    <div class='wb-quick-selectors'>
+      <div><label for='wb-primary-0'>本次一抗</label><div data-wb-antibody-picks>
+        <div class='wb-antibody-pick'><select id='wb-primary-0' name='antibody_ids[]' class='form-control'><option value=''>选择已入库抗体（也可稍后补）</option><option value='1' selected>演示抗体 A · DEMO DEMO-A</option></select></div>      </div><button type='button' class='bench-inline-action' data-wb-add-antibody>＋ 再加一个靶标</button></div>
+      <div><span class='wb-method-label'>胶 / 电泳 / 转膜方案</span><p class='mb-0'>组件测试方案（合成数据）</p><details class='wb-method-picker'><summary>需要时换一个方案</summary><label class='sr-only' for='wb-method-select'>胶 / 电泳 / 转膜方案</label><select id='wb-method-select' name='method_code' class='form-control mt-2'><option value=''>自动使用抗体配套或实验室默认方案</option><option value='DEMO' >组件测试方案（合成数据）</option></select></details><a class='bench-inline-action' href='#wb-conditions-detail'>查看带入条件</a></div>
+    </div>
+    <details class='wb-secondary-pick'><summary>选择二抗（可稍后补）</summary><label class='sr-only' for='wb-secondary'>二抗</label><select id='wb-secondary' name='secondary_id' class='form-control mt-2'><option value=''>尚未选择</option></select></details>
+    <p data-wb-setup-status role='status' class='smallgray mb-0'>选择后自动保存；修改的条件保留在本次实验。</p>
+  </form>
+  
+  <div class='wb-quick-overview'>
+            <div><strong>演示抗体 A</strong><span>方案参考：1:1000 · 4°C overnight</span><small>Rabbit · 反应种属 Human, Mouse, Rat</small></div>    <div><strong>组件测试方案（合成数据） · V1</strong><span>方案参考：20 μg / lane（演示） · 10%（演示）</span></div>  </div>
+    <form method='post' action='smartlab-record.php?id=999' class='wb-quick-progress' data-wb-progress>
+    <input type="hidden" name="csrf" value="COMPONENT_PREVIEW"><input type='hidden' name='smartlab_action' value='wb_progress'><input type='hidden' name='expected_revision' value='1'>
+    <label for='wb-progress-select'>现在做到</label><select id='wb-progress-select' name='stage' class='form-control'><option value='prepare' >样本与分组</option><option value='loading' >上样与电泳</option><option value='transfer' selected>转膜</option><option value='antibody' >抗体孵育</option><option value='imaging' >显影曝光</option><option value='finish' >完成记录</option></select><span class='smallgray' data-wb-progress-status role='status'>随手更新，跨天继续</span>
+  </form>
+  
+  <form method='post' action='smartlab-record.php?id=999' data-wb-actual>
+    <input type="hidden" name="csrf" value="COMPONENT_PREVIEW"><input type='hidden' name='smartlab_action' value='wb_actual'><input type='hidden' name='expected_revision' value='0'><input type='hidden' name='setup_revision' value='1'>
+    <details id='wb-conditions-detail' class='wb-quick-conditions'>
+      <summary>查看条件 / 只改本次变化</summary>
+      <div class='wb-quick-condition-list'>
+      <div class='wb-quick-condition-row'><div><span>定量方法</span><strong data-wb-condition-value>BCA（演示）</strong><small>组件测试方案（合成数据） · V1 · 待实际确认</small></div>
+        <button type='button' class='btn btn-outline-secondary btn-sm' data-wb-change-condition aria-controls='wb-condition-1'>修改</button><label class='sr-only' for='wb-condition-1'>定量方法</label><input id='wb-condition-1' name='conditions[quantification]' class='form-control' value='BCA（演示）' maxlength='1000' disabled hidden></div><div class='wb-quick-condition-row'><div><span>每泳道总蛋白量</span><strong data-wb-condition-value>20 μg / lane（演示）</strong><small>组件测试方案（合成数据） · V1 · 待实际确认</small></div>
+        <button type='button' class='btn btn-outline-secondary btn-sm' data-wb-change-condition aria-controls='wb-condition-2'>修改</button><label class='sr-only' for='wb-condition-2'>每泳道总蛋白量</label><input id='wb-condition-2' name='conditions[loading]' class='form-control' value='20 μg / lane（演示）' maxlength='1000' disabled hidden></div><div class='wb-quick-condition-row'><div><span>胶类型 / 浓度</span><strong data-wb-condition-value>10%（演示）</strong><small>组件测试方案（合成数据） · V1 · 待实际确认</small></div>
+        <button type='button' class='btn btn-outline-secondary btn-sm' data-wb-change-condition aria-controls='wb-condition-3'>修改</button><label class='sr-only' for='wb-condition-3'>胶类型 / 浓度</label><input id='wb-condition-3' name='conditions[gel]' class='form-control' value='10%（演示）' maxlength='1000' disabled hidden></div><div class='wb-quick-condition-row'><div><span>电泳条件</span><strong data-wb-condition-value>设备 SOP（演示）</strong><small>组件测试方案（合成数据） · V1 · 待实际确认</small></div>
+        <button type='button' class='btn btn-outline-secondary btn-sm' data-wb-change-condition aria-controls='wb-condition-4'>修改</button><label class='sr-only' for='wb-condition-4'>电泳条件</label><input id='wb-condition-4' name='conditions[electrophoresis]' class='form-control' value='设备 SOP（演示）' maxlength='1000' disabled hidden></div><div class='wb-quick-condition-row'><div><span>转膜条件</span><strong data-wb-condition-value>湿转 SOP（演示）</strong><small>组件测试方案（合成数据） · V1 · 待实际确认</small></div>
+        <button type='button' class='btn btn-outline-secondary btn-sm' data-wb-change-condition aria-controls='wb-condition-5'>修改</button><label class='sr-only' for='wb-condition-5'>转膜条件</label><input id='wb-condition-5' name='conditions[transfer]' class='form-control' value='湿转 SOP（演示）' maxlength='1000' disabled hidden></div><div class='wb-quick-condition-row'><div><span>膜类型 / 孔径</span><strong data-wb-condition-value>PVDF（演示）</strong><small>组件测试方案（合成数据） · V1 · 待实际确认</small></div>
+        <button type='button' class='btn btn-outline-secondary btn-sm' data-wb-change-condition aria-controls='wb-condition-6'>修改</button><label class='sr-only' for='wb-condition-6'>膜类型 / 孔径</label><input id='wb-condition-6' name='conditions[membrane]' class='form-control' value='PVDF（演示）' maxlength='1000' disabled hidden></div><div class='wb-quick-condition-row'><div><span>演示抗体 A · 稀释比例</span><strong data-wb-condition-value>1:1000</strong><small>说明书推荐 · V1 · 待实际确认</small></div>
+        <button type='button' class='btn btn-outline-secondary btn-sm' data-wb-change-condition aria-controls='wb-condition-7'>修改</button><label class='sr-only' for='wb-condition-7'>演示抗体 A · 稀释比例</label><input id='wb-condition-7' name='conditions[antibody.1.wb_dilution]' class='form-control' value='1:1000' maxlength='1000' disabled hidden></div><div class='wb-quick-condition-row'><div><span>演示抗体 A · 稀释液</span><strong data-wb-condition-value>5% milk in TBST</strong><small>说明书推荐 · V1 · 待实际确认</small></div>
+        <button type='button' class='btn btn-outline-secondary btn-sm' data-wb-change-condition aria-controls='wb-condition-8'>修改</button><label class='sr-only' for='wb-condition-8'>演示抗体 A · 稀释液</label><input id='wb-condition-8' name='conditions[antibody.1.wb_diluent]' class='form-control' value='5% milk in TBST' maxlength='1000' disabled hidden></div><div class='wb-quick-condition-row'><div><span>演示抗体 A · 孵育条件</span><strong data-wb-condition-value>4°C overnight</strong><small>说明书推荐 · V1 · 待实际确认</small></div>
+        <button type='button' class='btn btn-outline-secondary btn-sm' data-wb-change-condition aria-controls='wb-condition-9'>修改</button><label class='sr-only' for='wb-condition-9'>演示抗体 A · 孵育条件</label><input id='wb-condition-9' name='conditions[antibody.1.wb_incubation]' class='form-control' value='4°C overnight' maxlength='1000' disabled hidden></div><div class='wb-quick-condition-row'><div><span>成像设备</span><strong data-wb-condition-value>未记录（可后补）</strong><small>本次记录 · 未记录</small></div>
+        <button type='button' class='btn btn-outline-secondary btn-sm' data-wb-change-condition aria-controls='wb-condition-10'>修改</button><label class='sr-only' for='wb-condition-10'>成像设备</label><input id='wb-condition-10' name='conditions[instrument]' class='form-control' value='' maxlength='1000' disabled hidden></div><div class='wb-quick-condition-row'><div><span>曝光时间</span><strong data-wb-condition-value>未记录（可后补）</strong><small>本次记录 · 未记录</small></div>
+        <button type='button' class='btn btn-outline-secondary btn-sm' data-wb-change-condition aria-controls='wb-condition-11'>修改</button><label class='sr-only' for='wb-condition-11'>曝光时间</label><input id='wb-condition-11' name='conditions[exposure]' class='form-control' value='' maxlength='1000' disabled hidden></div>      </div>
+      <p class='smallgray mt-3'>说明书推荐范围保留原样；实际稀释比例需要明确到本次使用值。空缺保持未知。</p>
+    </details>
+    <details class='wb-quick-notes'><summary>样本 / 泳道对应、变化或异常（随手补充）</summary>
+            <label class='sr-only' for='wb-quick-note'>现场说明</label><textarea id='wb-quick-note' name='note' class='form-control mt-2' rows='3' maxlength='4000' placeholder='已有分组表、泳道图或实验本记录，可直接上传照片；需要时补一句变化。' ></textarea>
+    </details>
+    <details class='wb-quick-notes'><summary>从定量结果计算上样体积（需要时再用）</summary>
+      <p class='smallgray mt-2'>复制已有表格的样本、原样本浓度、单位三列。支持 μg/μL、mg/mL、μg/mL；上样量使用本次条件中的总蛋白质量。</p>
+      <label class='sr-only' for='wb-protein-table'>原样本浓度表</label><textarea id='wb-protein-table' name='protein_table' class='form-control mt-2' rows='3' maxlength='16000' placeholder='样本,浓度,单位&#10;S1,2.0,mg/mL&#10;S2,1500,μg/mL' ></textarea>
+      <div data-wb-loading-result></div>
+    </details>
+    <div class='wb-quick-actions'><button type='button' class='btn btn-outline-secondary' data-wb-show-changes>改了条件</button><button type='button' class='btn btn-outline-primary' data-wb-quick-upload>照片 / 文件</button><button type='submit' class='btn btn-primary' name='record_state' value='confirmed'>完成，确认本次条件</button></div>    <p class='wb-quick-status smallgray' data-wb-actual-status role='status'>变化和说明自动保存草稿，完成时统一确认。</p>
+  </form>
+</section>
+</div><script src="smartlab-wb-quick.js"></script></html>

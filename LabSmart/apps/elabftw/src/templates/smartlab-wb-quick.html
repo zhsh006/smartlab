@@ -1,0 +1,65 @@
+{% set selection = wbView.snapshot %}
+{% set selectedIds = selection.antibodies|map(a => a.material_id) %}
+<section class='bench-card wb-quick' data-wb-quick>
+  <div class='bench-card-heading'><h3>本次 WB</h3><span class='pv-state {{ wbView.current_actual and wbView.actual.data.state|default("") == "confirmed" ? "is-confirmed" : "is-default" }}' data-wb-batch-state>{{ wbView.current_actual and wbView.actual.data.state|default('') == 'confirmed' ? '本次条件已确认' : '随做随记' }}</span></div>
+  <div class='wb-grid'>
+  <div class='wb-col'>
+  {% if editable %}
+  <form action='smartlab-record.php?id={{ Entity.id }}' method='post' data-wb-setup class='wb-block'>
+    {{ App.Session.get('csrf')|csrf }}<input type='hidden' name='smartlab_action' value='wb_setup'><input type='hidden' name='expected_revision' value='{{ wbView.setup.revision|default(0) }}'><input type='hidden' name='catalog_token' value='{{ wbCatalogToken }}'>
+    <h4 class='wb-block-title'>选择抗体与方案</h4>
+    <div class='wb-quick-selectors'>
+      <div><label for='wb-primary-0'>本次一抗</label><div data-wb-antibody-picks>
+        {% for chosen in selection.antibodies ?: [null] %}<div class='wb-antibody-pick'><select id='wb-primary-{{ loop.index0 }}' name='antibody_ids[]' class='form-control'><option value=''>选择已入库抗体（也可稍后补）</option>{% for antibody in wbProfiles %}{% if antibody.fields.role|default('') != 'secondary' %}<option value='{{ antibody.material_id }}' {{ chosen.material_id|default(0) == antibody.material_id ? 'selected' }}>{{ antibody.name }}{% if antibody.brand or antibody.catalog_no %} · {{ antibody.brand }} {{ antibody.catalog_no }}{% endif %}</option>{% endif %}{% endfor %}</select>{% if not loop.first %}<button type='button' class='btn btn-outline-secondary' data-wb-remove-antibody aria-label='移除这个一抗'>移除</button>{% endif %}</div>{% endfor %}
+      </div><button type='button' class='bench-inline-action' data-wb-add-antibody>＋ 再加一个靶标</button></div>
+      <div><span class='wb-method-label'>胶 / 电泳 / 转膜方案</span><p class='mb-0'>{{ selection.method.name|default('选择抗体后自动带入') }}</p><details class='wb-method-picker'><summary>需要时换一个方案</summary><label class='sr-only' for='wb-method-select'>胶 / 电泳 / 转膜方案</label><select id='wb-method-select' name='method_code' class='form-control mt-2'><option value=''>自动使用抗体配套或实验室默认方案</option>{% for method in wbMethods %}<option value='{{ method.code }}' {{ wbView.method_selection == method.code ? 'selected' }}>{{ method.name }}</option>{% endfor %}</select></details><a class='bench-inline-action' href='#wb-conditions-detail'>查看带入条件</a></div>
+    </div>
+    <details class='wb-secondary-pick'><summary>选择二抗（可稍后补）{% if selection.secondary %} · {{ selection.secondary.name }}{% endif %}</summary><label class='sr-only' for='wb-secondary'>二抗</label><select id='wb-secondary' name='secondary_id' class='form-control mt-2'><option value=''>尚未选择</option>{% for antibody in wbProfiles %}{% if antibody.fields.role|default('') != 'primary' %}<option value='{{ antibody.material_id }}' {{ selection.secondary.material_id|default(0) == antibody.material_id ? 'selected' }}>{{ antibody.name }} · {{ antibody.brand }} {{ antibody.catalog_no }}</option>{% endif %}{% endfor %}</select></details>
+    <p data-wb-setup-status role='status' class='smallgray mb-0'>选择后自动保存；修改的条件保留在本次实验。</p>
+  </form>
+  {% endif %}
+
+  <div class='wb-quick-overview wb-block'>
+    <h4 class='wb-block-title'>本次带入条件</h4>
+    {% set overviewLabel = wbView.current_actual ? (wbView.actual.data.state == 'confirmed' ? '本次实际' : '本次草稿') : '方案参考' %}
+    {% if selection.method_conflict|default(false) %}<p class='smallgray'>这些抗体的配套方案不同，通用条件暂未带入。可选择本次使用的方案，或继续记录后再补充。</p>{% endif %}
+    {% for antibody in selection.antibodies %}<div><strong>{{ antibody.name }}</strong><span>{{ overviewLabel }}：{{ wbView.rows['antibody.' ~ antibody.material_id ~ '.wb_dilution'].candidate|default('稀释比例未记录') }}{% if wbView.rows['antibody.' ~ antibody.material_id ~ '.wb_incubation'].candidate|default('') %} · {{ wbView.rows['antibody.' ~ antibody.material_id ~ '.wb_incubation'].candidate }}{% endif %}</span><small>{{ antibody.fields.host_species ?: '宿主未登记' }}{% if antibody.fields.reactivity %} · 反应种属 {{ antibody.fields.reactivity }}{% endif %}{% if antibody.profile_id and antibody.source_hash %} · <a href='wb-conditions.php?source_id={{ antibody.profile_id }}'>说明书 V{{ antibody.revision }}</a>{% endif %}</small></div>{% endfor %}
+    {% if selection.method %}<div><strong>{{ selection.method.name }} · V{{ selection.method.revision }}</strong><span>{{ overviewLabel }}：{{ wbView.rows.loading.candidate ?: '上样量未记录' }}{% if wbView.rows.gel.candidate %} · {{ wbView.rows.gel.candidate }}{% endif %}</span></div>{% elseif not wbView.setup %}<p class='smallgray mb-0'>可以直接记录进展和照片；选择抗体后会带出已整理的条件。</p>{% endif %}
+  </div>
+  </div>
+
+  <div class='wb-col'>
+  {% if editable %}
+  <form method='post' action='smartlab-record.php?id={{ Entity.id }}' class='wb-quick-progress wb-block' data-wb-progress>
+    {{ App.Session.get('csrf')|csrf }}<input type='hidden' name='smartlab_action' value='wb_progress'><input type='hidden' name='expected_revision' value='{{ wbView.progress_revision }}'>
+    <h4 class='wb-block-title'>现在做到</h4>
+    <div class='wb-progress-row'><select id='wb-progress-select' name='stage' class='form-control'>{% for step in bench.steps %}<option value='{{ step.definition.key }}' {{ (experimentProgress.finished ? 'finish' : (wbView.stage ?: experimentProgress.resume_key)) == step.definition.key ? 'selected' }}>{{ step.definition.label }}</option>{% endfor %}</select><span class='smallgray' data-wb-progress-status role='status'>随手更新，跨天继续</span></div>
+  </form>
+  {% endif %}
+
+  <form method='post' action='smartlab-record.php?id={{ Entity.id }}' data-wb-actual class='wb-block'>
+    {{ App.Session.get('csrf')|csrf }}<input type='hidden' name='smartlab_action' value='wb_actual'><input type='hidden' name='expected_revision' value='{{ wbView.actual.revision|default(0) }}'><input type='hidden' name='setup_revision' value='{{ wbView.setup.revision|default(0) }}'>
+    <h4 class='wb-block-title'>本次条件与实际记录</h4>
+    <details id='wb-conditions-detail' class='wb-quick-conditions'>
+      <summary>查看条件 / 只改本次变化</summary>
+      <div class='wb-quick-condition-list'>
+      {% for key,row in wbView.rows %}<div class='wb-quick-condition-row'><div><span>{{ row.label }}</span><strong data-wb-condition-value>{{ row.candidate ?: '未记录（可后补）' }}</strong><small>{{ row.source }}{% if row.state == 'unknown' %} · 未记录{% elseif row.state == 'default_unconfirmed' %} · 待实际确认{% endif %}</small></div>
+        {% if editable %}<button type='button' class='btn btn-outline-secondary btn-sm' data-wb-change-condition aria-controls='wb-condition-{{ loop.index }}'>修改</button><label class='sr-only' for='wb-condition-{{ loop.index }}'>{{ row.label }}</label><input id='wb-condition-{{ loop.index }}' name='conditions[{{ key }}]' class='form-control' value='{{ row.candidate }}' maxlength='1000' disabled hidden>{% endif %}</div>{% endfor %}
+      </div>
+      <p class='smallgray mt-3'>说明书推荐范围保留原样；实际稀释比例需要明确到本次使用值。空缺保持未知。</p>
+    </details>
+    <details class='wb-quick-notes'><summary>样本 / 泳道对应、变化或异常（随手补充）{% if wbView.note %} · 已有记录{% endif %}</summary>
+      {% set prepare = bench.records['step.prepare']|default(null) %}{% if prepare %}<p class='smallgray mt-2'>原有样本记录：{{ prepare.data.fields.sample_label }} · {{ prepare.data.fields.groups }}</p>{% endif %}
+      <label class='sr-only' for='wb-quick-note'>现场说明</label><textarea id='wb-quick-note' name='note' class='form-control mt-2' rows='3' maxlength='4000' placeholder='已有分组表、泳道图或实验本记录，可直接上传照片；需要时补一句变化。' {{ not editable ? 'readonly' }}>{{ wbView.note }}</textarea>
+    </details>
+    <details class='wb-quick-notes'><summary>从定量结果计算上样体积（需要时再用）</summary>
+      <p class='smallgray mt-2'>复制已有表格的样本、原样本浓度、单位三列。支持 μg/μL、mg/mL、μg/mL；上样量使用本次条件中的总蛋白质量。</p>
+      <label class='sr-only' for='wb-protein-table'>原样本浓度表</label><textarea id='wb-protein-table' name='protein_table' class='form-control mt-2' rows='3' maxlength='16000' placeholder='样本,浓度,单位&#10;S1,2.0,mg/mL&#10;S2,1500,μg/mL' {{ not editable ? 'readonly' }}>{{ wbView.protein_table }}</textarea>
+      <div data-wb-loading-result>{% if wbView.loading_calculation %}<p class='smallgray'>计算建议的原样本体积：</p>{% for row in wbView.loading_calculation %}<p>{{ row.sample }}：{{ row.volume_ul is not null ? row.volume_ul ~ ' μL' : '缺少明确的质量、浓度或单位，暂未计算' }}</p>{% endfor %}{% endif %}</div>
+    </details>
+    {% if editable %}<div class='wb-quick-actions'><button type='button' class='btn btn-outline-secondary' data-wb-show-changes>改了条件</button><button type='button' class='btn btn-outline-primary' data-wb-quick-upload>照片 / 文件</button><button type='submit' class='btn btn-primary' name='record_state' value='confirmed'>{{ wbView.current_actual and wbView.actual.data.state|default('') == 'confirmed' ? '确认更新本次条件' : '完成，确认本次条件' }}</button></div>{% endif %}
+    <p class='wb-quick-status smallgray' data-wb-actual-status role='status'>{{ wbView.current_actual and wbView.actual.data.state|default('') == 'confirmed' ? '已确认已记录的实际条件；未记录的信息保持未知。' : '变化和说明自动保存草稿，完成时统一确认。' }}</p>
+  </form>
+  </div>
+  </div>
+</section>

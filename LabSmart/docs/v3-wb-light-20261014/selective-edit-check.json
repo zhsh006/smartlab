@@ -1,0 +1,8 @@
+{
+  "gel": "10%",
+  "loading": "30 μg / lane",
+  "stageHash": "#bench-step-loading",
+  "visibleFieldNames": [
+    "loading"
+  ]
+}

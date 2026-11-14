@@ -1,22 +1,38 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-/node_modules
-
-# misc
-.DS_Store
+# Secrets & Certificates
+.env
+.env.*
+!**/.env.example
+*.key
 *.pem
-.local/
-apps/elabftw/vendor/
-apps/elabftw/node_modules/
-apps/elabftw/web/uploads/
+*.crt
+*.pfx
+*.p12
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-.env*
-*.tsbuildinfo
+# Python / Node / PHP / Build
+.venv/
+venv/
 __pycache__/
 *.py[cod]
+node_modules/
+/dist/
+/build/
+*.tsbuildinfo
+
+# IDE & OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs & Runtime Backups
+logs/
+*.log
+.local/
+.agent-local/
+runtime/
+
+# Large Local Snapshots & Generated Simulated Test Data (>50MB, reproducible via script)
+LabSmart-source-*.zip
+*.tar.gz
+LabSmart/test-data/
+汇报PPT/**/.codex-finalizer/

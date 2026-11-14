@@ -1,0 +1,3 @@
+<div class='assay-events'>
+{% for event in assayView.events|slice(0,16) %}<article class='assay-event'><div class='assay-event-meta'>{{ event.day }} · 记录于 {{ event.time }}{% if event.actor %} · {{ event.actor }}{% endif %}</div><h3>{{ event.title }}</h3><p>{{ event.text|nl2br }}</p>{% if event.file %}<a href='{{ event.file.url }}' target='_blank' rel='noopener'><i class='far fa-file'></i> {{ event.file.real_name }}</a>{% endif %}</article>{% else %}<p class='assay-quiet'>有变化、异常或照片时随手补充，记录会按日期放在这里。</p>{% endfor %}
+</div>

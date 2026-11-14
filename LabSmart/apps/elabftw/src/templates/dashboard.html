@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block body %}
+<link rel='stylesheet' media='all' href='/assets/labsmart-record.css?v=v3-batch1'>
+{% set tasks = App.Request.query.get('tab') == 'tasks' %}
+{% set useTaskboard = smartlabIsStudentView and not tasks %}
+{% if useTaskboard %}
+<div class='sl-toolbar'>
+  <div><h2>实验工作台</h2><p>继续同一批次，记录本次变化与异常。</p></div>
+  <div class='sl-toolbar-actions'>
+    <a class='btn btn-outline-secondary' href='smartlab-data.php'><i class='fas fa-inbox mr-1'></i>待关联数据</a>
+    <button class='btn btn-primary' type='button' data-ls-open='ls-new-record'><i class='fas fa-plus mr-1'></i>开始新实验</button>
+  </div>
+</div>
+
+<details class='ls-new' id='ls-new-record'><summary>开始新实验</summary>
+  <form method='post' action='create-student-experiment.php' class='sl-composer'>{{ App.Session.get('csrf')|csrf }}
+    <div class='sl-form-grid'>
+      <div class='sl-field'><label for='ls-template'>实验类型</label><select id='ls-template' name='pack_key' class='form-control' required><option value=''>请选择</option><option value='western_blot'>Western Blot</option><option value='qpcr'>qPCR</option><option value='if'>免疫荧光</option><option value='ihc'>免疫组化</option><option value='elisa'>ELISA</option></select></div>
+      <div class='sl-field'><label for='ls-title'>实验名称</label><input id='ls-title' name='title' class='form-control' required maxlength='255' placeholder='例如：GAD67 · 5xFAD 海马'></div>
+      <div class='sl-field'><label for='ls-project'>所属课题</label><select id='ls-project' name='project_id' class='form-control'><option value=''>稍后关联</option>{% for project in notebookProjects %}<option value='{{ project.id }}'>{{ project.code }} · {{ project.name }}</option>{% endfor %}</select></div>
+    </div>
+    <input name='date' type='hidden' value='{{ "now"|date("Y-m-d", "Asia/Shanghai") }}'>
+    <div class='mt-3'><button class='btn btn-primary' type='submit'>开始记录</button><span class='smallgray ml-2'>系统按实验类型展开关键记录。</span></div>
+  </form>
+</details>
+
+<section class='sl-panel'>
+  <div class='sl-panel-head'><h3>当前实验</h3><a class='sl-link' href='experiments.php?scope=1'>查看全部实验 →</a></div>
+  <div class='sl-worklist'>
+    <div class='sl-workrow sl-section-label'><span>实验</span><span class='sl-wl-hide'>类型</span><span class='sl-wl-hide'>当前阶段</span><span class='sl-wl-hide'>最近记录</span><span></span></div>
+    {% for row in workbenchRows|slice(0, 12) %}{% set bench = row.bench %}{% set progress = bench.progress|default({}) %}
+    <div class='sl-workrow'>
+      <div><a class='sl-wl-title' href='smartlab-record.php?id={{ row.id }}'>{{ row.title }}</a><span class='sl-sub'>{{ row.experiment_code }} · {{ row.context.project_label ?: '尚未关联课题' }}</span></div>
+      <div class='sl-wl-cell sl-wl-hide'>{{ bench.template_label|default('未选择类型') }}<span class='sl-sub'><span class='pv-state {{ progress.finished|default(false) ? "is-confirmed" : (progress.has_stage|default(false) ? "is-default" : "is-unknown") }}'>{{ progress.finished|default(false) ? '已完成' : (progress.has_stage|default(false) ? '记录中' : '待开始') }}</span></span></div>
+      <div class='sl-wl-cell sl-wl-hide'>{{ bench.current_stage|default('尚未开始') }}</div>
+      <div class='sl-wl-cell sl-wl-hide'>{{ bench.last_time|default('') ? bench.last_time ~ ' · ' ~ bench.last_label : '暂无现场记录' }}{% if bench.last_state|default('') == 'draft' %}<span class='sl-sub'>草稿</span>{% endif %}</div>
+      <div><a class='btn btn-primary btn-sm' href='smartlab-record.php?id={{ row.id }}'>{{ progress.finished|default(false) ? '补充资料' : '继续实验' }}</a></div>
+    </div>
+    {% else %}<div class='ls-empty'><strong>还没有实验</strong>点击右上角"开始新实验"，之后每天继续同一条记录。</div>{% endfor %}
+  </div>
+</section>
+
+<div class='sl-quick'>
+  <a href='smartlab-data.php'><strong>待关联数据</strong><span>收到仪器文件后，确认所属实验</span></a>
+  <a href='smartlab-reports.php'><strong>周 / 双周汇报</strong><span>汇报前集中整理已有结果</span></a>
+  <a href='dashboard.php?tab=tasks'><strong>待办与反馈</strong><span>查看需要补充的记录</span></a>
+</div>
+
+<div class='sl-grid-2 mt-3'>
+  <section class='sl-panel'><div class='sl-panel-head'><h3>本周任务</h3></div><div class='sl-panel-body'>
+    {% for task in taskboard.weekTasks %}<p class='mb-2'><span class='pv-state is-unknown'>{{ task.status == 'done' ? '已完成' : (task.status == 'doing' ? '进行中' : '待处理') }}</span> {{ task.title }}{% if task.due_date %}<span class='smallgray'> · {{ task.due_date|date('m-d') }}</span>{% endif %}</p>{% else %}<p class='smallgray'>本周没有任务。</p>{% endfor %}
+  </div></section>
+  <section class='sl-panel'><div class='sl-panel-head'><h3>提醒</h3></div><div class='sl-panel-body'>
+    {% for reminder in taskboard.reminders %}<p class='mb-2'>{{ reminder.text }} <span class='smallgray'>{{ reminder.date|date('m-d') }}</span></p>{% else %}<p class='smallgray'>暂无提醒。</p>{% endfor %}
+  </div></section>
+</div>
+
+{% else %}
+<div class='sl-toolbar'>
+  <div><h2>{{ tasks ? '待办与反馈' : smartlabIsMentorView ? '团队实验记录' : '实验工作台' }}</h2><p>{{ tasks ? '查看导师退回的记录，补充后再次提交。' : '保存实验过程、原始数据和导师反馈。' }}</p></div>
+  <div class='sl-toolbar-actions'>{% if smartlabCanManageExperiments %}<button class='btn btn-primary' type='button' data-ls-open='ls-new-record'><i class='fas fa-plus mr-1'></i>新建实验</button>{% else %}<a class='btn btn-primary' href='reviews.php'>打开导师待办</a>{% endif %}</div>
+</div>
+{% if smartlabCanManageExperiments %}
+<details class='ls-new' id='ls-new-record'><summary>从实验模板开始记录</summary>
+  <form method='post' action='create-student-experiment.php' class='sl-composer'>{{ App.Session.get('csrf')|csrf }}
+    <div class='sl-form-grid'>
+      <div class='sl-field'><label for='ls-template'>实验类型模板</label><select id='ls-template' name='pack_key' class='form-control' required><option value=''>请选择实验类型</option><option value='western_blot'>Western Blot</option><option value='qpcr'>qPCR</option><option value='if'>免疫荧光</option><option value='ihc'>免疫组化</option><option value='elisa'>ELISA</option></select></div>
+      <div class='sl-field'><label for='ls-title'>实验标题</label><input id='ls-title' name='title' class='form-control' required maxlength='255' placeholder='例如：检测处理组的蛋白表达'></div>
+      <div class='sl-field'><label for='ls-date'>实验日期</label><input id='ls-date' name='date' class='form-control' type='date' required value='{{ "now"|date("Y-m-d") }}'></div>
+      <div class='sl-field'><label for='ls-project'>所属课题</label><select id='ls-project' name='project_id' class='form-control'><option value=''>稍后关联课题</option>{% for project in notebookProjects %}<option value='{{ project.id }}'>{{ project.code }} · {{ project.name }}</option>{% endfor %}</select></div>
+    </div>
+    <div class='mt-3 d-flex align-items-center'><button class='btn btn-primary' type='submit'>创建并开始记录</button><span class='smallgray ml-3'>系统按实验类型展开关键记录，保存后自动形成统一视图。</span></div>
+  </form>
+</details>
+{% endif %}
+
+{% set tabsActive = (not tasks) or tasks %}
+<div class='sl-panel'>
+  <div class='sl-tabs' style='margin:0;border-bottom:1px solid var(--sl-line);padding:0 18px'>
+    <a class='{{ not tasks ? "active" }}' href='dashboard.php' style='padding:14px 2px'>{{ smartlabIsMentorView ? '团队记录' : '全部记录' }}</a>
+    {% if smartlabIsStudentView %}<a class='{{ tasks ? "active" }}' href='dashboard.php?tab=tasks' style='padding:14px 2px'>需要补充</a>{% else %}<a href='reviews.php' style='padding:14px 2px'>我的待审</a>{% if App.Users.isAdmin %}<a href='reviews.php?scope=team' style='padding:14px 2px'>团队待审</a>{% endif %}{% endif %}
+  </div>
+  <form class='ls-search' method='get' action='dashboard.php'>{% if tasks %}<input type='hidden' name='tab' value='tasks'>{% endif %}
+    <input class='form-control' name='q' type='search' value='{{ App.Request.query.get("q") }}' placeholder='搜索标题或记录内容' style='max-width:320px'>
+    <select class='form-control' name='project' style='max-width:240px'><option value=''>全部课题</option>{% for project in notebookProjects %}<option value='{{ project.id }}' {{ App.Request.query.get('project') == project.id ? 'selected' }}>{{ project.code }} · {{ project.name }}</option>{% endfor %}</select>
+    <button class='btn btn-outline-secondary' type='submit'>查找</button>{% if App.Request.query.get('q') or App.Request.query.get('project') %}<a class='smallgray' href='dashboard.php{{ tasks ? "?tab=tasks" }}'>清除筛选</a>{% endif %}
+  </form>
+  <div class='table-responsive'><table class='ls-table'><thead><tr><th>实验记录</th><th>日期</th><th>状态</th><th>原始附件</th><th><span class='sr-only'>操作</span></th></tr></thead><tbody>{% for row in notebookRows %}{% set context = notebookContext[row.id]|default({}) %}{% set state = context.review_status|default('') %}{% set progress = benchSummaries[row.id].progress|default({}) %}<tr><td><a class='ls-record-title' href='experiments.php?mode=view&id={{ row.id }}'>{{ row.title }}</a><div class='ls-secondary'>{{ context.project_label ?: '尚未关联课题' }}{% if smartlabIsMentorView and row.fullname|default('') %} · {{ row.fullname }}{% endif %}</div></td><td>{{ row.date|date('Y-m-d') }}</td><td><span class='ls-status {{ state }}'>{{ state == 'submitted' ? (context.review_mode == 'guidance' ? '待导师指导' : '待导师审核') : state == 'approved' ? (context.review_mode == 'guidance' ? '指导已回复' : '已通过') : state == 'needs_revision' ? '需要补充' : state == 'rejected' ? '需重新整理' : (progress.finished|default(false) ? '已结束' : (progress.has_stage|default(false) ? '记录中' : '尚未开始')) }}</span></td><td>{{ context.upload_count|default(0) }} 个</td><td><a href='experiments.php?mode=view&id={{ row.id }}'>{{ tasks ? '补充记录' : '打开' }}</a></td></tr>{% else %}<tr><td colspan='5'><div class='ls-empty'><strong>{{ tasks ? '目前没有需要补充的记录' : '还没有找到实验记录' }}</strong>{{ tasks ? '导师给出修改意见后会在这里显示。' : '可以清除筛选，或新建一条记录。' }}</div></td></tr>{% endfor %}</tbody></table></div>
+  <div class='ls-pagination' style='padding:12px 18px'><span>第 {{ notebookPage }} 页</span>{% set args = {'q': App.Request.query.get('q')|default(''), 'project': App.Request.query.get('project')|default(''), 'tab': tasks ? 'tasks' : ''} %}{% if notebookPage > 1 %}<a href='dashboard.php?{{ args|merge({'page': notebookPage - 1})|url_encode }}'>上一页</a>{% endif %}{% if notebookHasMore %}<a href='dashboard.php?{{ args|merge({'page': notebookPage + 1})|url_encode }}'>下一页</a>{% endif %}<a href='experiments.php?scope={{ smartlabIsMentorView ? "2" : "1" }}'>更多筛选与导出</a></div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,12 @@
+{% set actual = bench.records['wb.actual']|default(null) %}
+{% if actual %}<section class='ls-panel'>
+  <div class='ls-panel-heading'><h3>本次 WB 条件</h3><span class='smallgray'>{{ actual.data.state == 'confirmed' ? '完成时统一确认' : '草稿待确认' }} · {{ (actual.recorded_at ~ ' UTC')|date('Y-m-d H:i','Asia/Shanghai') }}</span></div>
+  {% if actual.data.setup_revision != bench.records['wb.setup'].revision|default(0) %}<p class='smallgray'>这里保留上次确认的条件；当前抗体或方案已调整，待重新确认。</p>{% endif %}
+  {% if actual.data.snapshot.method %}<p>{{ actual.data.snapshot.method.name }} · V{{ actual.data.snapshot.method.revision }}{% if actual.data.snapshot.method.fields.applicability|default('') %} · {{ actual.data.snapshot.method.fields.applicability }}{% endif %}</p>{% endif %}
+  <div class='table-responsive'><table class='ls-table'><thead><tr><th>项目</th><th>当时方案参考</th><th>本次实际</th><th>状态</th></tr></thead><tbody>
+  {% for key in actual.data.reference_order|default(actual.data.reference_rows|keys)|filter(k => k != 'applicability') %}{% set row = actual.data.reference_rows[key] %}{% set value = actual.data.fields[key]|default('') %}{% set state = actual.data.parameter_states[key]|default('unknown') %}<tr><td>{{ row.label }}</td><td>{{ row.value ?: '—' }}<div class='ls-secondary'>{{ row.source }}</div></td><td>{{ state == 'unknown' or actual.data.state != 'confirmed' ? '—' : value }}{% if actual.data.state != 'confirmed' and value %}<div class='ls-secondary'>待确认：{{ value }}</div>{% endif %}</td><td>{{ state == 'unknown' ? '未记录' : actual.data.state != 'confirmed' ? '草稿待确认' : state == 'overridden' ? '本次已改' : '实际按方案' }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% if actual.data.fields.note %}<p class='mt-3'>{{ actual.data.fields.note|nl2br }}</p>{% endif %}
+  {% if actual.data.loading_calculation|default([]) %}<h4>根据原样本浓度计算的建议上样体积</h4><table class='ls-table'><thead><tr><th>样本</th><th>原样本浓度</th><th>建议体积</th></tr></thead><tbody>{% for row in actual.data.loading_calculation %}<tr><td>{{ row.sample }}</td><td>{{ row.concentration }} {{ row.unit }}</td><td>{{ row.volume_ul is not null ? row.volume_ul ~ ' μL' : '未能计算' }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+  {% for antibody in actual.data.snapshot.antibodies %}<p class='smallgray'>{{ antibody.name }} · {{ antibody.brand }} {{ antibody.catalog_no }}{% if antibody.profile_id and antibody.source_hash %} · <a href='wb-conditions.php?source_id={{ antibody.profile_id }}'>当时的说明书 V{{ antibody.revision }}</a>{% endif %}</p>{% endfor %}
+</section>{% endif %}

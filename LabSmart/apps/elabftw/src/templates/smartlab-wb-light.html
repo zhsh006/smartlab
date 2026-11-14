@@ -1,0 +1,95 @@
+{# One explicit execution confirmation, selective condition edits and optional annotations. #}
+{% import 'smartlab-record.html' as recordMacros %}
+<form method='post' action='experiments.php?mode=view&id={{ Entity.id }}' data-bench-form data-bench-key='step.{{ d.key }}' data-wb-light data-bench-next='{{ bench.steps[loop.index].definition.key|default("") }}'>
+  {{ App.Session.get('csrf')|csrf }}
+  <input type='hidden' name='smartlab_action' value='bench_save'>
+  <input type='hidden' name='record_key' value='step.{{ d.key }}'>
+  <input type='hidden' name='expected_revision' value='{{ record.revision|default(0) }}'>
+  <input type='hidden' name='wb_light' value='1'>
+  <input type='hidden' name='expected_reference' value='{{ step.reference_token }}'>
+  <input type='hidden' name='evidence_present' value='1'>
+
+  {% if d.key != 'prepare' %}
+    {% set batch = bench.records['step.prepare']|default(null) %}
+    {% if batch %}<p class='wb-batch-context'><span>本次样本</span> {{ batch.data.fields.sample_label|default('待补充') }}{% if batch.data.fields.groups|default('') %}<span class='wb-batch-groups'>{{ batch.data.fields.groups }}</span>{% endif %}{% if batch.data.state|default('') != 'confirmed' %}<span class='pv-state is-default'>样本草稿待确认</span>{% endif %}</p>{% endif %}
+  {% endif %}
+
+  {% if d.key == 'finish' %}
+    <p class='wb-light-intro'>完成本次操作即可，结果分析可以以后补充。</p>
+  {% else %}
+    <p class='wb-light-intro'>{{ done ? '本步已完成；更正时只改变化的条件。' : '核对条件，完成后确认。' }}</p>
+    <dl class='wb-condition-summary'>
+    {% for field in d.fields %}
+      {% if field.required or (field.candidate and field.key not in ['exception', 'note']) %}
+      <div data-wb-summary='{{ field.key }}'>
+        <dt>{{ field.label|replace({'实际':'', '本次':''}) }}</dt>
+        <dd><strong data-wb-value>{{ field.candidate_label ?: '尚未确定' }}</strong><span class='wb-condition-source' data-wb-source>{{ field.candidate_source == 'reference' ? '方案参考 · 待确认' : field.candidate_source == 'draft' ? '已填草稿 · 待确认' : field.candidate_source == 'actual' ? '已确认实际' : '需要补充' }}</span></dd>
+      </div>
+      {% endif %}
+    {% endfor %}
+    </dl>
+  {% endif %}
+  {% if record.data.fields.exception|default('') %}<p class='wb-annotation-preview'>已记异常：{{ record.data.fields.exception }}</p>{% endif %}
+
+  <div class='wb-light-actions'>
+    <button class='btn btn-primary' type='submit' name='record_state' value='confirmed' data-wb-confirm data-wb-done='{{ done ? "1" : "0" }}'>{{ done ? '确认保存本步' : d.key == 'finish' ? '完成本次操作' : step.unknown|length ? '补齐 ' ~ step.unknown|length ~ ' 项并完成' : record ? '按这些条件完成' : '按方案完成' }}</button>
+    {% if d.key != 'finish' %}<button class='btn btn-outline-secondary' type='button' data-wb-toggle='changes' aria-expanded='false' aria-controls='wb-changes-{{ d.key }}'>改了条件</button>{% endif %}
+    <button class='btn btn-outline-secondary' type='button' data-wb-toggle='annotations' aria-expanded='false' aria-controls='wb-annotations-{{ d.key }}'>{{ d.key == 'finish' ? '补说明 / 照片' : '异常 / 照片' }}{% if record.data.fields.exception|default('') or record.data.evidence_ids|default([])|length %}<span class='wb-annotation-dot' aria-label='已有补充'> ·</span>{% endif %}</button>
+  </div>
+  <p class='wb-light-status' data-bench-save-status role='status'>{{ done ? '实际条件已确认，补照片或说明会自动保存。' : '确认前保持待确认；修改的内容自动保存草稿。' }}</p>
+
+  <section class='wb-edit-panel' id='wb-changes-{{ d.key }}' data-wb-panel='changes' hidden>
+    <p class='wb-panel-title' data-wb-edit-heading>只展开要改的条件</p>
+    <div class='wb-field-picker' role='group' aria-label='选择要修改的条件'>
+    {% for field in d.fields %}{% if field.key not in ['exception', 'note'] %}<button class='wb-field-choice' type='button' data-wb-edit-field='{{ field.key }}' aria-pressed='false' aria-controls='wb-editor-{{ d.key }}-{{ field.key }}'>{{ field.label|replace({'实际':'', '本次':''}) }}</button>{% endif %}{% endfor %}
+    </div>
+    <div class='bench-fields wb-selective-fields'>
+    {% for field in d.fields %}{% if field.key not in ['exception', 'note'] %}
+      <div class='{{ field.kind == "textarea" ? "bench-field-wide" }}' id='wb-editor-{{ d.key }}-{{ field.key }}' data-wb-editor='{{ field.key }}' hidden>
+        <label for='bench-{{ d.key }}-{{ field.key }}'>{{ field.label|replace({'实际':'', '本次':''}) }}{{ field.required ? ' *' }}</label>
+        {% if field.kind == 'sample' or field.kind == 'lot' %}
+          <select id='bench-{{ d.key }}-{{ field.key }}' name='{{ field.key }}' class='form-control' data-bench-source='{{ field.kind }}' data-wb-required='{{ field.required ? "1" : "0" }}' disabled>
+            <option value=''>{{ field.kind == 'sample' ? '选择已有样本（可选）' : '关联试剂批次（可选）' }}</option>
+            {% if field.kind == 'sample' %}{% for sample in smartlabAvailableSamplesArr %}<option value='{{ sample.id }}' {{ field.candidate == sample.id ? 'selected' }}>{{ sample.code }} · {{ sample.name }}</option>{% endfor %}
+            {% else %}{% for lot in smartlabAvailableLotsArr %}<option value='{{ lot.lot_id }}' {{ field.candidate == lot.lot_id ? 'selected' }}>{{ lot.material_name }} · {{ lot.lot_no }}</option>{% endfor %}{% endif %}
+          </select>
+        {% elseif field.kind == 'textarea' %}
+          <textarea id='bench-{{ d.key }}-{{ field.key }}' name='{{ field.key }}' class='form-control' rows='2' data-wb-required='{{ field.required ? "1" : "0" }}' disabled>{{ field.candidate }}</textarea>
+        {% else %}
+          {% set optionKeys = {'loading':'loading_amounts','gel':'gel_percentages','transfer':'transfer_conditions','primary':'primary_antibodies','dilution':'dilutions','incubation':'incubation_conditions','instrument':'instruments'} %}
+          {% set choices = smartlabAssayPresetCatalogArr.western_blot[optionKeys[field.key]|default('')]|default([]) %}
+          <input list='rec-options-{{ d.key }}-{{ field.key }}' id='bench-{{ d.key }}-{{ field.key }}' name='{{ field.key }}' class='form-control' value='{{ field.candidate }}' maxlength='4000' data-wb-required='{{ field.required ? "1" : "0" }}' disabled>
+          <datalist id='rec-options-{{ d.key }}-{{ field.key }}'>{% for choice in choices %}<option value='{{ choice }}'></option>{% endfor %}</datalist>
+        {% endif %}
+        {% if field.planned %}<span class='wb-reference-hint'>方案参考：{{ field.planned }}</span>{% endif %}
+      </div>
+    {% endif %}{% endfor %}
+    </div>
+    <p class='wb-panel-hint'>改动会自动保存草稿；核对后点击上方按钮确认实际操作。</p>
+  </section>
+
+  <section class='wb-edit-panel' id='wb-annotations-{{ d.key }}' data-wb-panel='annotations' hidden>
+    {% if d.key != 'finish' %}
+      <div data-bench-exception='western_blot' data-wb-exception-step='{{ d.key }}'>
+        <label for='wb-exception-{{ d.key }}'>异常（选填）</label>
+        <div class='rec-exception-presets' role='group' aria-label='常见异常选项'></div>
+        <textarea id='wb-exception-{{ d.key }}' name='exception' class='form-control' rows='2' placeholder='勾选即可；需要时再补一句说明'>{{ record.data.fields.exception|default('') }}</textarea>
+      </div>
+    {% else %}<label for='wb-note-finish'>补充说明（选填）</label><textarea id='wb-note-finish' name='note' class='form-control' rows='2'>{{ record.data.fields.note|default('') }}</textarea>{% endif %}
+    <div class='wb-photo-actions'><button type='button' class='btn btn-outline-primary' data-bench-upload>补照片 / 文件</button><span class='smallgray'>上传后自动关联到本步</span></div>
+    {{ recordMacros.attachments(bench,record) }}
+    <details class='bench-evidence wb-existing-evidence'><summary>选择已有附件（{{ record.data.evidence_ids|default([])|length }}）</summary>
+      {% for upload in bench.uploads %}<label class='bench-file-option'><input type='checkbox' name='evidence_ids[]' value='{{ upload.id }}' {{ upload.id in record.data.evidence_ids|default([]) ? 'checked' }}> {{ upload.real_name }}</label>{% else %}<p class='smallgray'>还没有附件，可直接上传照片或文件。</p>{% endfor %}
+      <button type='button' class='bench-inline-action' data-bench-refresh-evidence>刷新附件列表</button>
+    </details>
+  </section>
+
+  <details class='bench-entry-details wb-other-entry'><summary>补录 / 纸质转录 / 其他操作者</summary>
+    <div class='bench-fields'>
+      <div><label for='bench-mode-{{ d.key }}'>记录方式</label><select id='bench-mode-{{ d.key }}' name='entry_mode' class='form-control'><option value='live' {{ record.entry_mode|default('') == 'live' ? 'selected' }}>现场记录</option><option value='repeat' {{ record.entry_mode|default('') == 'repeat' ? 'selected' }}>重新执行本步</option><option value='retrospective' {{ record.entry_mode|default('') == 'retrospective' ? 'selected' }}>补录先前操作</option><option value='paper' {{ record.entry_mode|default('') == 'paper' ? 'selected' }}>纸质转录</option></select></div>
+      <div><label for='bench-operator-{{ d.key }}'>操作者</label><input id='bench-operator-{{ d.key }}' name='operator' class='form-control' value='{{ record.data.operator|default(bench.operator) }}' maxlength='120'></div>
+      <div><label for='bench-time-{{ d.key }}'>补录操作时间</label><input id='bench-time-{{ d.key }}' name='occurred_at' type='datetime-local' class='form-control' value='{{ record.data.declared_time|default("") }}'></div>
+      <div><label for='bench-reason-{{ d.key }}'>补录说明</label><input id='bench-reason-{{ d.key }}' name='entry_reason' class='form-control' value='{{ record.data.entry_reason|default("") }}'></div>
+    </div>
+  </details>
+</form>

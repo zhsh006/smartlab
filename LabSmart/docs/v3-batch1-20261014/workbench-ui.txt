@@ -1,0 +1,185 @@
+Browser tab: 1, Title: "实验记录 - LabSmart", URL: "https://localhost:3159/dashboard.php".
+1 AXWebArea 实验记录 - LabSmart, URL: localhost:3159/dashboard.php
+	2 link Description: Skip to content, Value: localhost:3159/dashboard.php#content-start
+	3 container container
+		4 container Main menu
+			5 link Description: Go to dashboard, Value: localhost:3159/dashboard.php
+			6 container main-nav
+				7 link Description:  实验工作台, Value: localhost:3159/dashboard.php
+				8 link Description:  实验, Value: localhost:3159/experiments.php?scope=1
+				9 link Description:  数据, Value: localhost:3159/smartlab-data.php
+				10 link Description:  周报汇报, Value: localhost:3159/smartlab-reports.php
+				11 link Description:  课题, Value: localhost:3159/student-projects.php
+				12 link Description:  待办与反馈, Value: localhost:3159/dashboard.php?tab=tasks
+				13 button (collapsed) 常用工具, Secondary Actions: Expand
+					14 text 常用工具
+		15 container
+			16 text 
+			17 text 2026-10-14
+			18 pop up button (collapsed) Description: Notifications, ID: navbarNotifDropdown, Secondary Actions: Expand
+				19 text 
+			20 pop up button (collapsed) Description: User menu, ID: navbarDropdown, Secondary Actions: Expand
+		21 container realContainer
+			22 heading 实验工作台, Value: 2
+				23 text 实验工作台
+			24 text 继续同一批次，记录本次变化和异常。
+			25 link Description: ＋ 开始新实验, Value: localhost:3159/dashboard.php#ls-new-record
+			26 button (collapsed) 开始新实验, Secondary Actions: Expand
+				27 text 开始新实验
+			28 heading 当前实验, Value: 3
+				29 text 当前实验
+			30 link Description: 查看全部实验 →, Value: localhost:3159/experiments.php?scope=1
+			31 container
+				32 text Western Blot
+				33 heading 部署验证：WB 模板保存测试（非真实实验）, Value: 3
+					34 link Description: 部署验证：WB 模板保存测试（非真实实验）, Value: localhost:3159/smartlab-record.php?id=1
+				35 text EXP-WB-2026-001  HPC-2026 · 海马抑制性环路研究 记录中
+				36 definition list
+					37 container 样本 / 分组
+						38 text 样本 / 分组
+					39 container
+						40 text 测试组：测试样本-001。仅做本机部署验证。 （草稿）
+					41 container 当前阶段
+						42 text 当前阶段
+					43 text 上样与电泳 · 草稿
+					44 container 最近记录
+						45 text 最近记录
+					46 container
+						47 text 10-14 01:55 · 上样与电泳 （草稿）
+					48 container 下一步
+						49 text 下一步
+					50 text 上样与电泳
+				51 link Description: 继续实验, Value: localhost:3159/smartlab-record.php?id=1
+				52 link Description: 原始资料（5）, Value: localhost:3159/smartlab-record.php?id=1#files
+			53 container
+				54 text Western Blot
+				55 heading CHECK-V3-BATCH1：同名原件校验（非真实实验）, Value: 3
+					56 link Description: CHECK-V3-BATCH1：同名原件校验（非真实实验）, Value: localhost:3159/smartlab-record.php?id=8
+				57 text EXP-WB-2026-005  HPC-2026 · 海马抑制性环路研究 待开始记录
+				58 definition list
+					59 container 样本 / 分组
+						60 text 样本 / 分组
+					61 text 尚未记录，可在实验中补充
+					62 container 当前阶段
+						63 text 当前阶段
+					64 text 样本与分组 · 尚未记录
+					65 container 最近记录
+						66 text 最近记录
+					67 text 10-14 05:09 · 实验模板已建立
+					68 container 下一步
+						69 text 下一步
+					70 text 样本与分组
+				71 link Description: 继续实验, Value: localhost:3159/smartlab-record.php?id=8
+				72 link Description: 原始资料（2）, Value: localhost:3159/smartlab-record.php?id=8#files
+			73 container
+				74 text 免疫荧光
+				75 heading AUDIT-20261014-IF（审评测试）, Value: 3
+					76 link Description: AUDIT-20261014-IF（审评测试）, Value: localhost:3159/smartlab-record.php?id=6
+				77 text EXP-IF-2026-001  HPC-2026 · 海马抑制性环路研究 待开始记录
+				78 definition list
+					79 container 样本 / 分组
+						80 text 样本 / 分组
+					81 text 尚未记录，可在实验中补充
+					82 container 当前阶段
+						83 text 当前阶段
+					84 text 样本与分组 · 尚未记录
+					85 container 最近记录
+						86 text 最近记录
+					87 text 10-14 04:02 · 实验模板已建立
+					88 container 下一步
+						89 text 下一步
+					90 text 样本与分组
+				91 link Description: 继续实验, Value: localhost:3159/smartlab-record.php?id=6
+				92 link Description: 原始资料（0）, Value: localhost:3159/smartlab-record.php?id=6#files
+			93 container
+				94 text qPCR
+				95 heading AUDIT-20261014-qPCR（审评测试）, Value: 3
+					96 link Description: AUDIT-20261014-qPCR（审评测试）, Value: localhost:3159/smartlab-record.php?id=5
+				97 text EXP-QPCR-2026-001  HPC-2026 · 海马抑制性环路研究 待开始记录
+				98 definition list
+					99 container 样本 / 分组
+						100 text 样本 / 分组
+					101 text 尚未记录，可在实验中补充
+					102 container 当前阶段
+						103 text 当前阶段
+					104 text 样本与分组 · 尚未记录
+					105 container 最近记录
+						106 text 最近记录
+					107 text 10-14 04:00 · 实验模板已建立
+					108 container 下一步
+						109 text 下一步
+					110 text 样本与分组
+				111 link Description: 继续实验, Value: localhost:3159/smartlab-record.php?id=5
+				112 link Description: 原始资料（0）, Value: localhost:3159/smartlab-record.php?id=5#files
+			113 container
+				114 text Western Blot
+				115 heading jkljk, Value: 3
+					116 link Description: jkljk, Value: localhost:3159/smartlab-record.php?id=4
+				117 text EXP-WB-2026-004  尚未关联课题 待开始记录
+				118 definition list
+					119 container 样本 / 分组
+						120 text 样本 / 分组
+					121 text 尚未记录，可在实验中补充
+					122 container 当前阶段
+						123 text 当前阶段
+					124 text 样本与分组 · 尚未记录
+					125 container 最近记录
+						126 text 最近记录
+					127 text 10-14 03:07 · 实验模板已建立
+					128 container 下一步
+						129 text 下一步
+					130 text 样本与分组
+				131 link Description: 继续实验, Value: localhost:3159/smartlab-record.php?id=4
+				132 link Description: 原始资料（0）, Value: localhost:3159/smartlab-record.php?id=4#files
+			133 container
+				134 text Western Blot
+				135 heading 的, Value: 3
+					136 link Description: 的, Value: localhost:3159/smartlab-record.php?id=3
+				137 text EXP-WB-2026-003  HPC-2026 · 海马抑制性环路研究 待开始记录
+				138 definition list
+					139 container 样本 / 分组
+						140 text 样本 / 分组
+					141 text 尚未记录，可在实验中补充
+					142 container 当前阶段
+						143 text 当前阶段
+					144 text 样本与分组 · 尚未记录
+					145 container 最近记录
+						146 text 最近记录
+					147 text 10-14 00:06 · 实验目的与计划
+					148 container 下一步
+						149 text 下一步
+					150 text 样本与分组
+				151 link Description: 继续实验, Value: localhost:3159/smartlab-record.php?id=3
+				152 link Description: 原始资料（2）, Value: localhost:3159/smartlab-record.php?id=3#files
+			153 container
+				154 text Western Blot
+				155 heading neun, Value: 3
+					156 link Description: neun, Value: localhost:3159/smartlab-record.php?id=2
+				157 text EXP-WB-2026-002  HPC-2026 · 海马抑制性环路研究 待开始记录
+				158 definition list
+					159 container 样本 / 分组
+						160 text 样本 / 分组
+					161 text 尚未记录，可在实验中补充
+					162 container 当前阶段
+						163 text 当前阶段
+					164 text 样本与分组 · 尚未记录
+					165 container 最近记录
+						166 text 最近记录
+					167 container
+						168 text 10-13 23:28 · 实验目的与计划 （草稿）
+					169 container 下一步
+						170 text 下一步
+					171 text 样本与分组
+				172 link Description: 继续实验, Value: localhost:3159/smartlab-record.php?id=2
+				173 link Description: 原始资料（1）, Value: localhost:3159/smartlab-record.php?id=2#files
+			174 container 辅助入口
+				175 link Description: 待关联数据 收到仪器文件后，确认所属实验, Value: localhost:3159/smartlab-data.php
+				176 link Description: 周 / 双周汇报 汇报前集中整理已有结果, Value: localhost:3159/smartlab-reports.php
+				177 link Description: 待办与反馈 查看需要补充的记录, Value: localhost:3159/dashboard.php?tab=tasks
+			178 button (collapsed) 本周任务与提醒（辅助）, Secondary Actions: Expand
+				179 text 本周任务与提醒（辅助）
+			180 container
+				181 link Description: 问题反馈, Value: localhost:3159/dashboard.php#
+				182 text LabSmart  实验记录与导师协作
+
+The focused UI element is 1 AXWebArea 实验记录 - LabSmart, URL: localhost:3159/dashboard.php

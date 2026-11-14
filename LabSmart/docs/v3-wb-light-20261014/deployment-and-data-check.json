@@ -1,0 +1,12 @@
+{
+  "deployed_sources_match": 6,
+  "prior_record_rows_preserved": 14,
+  "prior_upload_rows_preserved": 10,
+  "prior_file_bytes_preserved": 19,
+  "fixture_experiment_id": 14,
+  "changed_one_value_preserved": true,
+  "finished_without_report": true,
+  "uploaded_file_bytes_and_sha256_match": true,
+  "upload_linked_to_confirmed_step": true,
+  "post_upload_keeps_experiment_finished": true
+}

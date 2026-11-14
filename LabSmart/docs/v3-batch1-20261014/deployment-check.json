@@ -1,0 +1,10 @@
+{
+  "php_files_match": 9,
+  "templates_match": 4,
+  "php_syntax": "passed",
+  "container": "smartlab-v4-elabftw",
+  "url": "https://localhost:3159/",
+  "visual_screenshots": "3 real current screenshots saved and inspected",
+  "stylesheet_matches": true,
+  "container_health": "healthy"
+}

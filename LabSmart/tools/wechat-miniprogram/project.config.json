@@ -1,0 +1,8 @@
+{
+  "name": "LabSmart",
+  "appid": "touristappid",
+  "compileType": "miniprogram",
+  "projectname": "smartlab-miniprogram",
+  "setting": { "urlCheck": false, "es6": true, "minified": false },
+  "libVersion": "latest"
+}

@@ -1,0 +1,117 @@
+Browser tab: 1, Title: "部署验证：WB 模板保存测试（非真实实验） - LabSmart", URL: "https://localhost:3159/smartlab-record.php?id=1".
+1 AXWebArea 部署验证：WB 模板保存测试（非真实实验） - LabSmart, URL: localhost:3159/smartlab-record.php?id=1
+	2 link Description: Skip to content, Value: localhost:3159/smartlab-record.php?id=1#content-start
+	3 container container
+		4 container Main menu
+			5 link Description: Go to dashboard, Value: localhost:3159/dashboard.php
+			6 container main-nav
+				7 link Description:  实验工作台, Value: localhost:3159/dashboard.php
+				8 link Description:  实验, Value: localhost:3159/experiments.php?scope=1
+				9 link Description:  数据, Value: localhost:3159/smartlab-data.php
+				10 link Description:  周报汇报, Value: localhost:3159/smartlab-reports.php
+				11 link Description:  课题, Value: localhost:3159/student-projects.php
+				12 link Description:  待办与反馈, Value: localhost:3159/dashboard.php?tab=tasks
+				13 button (collapsed) 常用工具, Secondary Actions: Expand
+					14 text 常用工具
+		15 container
+			16 text 
+			17 text 2026-10-14
+			18 pop up button (collapsed) Description: Notifications, ID: navbarNotifDropdown, Secondary Actions: Expand
+				19 text 
+			20 pop up button (collapsed) Description: User menu, ID: navbarDropdown, Secondary Actions: Expand
+		21 container realContainer
+			22 container
+				23 link Description:  实验工作台, Value: localhost:3159/dashboard.php
+				24 heading 部署验证：WB 模板保存测试（非真实实验）, Value: 1
+					25 text 部署验证：WB 模板保存测试（非真实实验）
+				26 text EXP-WB-2026-001 HPC-2026 · 海马抑制性环路研究 Western Blot · 记录模板
+				27 container rec-save-state
+					28 text 
+					29 text 修改后约 1.5 秒自动保存草稿
+			30 button (collapsed) 查看或调整实验背景、样本与方案, Secondary Actions: Expand
+				31 text 查看或调整实验背景、样本与方案
+			32 link Description: 快速记录, Value: localhost:3159/smartlab-record.php?id=1#rec-record
+			33 link Description: 原始资料（5）, Value: localhost:3159/smartlab-record.php?id=1#rec-files
+			34 link Description: 完整档案, Value: localhost:3159/smartlab-record.php?id=1#rec-archive
+			35 container rec-panel-record
+				36 tab group Description: 实验阶段, ID: rec-stepper
+					37 tab (selectable, settable, boolean) 样本与分组, Value: 0
+					38 tab (selected, settable, boolean) 上样与电泳, Value: 1
+					39 tab (selectable, settable, boolean) 转膜, Value: 0
+					40 tab (selectable, settable, boolean) 抗体孵育, Value: 0
+					41 tab (selectable, settable, boolean) 显影曝光, Value: 0
+					42 tab (selectable, settable, boolean) 完成记录, Value: 0
+				43 container bench-step-loading
+					44 heading 上样与电泳, Value: 3
+						45 text 上样与电泳
+					46 text 草稿待确认
+					47 text 在线记录 · 操作者：部署测试 学生 · 系统保存时间 2026-10-14 01:55
+					48 container
+						49 text 实际上样量 *
+						50 combo box (settable) 实际上样量 *, Value: 20 μg, ID: bench-loading-loading
+						51 text 实际胶浓度 *
+						52 combo box (settable) 实际胶浓度 *, Value: 10%, ID: bench-loading-gel
+						53 text 异常情况
+						54 container 常见异常选项
+							55 checkbox (settable, integer) Description: 条带较弱, Value: 1
+							56 checkbox (settable, integer) Description: 背景偏高, Value: 0
+							57 checkbox (settable, integer) Description: 非特异条带, Value: 0
+							58 checkbox (settable, integer) Description: 上样损失, Value: 0
+							59 checkbox (settable, integer) Description: 转膜气泡, Value: 0
+						60 text entry area (settable) 异常情况, Value: 条带较弱；部署验证草稿, ID: bench-loading-exception
+						61 button (collapsed) 操作时间、补录或纸质转录, Secondary Actions: Expand
+							62 text 操作时间、补录或纸质转录
+						63 button (collapsed) 关联本步照片或原始文件（0）, Secondary Actions: Expand
+							64 text 关联本步照片或原始文件（0）
+						65 button 确认本步实际操作
+						66 button 保存草稿
+						67 text 修改后自动保存草稿
+				68 container
+					69 heading 本次记录, Value: 3
+						70 text 本次记录
+					71 text 按保存时间  上样与电泳  草稿 10-14 01:55 · 部署测试 学生 gel：未填写 → 10%
+					72 text loading：未填写 → 20 μg
+					73 text exception：未填写 → 条带较弱；部署验证草稿  实验目的与计划  草稿 10-13 23:01 · 部署测试 学生 objective：未填写 → 部署功能验证：仅用于检查保存和刷新，不含真实实验数据。
+					74 text 实际操作者：未填写 → 部署测试 学生
+					75 text 记录方式：未填写 → live  样本与分组  草稿 10-13 23:01 · 部署测试 学生 groups：未填写 → 测试组：测试样本-001。仅做本机部署验证。
+					76 text sample_label：未填写 → 测试样本-001（演示）
+					77 text 实际操作者：未填写 → 部署测试 学生  完整参数表 10-13 23:00 · 部署测试 学生 payload：未填写 → 未填写
+					78 text results：未填写 → 未填写
+					79 text 记录方式：未填写 → configuration
+					80 link Description: 查看完整档案 →, Value: localhost:3159/smartlab-record.php?id=1#rec-archive
+				81 container bench-result-card
+					82 heading 结果与结论, Value: 3
+						83 text 结果与结论
+					84 text 尚未记录
+					85 container
+						86 text 结果摘要或观察到的现象
+						87 text entry area (settable) 结果摘要或观察到的现象, ID: rec-result-summary
+						88 text 本次结论与需要解释的问题
+						89 text entry area (settable) 本次结论与需要解释的问题, ID: rec-result-conclusion
+						90 button (collapsed) 关联本步照片或原始文件（0）, Secondary Actions: Expand
+							91 text 关联本步照片或原始文件（0）
+						92 button 确认结果与结论
+						93 button 保存草稿
+						94 text 修改后自动保存草稿
+					95 container
+						96 text 需要录入结构化结果表（CSV，最多 200 行）时，请到 
+						97 link Description: 原版记录页, Value: localhost:3159/experiments.php?mode=view&id=1#bench-result
+						98 text  录入。
+				99 container filesDiv
+					100 heading 照片与文件（5）, Value: 3
+						101 text 照片与文件（5）
+					102 text 原件原样保存 · 可在实验内随时补充
+					103 link Description:  fig_GAD67_quant.png, Value: localhost:3159/app/download.php?f=52%2F527021fe-e254-4d92-9d6f-c3c2c9192ea1.png&name=fig_GAD67_quant.png&storage=1
+					104 link Description:  IF_PV_NeuN_panel.png, Value: localhost:3159/app/download.php?f=69%2F69f2b7a4-7f85-4cfc-b001-ae14c72aced5.png&name=IF_PV_NeuN_panel.png&storage=1
+					105 link Description:  WB_GAD67_5s.png, Value: localhost:3159/app/download.php?f=4e%2F4e8d1d37-d6bc-4736-b4e2-96bd0dd5c4c6.png&name=WB_GAD67_5s.png&storage=1
+					106 link Description:  WB_GAD67_20s.png, Value: localhost:3159/app/download.php?f=8f%2F8f4ba75d-7750-444e-ad5e-9b48ef133048.png&name=WB_GAD67_20s.png&storage=1
+					107 link Description:  deployment-test.txt, Value: localhost:3159/app/download.php?f=97%2F97c29090-6d12-462e-9790-bf4adc7f98f3.txt&name=deployment-test.txt&storage=1
+					108 button  点击上传文件或照片 曝光原图、纸卡照片、仪器导出文件都可以在这里补充, ID: elabftw-dropzone
+						109 text 
+						110 text 点击上传文件或照片
+						111 text 曝光原图、纸卡照片、仪器导出文件都可以在这里补充
+			112 container
+				113 link Description: 问题反馈, Value: localhost:3159/smartlab-record.php?id=1#
+				114 text LabSmart  实验记录与导师协作
+
+The focused UI element is 1 AXWebArea 部署验证：WB 模板保存测试（非真实实验） - LabSmart, URL: localhost:3159/smartlab-record.php?id=1

@@ -1,0 +1,4 @@
+{
+  "desc": "LabSmart 小程序：扫码登录 Web/Agent，并查看实验。",
+  "rules": [{ "action": "allow", "page": "*" }]
+}

@@ -1,0 +1,18 @@
+[Unit]
+Description=SmartLab outbound SSH relay to the owner's public server
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+User=h3clab
+Type=simple
+ExecStart=/usr/bin/ssh -N -T -i /home/h3clab/.ssh/smartlab-relay-ed25519 -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/home/h3clab/.ssh/smartlab-relay-known-hosts -o ConnectTimeout=10 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes -R 127.0.0.1:12222:127.0.0.1:22 -R 127.0.0.1:13159:127.0.0.1:3159 smartlab-relay@83.229.126.64
+Restart=always
+RestartSec=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

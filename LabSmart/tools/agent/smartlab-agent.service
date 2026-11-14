@@ -1,0 +1,24 @@
+# SmartLab Agent (instrument data collector)
+# 安装到 /etc/systemd/system/smartlab-agent.service，按需修改 ExecStart 参数。
+[Unit]
+Description=SmartLab Agent - uploads instrument export folders to SmartLab
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# 建议使用专用低权限用户；也可先用现有登录用户运行
+User=h3clab
+ExecStart=/usr/bin/python3 /opt/smartlab-agent/smartlab-agent.py \
+  --server https://172.18.21.53:3159 \
+  --token REPLACE_WITH_DEVICE_TOKEN \
+  --name "仪器电脑 Agent" \
+  --watch /srv/instrument-export \
+  --stable-seconds 30 \
+  --state /var/lib/smartlab-agent/state.json \
+  --ca /opt/smartlab-agent/ca.pem
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

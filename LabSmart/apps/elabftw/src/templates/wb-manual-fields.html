@@ -1,0 +1,24 @@
+<section data-wb-manual>
+  <input type='hidden' name='wb_profile_present' value='{{ wbProfile ? "1" : "0" }}'>
+  <input type='hidden' name='wb_profile[expected_revision]' value='{{ wbProfile.revision|default(0) }}'>
+  <p class='smallgray'>入库时核对一次，学生选抗体后自动带出 WB 条件。</p>
+  {% if wbProfile.source_hash|default('') %}<p><a href='wb-conditions.php?source_id={{ wbProfile.id }}'>下载已保存的说明书 · V{{ wbProfile.revision }}</a></p>{% endif %}
+  <div class='form-group'><label for='{{ profilePrefix }}-file'>说明书（PDF / 文本，最大 5 MB）</label><input id='{{ profilePrefix }}-file' class='form-control-file' type='file' name='wb_manual' accept='.pdf,.txt'></div>
+  <details><summary>粘贴说明书文字 / 扫描件文字</summary><label class='sr-only' for='{{ profilePrefix }}-text'>说明书文字</label><textarea id='{{ profilePrefix }}-text' name='wb_text' class='form-control mt-2' rows='4' maxlength='300000' placeholder='粘贴含 WB 推荐条件的原文；扫描件仍可上传 PDF 原件。'></textarea></details>
+  <button class='btn btn-outline-primary my-3' type='button' data-wb-extract>提取说明书内容</button>
+  <span data-wb-extract-status role='status' class='smallgray'></span>
+  <div class='form-row'>
+  {% set profileLabels = {'role':'抗体类型','host_species':'抗体宿主','reactivity':'反应种属','target':'靶标','molecular_weight':'目标分子量（保留单位）','clone':'克隆号','storage':'保存条件','wb_dilution':'WB 推荐稀释比例','wb_diluent':'WB 推荐稀释液','wb_incubation':'WB 推荐孵育条件'} %}
+  {% for key,label in profileLabels %}
+    <div class='form-group col-md-6'><label for='{{ profilePrefix }}-{{ key }}'>{{ label }}</label>
+    {% if key == 'role' %}<select id='{{ profilePrefix }}-{{ key }}' class='form-control' name='wb_profile[role]'><option value='primary' {{ wbProfile.fields.role|default('primary') == 'primary' ? 'selected' }}>一抗</option><option value='secondary' {{ wbProfile.fields.role|default('') == 'secondary' ? 'selected' }}>二抗</option></select>
+    {% else %}<input id='{{ profilePrefix }}-{{ key }}' class='form-control' name='wb_profile[{{ key }}]' value='{{ wbProfile.fields[key]|default("") }}' maxlength='1000'>{% endif %}</div>
+  {% endfor %}
+  </div>
+  <details class='mb-3'><summary>实验室已经验证的条件（选填，优先于厂家推荐）</summary><div class='form-row mt-2'>
+    {% for key,label in {'lab_dilution':'常用稀释比例','lab_diluent':'常用稀释液','lab_incubation':'常用孵育条件'} %}<div class='form-group col-md-4'><label for='{{ profilePrefix }}-{{ key }}'>{{ label }}</label><input id='{{ profilePrefix }}-{{ key }}' name='wb_profile[{{ key }}]' class='form-control' value='{{ wbProfile.fields[key]|default("") }}' maxlength='1000'></div>{% endfor %}
+  </div></details>
+  <div class='form-group'><label for='{{ profilePrefix }}-method'>配套胶 / 电泳 / 转膜方案（选填）</label><select id='{{ profilePrefix }}-method' name='wb_profile[method_code]' class='form-control'><option value=''>使用实验室默认方案，或由学生选择</option>{% for method in wbMethods %}<option value='{{ method.code }}' {{ wbProfile.fields.method_code|default('') == method.code ? 'selected' }}>{{ method.name }}</option>{% endfor %}</select></div>
+  <details class='mb-3'><summary>来源链接与说明（选填）</summary><label for='{{ profilePrefix }}-url'>厂家页面</label><input id='{{ profilePrefix }}-url' name='wb_profile[source_url]' type='url' class='form-control' value='{{ wbProfile.fields.source_url|default("") }}' maxlength='1000'><label class='mt-2' for='{{ profilePrefix }}-note'>补充说明</label><input id='{{ profilePrefix }}-note' name='wb_profile[source_note]' class='form-control' value='{{ wbProfile.fields.source_note|default("") }}' maxlength='1000'></details>
+  <label class='d-block mb-3'><input type='checkbox' name='wb_profile[reviewed]' value='1'> 已核对本页信息；说明书未写明的内容保持空缺</label>
+</section>

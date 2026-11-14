@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class='container-fluid py-3'>
+  <a href='inventory.php?smartlab_view=assistant'>← 耗材入库</a>
+  <h2 class='mt-3'>抗体说明书与 WB 常用方案</h2>
+  <p class='smallgray'>整理一次，实验中直接选用。厂家推荐、实验室常用与本次实际条件分别保留。</p>
+  <div class='row'>
+    <div class='col-lg-4 mb-3'><div class='card'><div class='card-body'>
+      <h3 class='h5'>已入库抗体</h3>
+      {% for antibody in wbProfiles %}<a class='d-block border-bottom py-3' href='wb-conditions.php?smartlab_view=assistant&material_id={{ antibody.material_id }}'>{{ antibody.name }}<span class='d-block smallgray'>{{ antibody.brand }} · {{ antibody.catalog_no ?: antibody.code }} · {{ antibody.profile_id ? '说明书 V' ~ antibody.revision : '待整理说明书' }}</span></a>{% else %}<p>先在耗材入库中登记抗体。</p>{% endfor %}
+      <a class='btn btn-outline-secondary mt-3' href='#wb-methods'>维护常用 WB 方案</a>
+    </div></div></div>
+    <div class='col-lg-8 mb-3'><div class='card'><div class='card-body'>
+      {% if wbMaterial %}<h3 class='h5'>{{ wbMaterial.name }}</h3><p class='smallgray'>{{ wbMaterial.brand }} · {{ wbMaterial.catalog_no ?: wbMaterial.code }}</p>
+      {% if smartlabCanManageAssayCatalog %}<form method='post' enctype='multipart/form-data'>
+        {{ App.Session.get('csrf')|csrf }}<input type='hidden' name='smartlab_action' value='save_wb_profile'><input type='hidden' name='material_id' value='{{ wbMaterial.id }}'>
+        {% include 'wb-manual-fields.html' with {'profilePrefix':'wb-editor'} %}
+        <button class='btn btn-primary' type='submit'>保存已核对的条件</button>
+      </form>{% else %}<dl>{% for key,value in wbProfile.fields|default([]) %}<dt>{{ key }}</dt><dd>{{ value }}</dd>{% endfor %}</dl>{% endif %}
+      {% else %}<h3 class='h5'>选择一个抗体整理说明书</h3><p>学生使用时自动带出核对后的 WB 条件。未整理的抗体也可以选用，缺少的信息保持未知。</p>{% endif %}
+    </div></div></div>
+  </div>
+  <section class='card mt-3' id='wb-methods'><div class='card-body'>
+    <h3 class='h5'>常用 WB 方案</h3><p class='smallgray'>填写实验室实际使用并验证过的条件。胶和转膜可维护几种常用组合。</p>
+    <div class='mb-3'>{% for method in wbMethods %}<a class='btn btn-outline-secondary mr-2 mb-2' href='wb-conditions.php?smartlab_view=assistant&method_code={{ method.code|url_encode }}#wb-methods'>{{ method.name }} · V{{ method.revision }}</a>{% endfor %}<a class='btn btn-outline-primary mb-2' href='wb-conditions.php?smartlab_view=assistant#wb-methods'>新增方案</a></div>
+    {% if smartlabCanManageAssayCatalog %}<form method='post'>
+      {{ App.Session.get('csrf')|csrf }}<input type='hidden' name='smartlab_action' value='save_wb_method'><input type='hidden' name='expected_revision' value='{{ wbMethod.revision|default(0) }}'>
+      <div class='form-row'><div class='form-group col-md-4'><label for='wb-method-code'>方案编号</label><input id='wb-method-code' name='code' class='form-control' value='{{ wbMethod.code|default("") }}' pattern='[A-Za-z0-9_-]+' maxlength='100' required {{ wbMethod ? 'readonly' }}></div><div class='form-group col-md-8'><label for='wb-method-name'>方案名称</label><input id='wb-method-name' name='name' class='form-control' value='{{ wbMethod.name|default("") }}' maxlength='255' required></div></div>
+      <div class='form-row'>{% for key,label in wbMethodFields %}<div class='form-group col-md-6'><label for='wb-method-{{ key }}'>{{ label }}</label><input id='wb-method-{{ key }}' name='{{ key }}' class='form-control' value='{{ wbMethod.fields[key]|default("") }}' maxlength='1000'></div>{% endfor %}</div>
+      <label class='d-block mb-3'><input type='checkbox' name='is_default' value='1' {{ wbMethod.is_default|default(0) ? 'checked' }}> 设置为实验室默认方案</label>
+      <button type='submit' class='btn btn-primary'>保存常用方案</button>
+    </form>{% endif %}
+  </div></section>
+</div>
+<script defer src='/assets/smartlab-wb-manual.js?v=1'></script>
+{% endblock %}

@@ -1,0 +1,14 @@
+{
+  "scope": "Only synthetic audit files; package remains pending",
+  "package_id": 5,
+  "server_reported_files": 2,
+  "metadata_entries": 2,
+  "unique_stored_paths": 1,
+  "source_hashes_distinct": true,
+  "each_source_matches_stored": [
+    false,
+    true
+  ],
+  "collision_confirmed": true,
+  "source_files_retained": true
+}

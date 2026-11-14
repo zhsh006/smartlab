@@ -1,0 +1,9 @@
+<view class="card"><view class="h2">我的实验</view><view class="muted">共 {{list.length}} 条</view></view>
+<view class="card">
+  <view class="row" wx:for="{{list}}" wx:key="id" data-id="{{item.id}}" bindtap="open">
+    <view class="t"><view class="tt">{{item.title}}</view><view class="sub">{{item.date}}{{item.template ? ' · ' + item.template : ''}}{{item.mine ? ' · 我的' : ''}}</view></view>
+    <view class="chip">›</view>
+  </view>
+  <view class="muted" wx:if="{{!list.length && !err}}">还没有实验。</view>
+  <view class="err" wx:if="{{err}}">{{err}}</view>
+</view>

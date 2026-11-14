@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+{% block title %}<h1 id='pageTitle' hidden>{{ pageTitle }}</h1>{% endblock %}
+{% macro evidence(bench, record, id) %}
+<details class='bench-evidence'><summary>关联本步照片或原始文件（{{ record.data.evidence_ids|default([])|length }}）</summary>
+{% for upload in bench.uploads %}<label class='bench-file-option'><input type='checkbox' name='evidence_ids[]' value='{{ upload.id }}' {{ upload.id in record.data.evidence_ids|default([]) ? 'checked' }}> {{ upload.real_name }}</label>{% else %}<p class='smallgray'>可在本步上传文件，或选择已有附件作为原始证据。</p>{% endfor %}
+<button class='btn btn-outline-primary btn-sm' type='button' data-bench-upload>为本步上传文件或照片</button> <button class='bench-inline-action' type='button' data-bench-refresh-evidence>刷新附件列表</button> <a href='#rec-files' data-rec-tab-link='files'>查看全部原始附件</a></details>
+{% endmacro %}
+{% macro attachments(bench, record) %}
+{% for id in record.data.evidence_ids|default([]) %}{% set file = bench.uploads[id]|default(null) %}{% if file %}<a class='bench-evidence-link' href='{{ file.url }}' target='_blank' rel='noopener'>{{ file.real_name }}</a>{% else %}<span class='smallgray'>原附件 #{{ id }} 当前不可用</span>{% endif %}{% endfor %}
+{% endmacro %}
+{% block body %}
+{% set editable = smartlabCanManageExperiments and not Entity.isReadOnly and not bench.snapshot %}
+{% set wbLight = bench.template_key == 'western_blot' %}
+{% set assayLight = bench.template_key in ['qpcr','if'] %}
+{% if assayLight %}{% set editable = editable and assayCanEdit %}<link rel='stylesheet' href='/assets/smartlab-assay-workspace.css?v=20261015-qa2'>{% endif %}
+<link rel='stylesheet' media='all' href='/assets/labsmart-record.css?v=wb-conditions-1'>
+<div class='rec-page{{ wbLight ? " rec-wb-light" }}{{ assayLight ? " rec-assay" }}'>
+
+<header class='rec-head'>
+  <div class='rec-head-left'>
+    <a class='smallgray' href='dashboard.php'><i class='fas fa-arrow-left mr-1'></i>实验工作台</a>
+    <h1 class='rec-title'>{{ Entity.entityData.title|default('未命名实验') }}</h1>
+    <div class='rec-meta'>
+      {% if experimentCode %}<span class='rec-code'>{{ experimentCode }}</span>{% endif %}
+      {% if projectLabel %}<span>{{ projectLabel }}</span>{% endif %}
+      {% if bench.template_key %}<span>{{ bench.template.label }} · 记录模板</span>{% endif %}
+      {% if not editable %}<span class='pv-state is-default'>只读</span>{% endif %}
+    </div>
+  </div>
+  <div class='rec-save' id='rec-save-state'><i class='far fa-check-circle'></i><span>{{ assayLight ? (assayView.finished ? '已结束 · 资料可继续补充' : (assayView.recent ? '已保存 ' ~ assayView.recent : '随做随记')) : (wbLight ? '随做随记 · 完成时统一确认' : '修改后约 1.5 秒自动保存草稿') }}</span></div>
+</header>
+
+<details class='ls-disclosure' id='bench-plan'>
+  <summary>{{ wbLight ? '实验背景与计划（需要时再调整）' : '查看或调整实验背景、样本与方案' }}</summary>
+  <div class='rec-bg'>
+    <div class='rec-bg-main'>
+      {% if editable %}
+      <form method='post' action='experiments.php?mode=view&id={{ Entity.id }}' data-bench-form data-bench-key='plan'>
+        {{ App.Session.get('csrf')|csrf }}
+        <input type='hidden' name='smartlab_action' value='bench_save'>
+        <input type='hidden' name='record_key' value='plan'>
+        <input type='hidden' name='expected_revision' value='{{ bench.plan.revision|default(0) }}'>
+        <label for='rec-objective'>本次实验目的</label>
+        <textarea id='rec-objective' name='objective' class='form-control' rows='2' placeholder='{{ bench.legacy_objective ?: "写明本次要回答的问题" }}'>{{ bench.plan.data.fields.objective|default('') }}</textarea>
+        <label for='rec-plan-notes' class='mt-3'>计划说明或需要调整的条件</label>
+        <textarea id='rec-plan-notes' name='notes' class='form-control' rows='2'>{{ bench.plan.data.fields.notes|default('') }}</textarea>
+        <div class='bench-form-actions'><button class='btn btn-primary btn-sm' name='record_state' value='confirmed' type='submit'>确认本次计划</button><button class='btn btn-outline-secondary btn-sm' name='record_state' value='draft' type='submit'>保存草稿</button><span data-bench-save-status role='status'>修改后自动保存草稿</span></div>
+      </form>
+      {% elseif bench.plan %}
+      <p class='rec-read'>{{ bench.plan.data.fields.objective|default('尚未记录实验目的')|nl2br }}</p>
+      {% else %}
+      <p class='smallgray'>尚未记录实验目的与计划。</p>
+      {% endif %}
+    </div>
+    <div class='rec-bg-side'>
+      {% set prepare = bench.steps[0].record|default(null) %}
+      <div><span class='rec-label'>样本与分组</span><p>{% if prepare and (prepare.data.fields.groups|default('') != '' or prepare.data.fields.sample_label|default('') != '') %}{{ prepare.data.fields.groups|default(prepare.data.fields.sample_label)|nl2br }}{% else %}<span class='smallgray'>尚未记录</span>{% endif %}</p></div>
+      <div><span class='rec-label'>方案来源</span><p>{% if bench.template_key %}{{ bench.template.label }}（基础模板）{% else %}<span class='smallgray'>未选择实验模板</span>{% endif %}<br><span class='smallgray'>带入值为方案参考，未确认前不代表实际执行。</span></p></div>
+    </div>
+  </div>
+</details>
+
+<div class='ls-tabs rec-tabs'>
+  <a href='#rec-record' class='active' data-rec-tab='record'>快速记录</a>
+  <a href='#rec-files' data-rec-tab='files'>原始资料（{{ bench.uploads|length }}）</a>
+  <a href='#rec-archive' data-rec-tab='archive'>完整档案</a>
+</div>
+
+<!-- ============ 快速记录 ============ -->
+<section class='rec-panel' id='rec-panel-record'>
+{% if not bench.template_key %}
+<section class='bench-card'>
+  <div class='bench-card-heading'><h3>选择实验类型模板</h3><span class='smallgray'>模板决定关键步骤与带入条件</span></div>
+  {% if editable %}
+  <form method='post' action='experiments.php?mode=view&id={{ Entity.id }}'>
+    {{ App.Session.get('csrf')|csrf }}
+    <input type='hidden' name='smartlab_action' value='bench_choose_template'>
+    <div class='rec-template-pick'>
+      <select id='rec-template' class='form-control' name='pack_key' required><option value=''>请选择</option><option value='western_blot'>Western Blot</option><option value='qpcr'>qPCR</option><option value='if'>免疫荧光</option><option value='ihc'>免疫组化</option><option value='elisa'>ELISA</option></select>
+      <button type='submit' class='btn btn-primary'>建立实验记录模板</button>
+    </div>
+  </form>
+  {% else %}<p class='smallgray'>尚未选择实验类型模板。</p>{% endif %}
+</section>
+{% elseif wbLight %}
+{% include 'smartlab-wb-quick.html' %}
+{% elseif assayLight %}
+{% include 'smartlab-assay-workspace.html' %}
+{% else %}
+{% set prevState = '' %}
+<div class='row rec-workspace'>
+  <div class='col-xl-3'>
+    <nav class='rec-stepper-v' id='rec-stepper' role='tablist' aria-label='实验阶段'>
+    {% for step in bench.steps %}{% set done = step.record.data.state|default('') == 'confirmed' %}
+      <button type='button' class='rec-step-v {{ done ? 'is-done' }}' data-rec-stage='{{ loop.index0 }}' role='tab'><span class='rec-step-v-dot'>{% if done %}<i class='fas fa-check'></i>{% else %}{{ loop.index0 + 1 }}{% endif %}</span><span class='rec-step-v-label'>{{ step.definition.label }}</span></button>
+    {% endfor %}
+    </nav>
+  </div>
+  <div class='{{ wbLight ? "col-xl-9" : "col-xl-6" }}'>
+  {% for step in bench.steps %}{% set record = step.record %}{% set done = record.data.state|default('') == 'confirmed' %}{% set d = step.definition %}
+    <section class='bench-card rec-step-card' data-rec-stage-card='{{ loop.index0 }}' id='bench-step-{{ d.key }}' {{ loop.index0 == currentStepIndex ? '' : 'hidden' }}>
+      <div class='bench-card-heading'>
+        <h3>{{ d.label }}</h3>
+        <span class='rec-stage-state'>{% if done %}<span class='pv-state is-confirmed'>已确认</span>{% elseif record %}<span class='pv-state is-default'>草稿待确认</span>{% else %}<span class='pv-state is-unknown'>尚未记录</span>{% endif %}</span>
+      </div>
+      {% if record %}<p class='bench-record-meta'>{% if wbLight %}最近保存 {{ (record.recorded_at ~ ' UTC')|date('m-d H:i','Asia/Shanghai') }} · {{ record.actor_name }}{% else %}{{ record.entry_mode == 'paper' ? '纸质转录' : record.entry_mode == 'retrospective' ? '补录' : '在线记录' }} · 操作者：{{ record.data.operator }}{% if record.occurred_at %} · 声明操作时间 {{ (record.occurred_at ~ ' UTC')|date('Y-m-d H:i','Asia/Shanghai') }}{% endif %} · 系统保存时间 {{ (record.recorded_at ~ ' UTC')|date('Y-m-d H:i','Asia/Shanghai') }}{% endif %}</p>{% endif %}
+      {% if editable %}
+      {% if wbLight %}{% include 'smartlab-wb-light.html' %}{% else %}
+      <form method='post' action='experiments.php?mode=view&id={{ Entity.id }}' data-bench-form data-bench-key='step.{{ d.key }}'>
+        {{ App.Session.get('csrf')|csrf }}
+        <input type='hidden' name='smartlab_action' value='bench_save'>
+        <input type='hidden' name='record_key' value='step.{{ d.key }}'>
+        <input type='hidden' name='expected_revision' value='{{ record.revision|default(0) }}'>
+        <div class='bench-fields'>{% for field in d.fields %}<div class='{{ field.kind == "textarea" ? "bench-field-wide" }}' {% if field.key == 'exception' %}data-bench-exception='{{ bench.template_key|default("") }}'{% endif %}><label for='bench-{{ d.key }}-{{ field.key }}'>{{ field.label }}{{ field.required ? ' *' }}</label>{% set value = record.data.fields[field.key]|default('') %}
+        {% if field.key == 'exception' %}<div class='rec-exception-presets' role='group' aria-label='常见异常选项'></div><textarea id='bench-{{ d.key }}-{{ field.key }}' name='{{ field.key }}' class='form-control' rows='2' placeholder='勾选常见异常，或直接填写'>{{ value }}</textarea>
+        {% elseif field.kind == 'sample' or field.kind == 'lot' %}<select id='bench-{{ d.key }}-{{ field.key }}' name='{{ field.key }}' class='form-control' data-bench-source='{{ field.kind }}'><option value=''>{{ field.kind == 'sample' ? '选择样本可带入编号与名称' : '选择批次可留下来源' }}</option>{% if field.kind == 'sample' %}{% for sample in smartlabAvailableSamplesArr %}<option value='{{ sample.id }}' {{ value == sample.id ? 'selected' }}>{{ sample.code }} · {{ sample.name }}</option>{% endfor %}{% else %}{% for lot in smartlabAvailableLotsArr %}<option value='{{ lot.lot_id }}' {{ value == lot.lot_id ? 'selected' }}>{{ lot.material_name }} · {{ lot.lot_no }}</option>{% endfor %}{% endif %}</select>
+        {% elseif field.kind == 'textarea' %}<textarea id='bench-{{ d.key }}-{{ field.key }}' name='{{ field.key }}' class='form-control' rows='2'>{{ value }}</textarea>{% else %}{% set optionKeys = {'loading':'loading_amounts','gel':'gel_percentages','transfer':'transfer_conditions','primary':'primary_antibodies','antibody':'primary_antibodies','dilution':'dilutions','incubation':'incubation_conditions','kit':'kit_names','target':'target_genes','reference':'reference_genes','volume':'reaction_volumes','instrument':'instruments'} %}{% set choices = smartlabAssayPresetCatalogArr[bench.template_key][optionKeys[field.key]|default('')]|default([]) %}<input list='rec-options-{{ d.key }}-{{ field.key }}' id='bench-{{ d.key }}-{{ field.key }}' name='{{ field.key }}' class='form-control' value='{{ value }}' maxlength='4000' data-bench-planned='{{ field.planned }}' placeholder='{{ field.planned ? "方案参考：" ~ field.planned : "填写实际使用条件" }}'><datalist id='rec-options-{{ d.key }}-{{ field.key }}'>{% for choice in choices %}<option value='{{ choice }}'></option>{% endfor %}</datalist>{% if field.planned %}<button class='bench-inline-action' type='button' data-bench-use-plan='bench-{{ d.key }}-{{ field.key }}'>带入方案值，核对后确认</button>{% endif %}{% endif %}</div>{% endfor %}</div>
+        <details class='bench-entry-details'><summary>操作时间、补录或纸质转录</summary><div class='bench-fields'><div><label for='bench-mode-{{ d.key }}'>记录方式</label><select id='bench-mode-{{ d.key }}' name='entry_mode' class='form-control'><option value='live' {{ record.entry_mode|default('') == 'live' ? 'selected' }}>现场记录；修订保留原操作时间</option><option value='repeat' {{ record.entry_mode|default('') == 'repeat' ? 'selected' }}>重复执行本步，记录新的操作时间</option><option value='retrospective' {{ record.entry_mode|default('') == 'retrospective' ? 'selected' }}>补录先前操作</option><option value='paper' {{ record.entry_mode|default('') == 'paper' ? 'selected' }}>从纸质操作单转录</option></select></div><div><label for='bench-operator-{{ d.key }}'>实际操作者</label><input id='bench-operator-{{ d.key }}' name='operator' class='form-control' value='{{ record.data.operator|default(bench.operator) }}' maxlength='120'></div><div><label for='bench-time-{{ d.key }}'>补录的实际操作时间</label><input id='bench-time-{{ d.key }}' name='occurred_at' type='datetime-local' class='form-control' value='{{ record.data.declared_time|default("") }}'></div><div><label for='bench-reason-{{ d.key }}'>补录或转录说明</label><input id='bench-reason-{{ d.key }}' name='entry_reason' class='form-control' value='{{ record.data.entry_reason|default("") }}'></div></div></details>
+        {{ _self.evidence(bench,record,d.key) }}
+        <div class='bench-form-actions'><button class='btn btn-primary btn-sm' name='record_state' value='confirmed' type='submit'>{{ done ? '保存修订并重新确认' : '确认本步实际操作' }}</button><button class='btn btn-outline-secondary btn-sm' name='record_state' value='draft' type='submit'>保存草稿</button><span data-bench-save-status role='status'>修改后自动保存草稿</span></div>
+      </form>
+      {% endif %}
+      {% else %}
+      <dl class='bench-read-fields'>{% for field in d.fields %}<dt>{{ field.label }}</dt><dd>{{ record.data.fields[field.key ~ '_label']|default(record.data.fields[field.key]|default('')) ?: '尚未记录' }}</dd>{% endfor %}</dl>
+      {{ _self.attachments(bench,record) }}
+      {% endif %}
+    </section>
+  {% endfor %}
+  </div>
+
+  {% if not wbLight %}<div class='col-xl-3'>
+    <section class='bench-card'>
+      <div class='bench-card-heading'><h3>本次记录</h3><span class='smallgray'>按保存时间</span></div>
+      <div class='pv-timeline'>
+      {% for event in historyView %}
+        <div class='pv-tl-item'>
+          <span class='pv-tl-icon {{ event.type == 'confirmed' ? 'is-confirm' : event.type == 'draft_saved' ? '' : event.type == 'feedback' ? 'is-retro' : 'is-change' }}'><i class='fas {{ event.type == 'confirmed' ? 'fa-check' : event.type == 'feedback' ? 'fa-comment' : 'fa-pen' }}'></i></span>
+          <div class='pv-tl-body'>
+            <div class='pv-tl-title'>{{ event.label }}{% if event.type == 'confirmed' %} <span class='pv-state is-confirmed'>已确认</span>{% elseif event.type == 'draft_saved' %} <span class='pv-state is-default'>草稿</span>{% endif %}{% if event.mode == 'retrospective' %} <span class='pv-state is-unknown'>补录</span>{% elseif event.mode == 'paper' %} <span class='pv-state is-unknown'>纸质转录</span>{% endif %}</div>
+            <div class='pv-tl-meta'>{{ event.time }}{% if event.actor %} · {{ event.actor }}{% endif %}</div>
+            {% if event.changes|length %}<div class='pv-tl-note'>{% for change in event.changes %}{{ change.field }}：{{ change.before|default('未填写') }} → {{ change.after|default('未填写') }}{% if not loop.last %}<br>{% endif %}{% endfor %}</div>{% endif %}
+            {% if event.reason %}<div class='pv-tl-note'>“{{ event.reason }}”</div>{% endif %}
+          </div>
+        </div>
+      {% else %}<p class='smallgray'>还没有现场记录。</p>{% endfor %}
+      </div>
+      <a class='smallgray' href='#rec-archive' data-rec-tab-link='archive'>查看完整档案 →</a>
+    </section>
+  </div>
+  {% endif %}
+</div>
+
+{% set result = bench.result %}
+{% if wbLight %}<details class='bench-card wb-optional-result' id='bench-result-card'><summary>补充结果与结论（选填，可稍后整理）</summary>{% else %}<section class='bench-card' id='bench-result-card'>{% endif %}
+  <div class='bench-card-heading'><h3>结果与结论</h3><span class='rec-stage-state'>{% if result and result.data.state|default('') == 'confirmed' %}<span class='pv-state is-confirmed'>已确认</span>{% elseif result %}<span class='pv-state is-default'>草稿待确认</span>{% else %}<span class='pv-state is-unknown'>尚未记录</span>{% endif %}</span></div>
+  {% if editable %}
+  <form method='post' action='experiments.php?mode=view&id={{ Entity.id }}' data-bench-form data-bench-key='result'>
+    {{ App.Session.get('csrf')|csrf }}
+    <input type='hidden' name='smartlab_action' value='bench_save'>
+    <input type='hidden' name='record_key' value='result'>
+    <input type='hidden' name='expected_revision' value='{{ result.revision|default(0) }}'>
+    <label for='rec-result-summary'>结果摘要或观察到的现象</label><textarea id='rec-result-summary' name='summary' class='form-control' rows='2'>{{ result.data.fields.summary|default('') }}</textarea>
+    <label for='rec-result-conclusion' class='mt-3'>本次结论与需要解释的问题</label><textarea id='rec-result-conclusion' name='conclusion' class='form-control' rows='2'>{{ result.data.fields.conclusion|default('') }}</textarea>
+    {{ _self.evidence(bench,result,'result') }}
+    <div class='bench-form-actions'><button class='btn btn-primary btn-sm' name='record_state' value='confirmed' type='submit'>确认结果与结论</button><button class='btn btn-outline-secondary btn-sm' name='record_state' value='draft' type='submit'>保存草稿</button><span data-bench-save-status role='status'>修改后自动保存草稿</span></div>
+  </form>
+  {% elseif result %}
+  <p>{{ result.data.fields.summary|default('尚未记录结果')|nl2br }}</p>
+  <p><strong>结论：</strong>{{ result.data.fields.conclusion|default('尚未记录')|nl2br }}</p>
+  {{ _self.attachments(bench,result) }}
+  {% else %}<p class='smallgray'>尚未记录结果。</p>{% endif %}
+  <p class='smallgray rec-hint'>需要录入结构化结果表（CSV，最多 200 行）时，请到 <a href='experiments.php?mode=view&id={{ Entity.id }}#bench-result'>原版记录页</a> 录入。</p>
+{% if wbLight %}</details>{% else %}</section>{% endif %}
+{% endif %}
+
+<section class='bench-card' id='filesDiv' {{ wbLight or assayLight ? 'hidden' }}>
+  <div class='bench-card-heading'><h3>照片与文件（{{ bench.uploads|length }}）</h3><span class='smallgray'>原件原样保存 · 可在实验内随时补充</span></div>
+  <div class='rec-uploads'>
+    {% for file in bench.uploads %}<a class='rec-file' href='{{ file.url }}' target='_blank' rel='noopener'><i class='far fa-file mr-1'></i>{{ file.real_name }}</a>{% endfor %}
+  </div>
+  <div class='rec-drop' id='elabftw-dropzone' action='api/v2/experiments/{{ Entity.id }}/uploads' data-smartlab-open-upload-dialog role='button' tabindex='0'>
+    <i class='fas fa-cloud-arrow-up'></i>
+    <span>点击上传文件或照片<br><span class='smallgray'>曝光原图、纸卡照片、仪器导出文件都可以在这里补充</span></span>
+  </div>
+</section>
+</section>
+
+<!-- ============ 原始资料 ============ -->
+<section class='rec-panel' id='rec-panel-files' hidden>
+  <section class='ls-panel'>
+    <div class='ls-panel-heading'><h3>原始资料（{{ bench.uploads|length }}）</h3><span class='smallgray'>文件字节原样保存；各步骤可单独关联证据</span></div>
+    <div class='table-responsive'><table class='ls-table'>
+      <thead><tr><th>文件</th><th class='ls-column-date'>文件 ID</th><th>操作</th></tr></thead>
+      <tbody>
+      {% for file in bench.uploads %}
+        <tr><td><a class='ls-record-title' href='{{ file.url }}' target='_blank' rel='noopener'>{{ file.real_name }}</a><div class='ls-secondary'>实验附件</div></td><td class='ls-column-date'>#{{ file.id }}</td><td><a href='{{ file.url }}' target='_blank' rel='noopener'>打开 / 下载</a></td></tr>
+      {% else %}<tr><td colspan='3'><div class='ls-empty'><strong>还没有原始文件</strong>回到“快速记录”上传现场照片或仪器导出文件。</div></td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+</section>
+
+<!-- ============ 完整档案 ============ -->
+<section class='rec-panel' id='rec-panel-archive' hidden>
+  {% if assayLight %}<a href='#rec-record' data-rec-tab-link='record' class='assay-back'><i class='fas fa-arrow-left'></i> 返回现场记录</a><h2 class='assay-section-title'>本次条件与参考</h2><div class='table-responsive'><table class='assay-table'><thead><tr><th>项目</th><th>当时参考</th><th>本次记录</th><th>状态</th></tr></thead><tbody>{% for row in assayView.rows %}<tr><td>{{ row.label }}</td><td>{{ row.reference ?: '—' }}</td><td>{{ row.candidate ?: '—' }}</td><td>{{ row.state == 'unknown' ? '未记录' : (row.state in ['confirmed_actual','confirmed_default','overridden'] ? (row.state == 'overridden' ? '本次已改' : '已确认') : '参考 / 草稿') }}</td></tr>{% endfor %}</tbody></table></div>{% endif %}
+  {% if wbLight %}{% include 'smartlab-wb-actual-table.html' %}{% endif %}
+  {% set hasLegacySteps = bench.steps|filter(step => step.definition.key != 'finish' and step.record is not null)|length > 0 %}
+  {% if not assayLight and (not wbLight or hasLegacySteps) %}
+  {% if wbLight %}<details class='mt-3'><summary>以前按步骤记录的条件</summary>{% endif %}
+  <section class='ls-panel'>
+    <div class='ls-panel-heading'><h3>方案与实际条件</h3><span class='smallgray'>未记录的信息保持“未知”，不显示为已执行</span></div>
+    <div class='table-responsive'><table class='ls-table'>
+      <thead><tr><th>阶段 · 参数</th><th>方案参考</th><th>实际情况</th><th>状态</th></tr></thead>
+      <tbody>
+      {% for step in bench.steps %}{% set record = step.record %}
+        {% for field in step.definition.fields %}
+        {% set actual = record ? (record.data.fields[field.key ~ '_label']|default(record.data.fields[field.key]|default(''))) : '' %}
+        {% set confirmed = record and record.data.state|default('') == 'confirmed' %}
+        {% set reference = wbLight and record.data.reference_values is defined ? record.data.reference_values[field.key]|default('') : field.planned %}
+        <tr>
+          <td>{{ step.definition.label }} · {{ field.label }}</td>
+          <td>{{ reference ?: '—' }}</td>
+          <td>{% if wbLight and not confirmed %}—{% if actual %}<div class='ls-secondary'>待确认：{{ actual }}</div>{% endif %}{% else %}{{ actual ?: '—' }}{% endif %}</td>
+          <td>{% if not actual %}<span class='pv-state is-unknown'>尚未记录</span>{% elseif not confirmed %}<span class='pv-state is-default'>草稿待确认</span>{% elseif reference and actual != reference %}<span class='pv-state is-overridden'>本次已改</span>{% elseif reference %}<span class='pv-state is-confirmed'>实际按方案</span>{% else %}<span class='pv-state is-confirmed'>已确认实际</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+  {% if wbLight %}</details>{% endif %}
+  {% endif %}
+  {% if not assayLight %}<section class='ls-panel'>
+    <div class='ls-panel-heading'><h3>记录与修改历史</h3><a class='smallgray' href='experiments.php?mode=view&id={{ Entity.id }}'>打开原版记录页</a></div>
+    <div class='rec-history'>
+      {% for event in historyFullView %}
+      <article class='rec-history-item'>
+        <div class='pv-tl-title'>{{ event.label }}{% if event.state == 'draft' %}（草稿）{% endif %}</div>
+        <div class='pv-tl-meta'>{{ event.time }}{% if event.actor %} · {{ event.actor }}{% endif %}{% if event.mode == 'retrospective' %} · 补录{% elseif event.mode == 'paper' %} · 纸质转录{% endif %}</div>
+        {% if event.changes|length %}<details><summary>查看字段变化</summary>{% for change in event.changes %}<p><strong>{{ change.field }}</strong>：{{ change.before|default('未填写') }} → {{ change.after|default('未填写') }}</p>{% endfor %}</details>{% endif %}
+        {% if event.reason %}<p class='smallgray'>{{ event.reason }}</p>{% endif %}
+      </article>
+      {% else %}<p class='smallgray'>尚无记录历史。</p>{% endfor %}
+    </div>
+  </section>{% else %}<h2 class='assay-section-title'>过程记录</h2>{% include 'smartlab-assay-events.html' %}{% endif %}
+</section>
+
+</div>
+<script defer src='/assets/labsmart-bench.js?v=wb-light-4'></script>
+<script defer src='/assets/labsmart-record.js?v=wb-light-4'></script>
+{% if wbLight %}<script defer src='/assets/smartlab-wb-quick.js?v=2'></script>{% endif %}
+{% if assayLight %}<script defer src='/assets/smartlab-assay-workspace.js?v=20261015-qa2'></script>{% endif %}
+{% endblock %}
